@@ -1,0 +1,150 @@
+version: '3'
+
+# TODO: Add composer cache volume as external...
+# TODO: Add yarn/npm cache volume as external ...
+
+volumes:
+  db-data:
+  app-src:
+  composer-cache:
+
+services:
+  unison:
+    container_name: ${WF2_CONTEXT_NAME}_unison
+    image: wearejh/unison
+    volumes:
+      - ${WF2_PWD}:/volumes/host
+      - app-src:/volumes/internal
+      - .docker/unison/conf/sync.prf:/home/docker/.unison/sync.prf
+    env_file:
+      - ${WF2_ENV_FILE}
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=false"
+
+  traefik:
+    container_name: ${WF2_CONTEXT_NAME}_traefik
+    image: traefik
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .docker/traefik/traefik.toml:/etc/traefik/traefik.toml
+    ports:
+      - 80:80
+      - 443:443
+      - 8080:8080
+    command: --api --docker
+    labels:
+      - "traefik.enable=false"
+
+  # TODO: Varnish M2 image ?
+  varnish:
+    container_name: ${WF2_CONTEXT_NAME}_varnish
+    image: wearejh/magento-varnish:latest
+    depends_on:
+      - nginx
+    labels:
+      - traefik.frontend.rule=Host:${WF2_DOMAIN}
+
+  nginx:
+    container_name: ${WF2_CONTEXT_NAME}_nginx
+    image: wearejh/nginx:stable-m2
+    volumes:
+      - .docker/nginx/sites:/etc/nginx/conf.d
+      - app-src:/var/www
+    working_dir: /var/www
+    depends_on:
+      - php
+    env_file:
+      - ${WF2_ENV_FILE}
+
+  php:
+    container_name: ${WF2_CONTEXT_NAME}_php
+    image: wearejh/php:7.2-m2
+    volumes:
+      - app-src:/var/www
+      - composer-cache:/home/www-data/.composer/cache
+    depends_on:
+      - db
+    ports:
+      - 9000
+    env_file:
+      - ${WF2_ENV_FILE}
+    labels:
+      - "traefik.enable=false"
+
+  php-debug:
+    container_name: ${WF2_CONTEXT_NAME}_php_debug
+    image: wearejh/php:7.2-m2
+    volumes:
+      - app-src:/var/www
+      - composer-cache:/home/www-data/.composer/cache
+    depends_on:
+      - db
+    ports:
+      - 9000
+    environment:
+      - XDEBUG_ENABLE=true
+    env_file:
+      - ${WF2_ENV_FILE}
+    labels:
+      - "traefik.enable=false"
+
+  node:
+    container_name: ${WF2_CONTEXT_NAME}_node
+    image: wearejh/node:8-m2
+    volumes:
+      - app-src:/var/www
+    #            - npm-cache:/home/www-data/.npm # YARN / NPM cache dirs ?!?
+    env_file:
+      - .docker/local.env
+    labels:
+      - "traefik.enable=false"
+
+  db:
+    container_name: ${WF2_CONTEXT_NAME}_db
+    image: mysql:5.6
+    volumes:
+      - db-data:/var/lib/mysql
+      - .docker/db/:/docker-entrypoint-initdb.d/
+    ports:
+      - "3306:3306"
+    restart: unless-stopped
+    env_file:
+      - ${WF2_ENV_FILE}
+    labels:
+      - "traefik.enable=false"
+
+  redis:
+    container_name: ${WF2_CONTEXT_NAME}_redis
+    image: redis:3-alpine
+    ports:
+      - "6379:6379"
+    labels:
+      - "traefik.enable=false"
+
+  mail:
+    container_name: ${WF2_CONTEXT_NAME}_mail
+    image: mailhog/mailhog
+    ports: # TODO: required?
+      - 1025
+    labels:
+      - "traefik.frontend.rule=Host:mail.jh"
+      - "traefik.port=8025"
+
+  blackfire:
+    container_name: ${WF2_CONTEXT_NAME}_blackfire
+    image: blackfire/blackfire
+    env_file:
+      - ${WF2_ENV_FILE}
+    labels:
+      - "traefik.enable=false"
+
+#    rabbitmq:
+#        image: rabbitmq:3.6.15-management-alpine
+#        env_file:
+#            - ./.docker/local.env
+#        ports:
+#            - "15672:15672"
+#            - "5672:5672"
+#        labels:
+#            - "traefik.enable=false"
