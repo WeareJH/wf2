@@ -23,15 +23,12 @@ impl WF2 {
     pub fn exec(
         ctx: Context,
         recipe: Recipe,
-    ) -> (
-        Vec<Task>,
-        Box<Future<Item = (), Error = (Task, TaskError)> + Send>,
-    ) {
+        tasks: Vec<Task>,
+    ) -> Box<Future<Item = (), Error = (Task, TaskError)> + Send> {
         // define the sequence of tasks
-        let tasks = recipe.resolve(&ctx);
         let tasks_clone = tasks.clone();
 
-        let fut = Box::new(lazy(move || {
+        Box::new(lazy(move || {
             // convert the list of tasks into a sequence
             let as_futures = tasks
                 .clone()
@@ -54,8 +51,6 @@ impl WF2 {
                     }
                 })
             })
-        }));
-
-        (tasks_clone.clone(), fut)
+        }))
     }
 }

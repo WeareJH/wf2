@@ -10,7 +10,7 @@ volumes:
 
 services:
   unison:
-    container_name: wf2__${WF2_CONTEXT_NAME}_unison
+    container_name: wf2__${WF2_CONTEXT_NAME}__unison
     image: wearejh/unison
     volumes:
       - ${WF2_PWD}:/volumes/host
@@ -23,7 +23,7 @@ services:
       - "traefik.enable=false"
 
   traefik:
-    container_name: wf2__${WF2_CONTEXT_NAME}_traefik
+    container_name: wf2__${WF2_CONTEXT_NAME}__traefik
     image: traefik
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -38,7 +38,7 @@ services:
 
   # TODO: Varnish M2 image ?
   varnish:
-    container_name: wf2__${WF2_CONTEXT_NAME}_varnish
+    container_name: wf2__${WF2_CONTEXT_NAME}__varnish
     image: wearejh/magento-varnish:latest
     depends_on:
       - nginx
@@ -46,7 +46,7 @@ services:
       - traefik.frontend.rule=Host:${WF2_DOMAIN}
 
   nginx:
-    container_name: wf2__${WF2_CONTEXT_NAME}_nginx
+    container_name: wf2__${WF2_CONTEXT_NAME}__nginx
     image: wearejh/nginx:stable-m2
     volumes:
       - ${WF2_PWD}/.docker/nginx/sites:/etc/nginx/conf.d
@@ -59,7 +59,7 @@ services:
 
   php:
     container_name: wf2__${WF2_CONTEXT_NAME}__php
-    image: wearejh/php:7.2-m2
+    image: ${WF2_PHP_IMAGE}
     volumes:
       - app-src:/var/www
       - composer-cache:/home/www-data/.composer/cache
@@ -73,7 +73,7 @@ services:
       - "traefik.enable=false"
 
   php-debug:
-    container_name: wf2__${WF2_CONTEXT_NAME}_php_debug
+    container_name: wf2__${WF2_CONTEXT_NAME}__php_debug
     image: wearejh/php:7.2-m2
     volumes:
       - app-src:/var/www
@@ -101,7 +101,7 @@ services:
       - "traefik.enable=false"
 
   db:
-    container_name: wf2__${WF2_CONTEXT_NAME}_db
+    container_name: wf2__${WF2_CONTEXT_NAME}__db
     image: mysql:5.6
     volumes:
       - db-data:/var/lib/mysql
@@ -114,7 +114,7 @@ services:
       - "traefik.enable=false"
 
   redis:
-    container_name: wf2__${WF2_CONTEXT_NAME}_redis
+    container_name: wf2__${WF2_CONTEXT_NAME}__redis
     image: redis:3-alpine
     ports:
       - "6379:6379"
@@ -131,7 +131,7 @@ services:
       - "traefik.port=8025"
 
   blackfire:
-    container_name: wf2__${WF2_CONTEXT_NAME}_blackfire
+    container_name: wf2__${WF2_CONTEXT_NAME}__blackfire
     image: blackfire/blackfire
     env_file:
       - ${WF2_ENV_FILE}

@@ -1,7 +1,7 @@
-use crate::context::Context;
+use crate::context::{Cmd, Context};
 use crate::task::Task;
 
-mod m2_php_7_2;
+mod m2;
 
 #[derive(Debug, Clone)]
 pub enum Recipe {
@@ -10,17 +10,21 @@ pub enum Recipe {
 
 #[derive(Debug, Clone)]
 pub enum PHP {
-    //    SevenOne,
+    SevenOne,
     SevenTwo,
 }
 
 impl Recipe {
-    pub fn resolve(&self, context: &Context) -> Vec<Task> {
+    pub fn resolve(&self, context: &Context, cmd: Cmd) -> Option<Vec<Task>> {
         match self {
-            Recipe::M2 { php: PHP::SevenTwo } => m2_php_7_2::tasks(&context),
+            Recipe::M2 { php } => match cmd {
+                Cmd::Up => Some(m2::up(&context, php)),
+                Cmd::Down => Some(m2::down(&context, php)),
+                Cmd::Stop => Some(m2::stop(&context, php)),
+                Cmd::Exec { trailing } => Some(m2::exec(&context, trailing.clone())),
+                Cmd::Mage { trailing } => Some(m2::mage(&context, trailing.clone())),
+                _ => None,
+            },
         }
-    }
-    pub fn m2_php_7_2() -> Recipe {
-        Recipe::M2 { php: PHP::SevenTwo }
     }
 }

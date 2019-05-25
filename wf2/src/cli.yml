@@ -1,6 +1,9 @@
 name: wf2
 version: "1.0"
-about: Does awesome things
+about: Run PHP Projects with Docker
+settings:
+  - TrailingVarArg
+  - AllowLeadingHyphen
 args:
   - cwd:
       help: Sets the CWD for all docker commands
@@ -15,6 +18,27 @@ subcommands:
   - up:
       about: Bring up containers
       args:
+        - php:
+            long: php
+            help: choose 7.1 or 7.2
+            possible_values: [ "7.1", "7.2" ]
+            takes_value: true
         - detached:
             short: d
             help: detached
+  - down:
+      about: Take down containers & delete everything
+  - stop:
+      about: Take down containers & retain data
+  - exec:
+      about: Execute commands in the PHP container
+      args:
+        - cmd:
+            allow_hyphen_values: true
+            multiple: true
+  - m:
+      about: Execute commands in the PHP container
+      args:
+        - cmd:
+            allow_hyphen_values: true
+            multiple: true

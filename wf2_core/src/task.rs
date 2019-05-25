@@ -1,11 +1,12 @@
-use futures::future::lazy;
-use futures::future::Future;
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::Write;
-use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
-use std::{fmt, fs};
+use futures::{future::lazy, future::Future};
+use std::{
+    collections::HashMap,
+    fmt, fs,
+    fs::File,
+    io::Write,
+    path::{Path, PathBuf},
+    process::{Command, Stdio},
+};
 
 pub type FutureSig = Box<Future<Item = usize, Error = TaskError> + Send>;
 
@@ -26,6 +27,9 @@ pub enum Task {
         command: String,
         env: HashMap<String, String>,
         stdin: Vec<u8>,
+    },
+    SimpleCommand {
+        command: String,
     },
 }
 
@@ -70,6 +74,11 @@ impl Task {
             stdin: stdin.into(),
         }
     }
+    pub fn simple_command(command: impl Into<String>) -> Task {
+        Task::SimpleCommand {
+            command: command.into(),
+        }
+    }
 }
 
 ///
@@ -88,7 +97,9 @@ impl fmt::Display for Task {
                 path,
                 ..
             } => write!(f, "File exists: {:?}", path),
-            Task::Command { command, .. } => write!(f, "Command: {:?}", command),
+            Task::Command { command, .. } | Task::SimpleCommand { command, .. } => {
+                write!(f, "Command: {:?}", command)
+            }
         }
     }
 }
@@ -131,6 +142,20 @@ pub fn as_future(t: Task, id: usize) -> FutureSig {
                 })
             }
         }
+        Task::SimpleCommand { command } => {
+            let mut child_process = Command::new("sh");
+            child_process.arg("-c").arg(command);
+            child_process.stdin(Stdio::inherit());
+            child_process.stdout(Stdio::inherit());
+            child_process
+                .spawn()
+                .and_then(|mut c| c.wait())
+                .map(|_| id)
+                .map_err(|e| TaskError {
+                    index: id,
+                    message: format!("Could not run simple command, e={}", e),
+                })
+        }
         Task::Command {
             command,
             env,
@@ -139,7 +164,6 @@ pub fn as_future(t: Task, id: usize) -> FutureSig {
             let mut child_process = Command::new("sh");
 
             child_process.arg("-c").arg(command).envs(&env);
-
             child_process.stdin(Stdio::piped());
             child_process.stdout(Stdio::inherit());
 
