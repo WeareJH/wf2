@@ -10,12 +10,12 @@ volumes:
 
 services:
   unison:
-    container_name: ${WF2_CONTEXT_NAME}_unison
+    container_name: wf2__${WF2_CONTEXT_NAME}_unison
     image: wearejh/unison
     volumes:
       - ${WF2_PWD}:/volumes/host
       - app-src:/volumes/internal
-      - .docker/unison/conf/sync.prf:/home/docker/.unison/sync.prf
+      - ${WF2_PWD}/.docker/unison/conf/sync.prf:/home/docker/.unison/sync.prf
     env_file:
       - ${WF2_ENV_FILE}
     restart: unless-stopped
@@ -23,11 +23,11 @@ services:
       - "traefik.enable=false"
 
   traefik:
-    container_name: ${WF2_CONTEXT_NAME}_traefik
+    container_name: wf2__${WF2_CONTEXT_NAME}_traefik
     image: traefik
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - .docker/traefik/traefik.toml:/etc/traefik/traefik.toml
+      - ${WF2_PWD}/.docker/traefik/traefik.toml:/etc/traefik/traefik.toml
     ports:
       - 80:80
       - 443:443
@@ -38,7 +38,7 @@ services:
 
   # TODO: Varnish M2 image ?
   varnish:
-    container_name: ${WF2_CONTEXT_NAME}_varnish
+    container_name: wf2__${WF2_CONTEXT_NAME}_varnish
     image: wearejh/magento-varnish:latest
     depends_on:
       - nginx
@@ -46,10 +46,10 @@ services:
       - traefik.frontend.rule=Host:${WF2_DOMAIN}
 
   nginx:
-    container_name: ${WF2_CONTEXT_NAME}_nginx
+    container_name: wf2__${WF2_CONTEXT_NAME}_nginx
     image: wearejh/nginx:stable-m2
     volumes:
-      - .docker/nginx/sites:/etc/nginx/conf.d
+      - ${WF2_PWD}/.docker/nginx/sites:/etc/nginx/conf.d
       - app-src:/var/www
     working_dir: /var/www
     depends_on:
@@ -58,7 +58,7 @@ services:
       - ${WF2_ENV_FILE}
 
   php:
-    container_name: ${WF2_CONTEXT_NAME}_php
+    container_name: wf2__${WF2_CONTEXT_NAME}__php
     image: wearejh/php:7.2-m2
     volumes:
       - app-src:/var/www
@@ -73,7 +73,7 @@ services:
       - "traefik.enable=false"
 
   php-debug:
-    container_name: ${WF2_CONTEXT_NAME}_php_debug
+    container_name: wf2__${WF2_CONTEXT_NAME}_php_debug
     image: wearejh/php:7.2-m2
     volumes:
       - app-src:/var/www
@@ -90,22 +90,21 @@ services:
       - "traefik.enable=false"
 
   node:
-    container_name: ${WF2_CONTEXT_NAME}_node
+    container_name: wf2__${WF2_CONTEXT_NAME}__node
     image: wearejh/node:8-m2
     volumes:
       - app-src:/var/www
     #            - npm-cache:/home/www-data/.npm # YARN / NPM cache dirs ?!?
     env_file:
-      - .docker/local.env
+      - ${WF2_ENV_FILE}
     labels:
       - "traefik.enable=false"
 
   db:
-    container_name: ${WF2_CONTEXT_NAME}_db
+    container_name: wf2__${WF2_CONTEXT_NAME}_db
     image: mysql:5.6
     volumes:
       - db-data:/var/lib/mysql
-      - .docker/db/:/docker-entrypoint-initdb.d/
     ports:
       - "3306:3306"
     restart: unless-stopped
@@ -115,7 +114,7 @@ services:
       - "traefik.enable=false"
 
   redis:
-    container_name: ${WF2_CONTEXT_NAME}_redis
+    container_name: wf2__${WF2_CONTEXT_NAME}_redis
     image: redis:3-alpine
     ports:
       - "6379:6379"
@@ -123,7 +122,7 @@ services:
       - "traefik.enable=false"
 
   mail:
-    container_name: ${WF2_CONTEXT_NAME}_mail
+    container_name: wf2__${WF2_CONTEXT_NAME}__mail
     image: mailhog/mailhog
     ports: # TODO: required?
       - 1025
@@ -132,7 +131,7 @@ services:
       - "traefik.port=8025"
 
   blackfire:
-    container_name: ${WF2_CONTEXT_NAME}_blackfire
+    container_name: wf2__${WF2_CONTEXT_NAME}_blackfire
     image: blackfire/blackfire
     env_file:
       - ${WF2_ENV_FILE}

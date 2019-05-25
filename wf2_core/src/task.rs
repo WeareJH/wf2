@@ -1,9 +1,11 @@
 use futures::future::lazy;
 use futures::future::Future;
-use std::fmt;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+use std::{fmt, fs};
 
 pub type FutureSig = Box<Future<Item = usize, Error = TaskError> + Send>;
 
@@ -19,6 +21,11 @@ pub enum Task {
         description: String,
         kind: FileOp,
         path: PathBuf,
+    },
+    Command {
+        command: String,
+        env: HashMap<String, String>,
+        stdin: Vec<u8>,
     },
 }
 
@@ -52,6 +59,17 @@ impl Task {
             path,
         }
     }
+    pub fn command(
+        command: impl Into<String>,
+        env: HashMap<String, String>,
+        stdin: impl Into<Vec<u8>>,
+    ) -> Task {
+        Task::Command {
+            command: command.into(),
+            env,
+            stdin: stdin.into(),
+        }
+    }
 }
 
 ///
@@ -70,6 +88,7 @@ impl fmt::Display for Task {
                 path,
                 ..
             } => write!(f, "File exists: {:?}", path),
+            Task::Command { command, .. } => write!(f, "Command: {:?}", command),
         }
     }
 }
@@ -84,13 +103,20 @@ pub fn as_future(t: Task, id: usize) -> FutureSig {
             kind: FileOp::Write { content },
             path,
             ..
-        } => File::create(&path)
-            .and_then(|mut f| f.write_all(&content))
-            .map(|_| id)
-            .map_err(|_| TaskError {
-                index: id,
-                message: format!("Could not write the file: {:?}", path),
-            }),
+        } => {
+            let mut cloned = path.clone();
+            cloned.pop();
+            fs::create_dir_all(cloned)
+                .and_then(|_| {
+                    File::create(&path)
+                        .and_then(|mut f| f.write_all(&content))
+                        .map(|_| id)
+                })
+                .map_err(|e| TaskError {
+                    index: id,
+                    message: format!("Could not create File/Directory, e={}", e),
+                })
+        }
         Task::File {
             kind: FileOp::Exists,
             path,
@@ -104,6 +130,32 @@ pub fn as_future(t: Task, id: usize) -> FutureSig {
                     message: format!("Required file does not exist: {:?}", path),
                 })
             }
+        }
+        Task::Command {
+            command,
+            env,
+            stdin,
+        } => {
+            let mut child_process = Command::new("sh");
+
+            child_process.arg("-c").arg(command).envs(&env);
+
+            child_process.stdin(Stdio::piped());
+            child_process.stdout(Stdio::inherit());
+
+            child_process
+                .spawn()
+                .and_then(
+                    |mut child| match child.stdin.as_mut().unwrap().write_all(&stdin) {
+                        Ok(..) => child.wait_with_output(),
+                        Err(e) => Err(e),
+                    },
+                )
+                .map(|_| id)
+                .map_err(|e| TaskError {
+                    index: id,
+                    message: format!("Could not run command, e={}", e),
+                })
         }
     }))
 }

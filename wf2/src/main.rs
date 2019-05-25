@@ -6,6 +6,7 @@ use wf2_core::{context::Context, WF2};
 fn main() {
     let ctx = Context::new(current_working_dir());
     let recipe = Recipe::m2_php_7_2();
+
     tokio::run(lazy(move || {
         let (tasks, fut) = WF2::exec(ctx, recipe);
         let tasks_len = tasks.len();
