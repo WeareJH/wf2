@@ -1,15 +1,6 @@
-[package]
-name = "wf2"
-version = "0.1.0"
-authors = ["Shane Osbourne <shane.osbourne8@gmail.com>"]
-edition = "2018"
+[workspace]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-clap = "2.33.0"
-users = "0.9.1"
-snailquote = "0.2.0"
-futures = "0.1.27"
-tokio = "0.1.20"
-ansi_term = "0.11.0"
+members = [
+    "wf2",
+    "wf2_core",
+]

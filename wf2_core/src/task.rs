@@ -1,5 +1,5 @@
+use futures::future::lazy;
 use futures::future::Future;
-use futures::future::{lazy};
 use std::fmt;
 use std::fs::File;
 use std::io::Write;
@@ -26,6 +26,12 @@ pub enum Task {
 pub struct TaskError {
     pub index: usize,
     pub message: String,
+}
+
+impl fmt::Display for TaskError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "[Task Error]: {}", self.message)
+    }
 }
 
 ///

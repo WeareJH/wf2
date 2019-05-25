@@ -6,9 +6,8 @@ use users::{get_current_gid, get_current_uid};
 ///
 /// Use the base template & append custom bits
 ///
-pub fn create_env(domain: &str) -> Vec<u8> {
-    let env_content = include_bytes!("./templates/m2/.env");
-    let mut new_env = get_env_store(env_content);
+pub fn create_env(input: &[u8], domain: &str) -> Vec<u8> {
+    let mut new_env = get_env_store(input);
 
     let current_uid = get_current_uid();
     let current_gid = get_current_gid();
