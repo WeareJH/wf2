@@ -1,0 +1,20 @@
+name: wf2
+version: "1.0"
+about: Does awesome things
+args:
+  - cwd:
+      help: Sets the CWD for all docker commands
+      required: false
+      takes_value: true
+      long: cwd
+  - verbose:
+      short: v
+      multiple: true
+      help: Sets the level of verbosity
+subcommands:
+  - up:
+      about: Bring up containers
+      args:
+        - detached:
+            short: d
+            help: detached
