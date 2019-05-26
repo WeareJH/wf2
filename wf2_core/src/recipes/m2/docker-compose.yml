@@ -74,7 +74,7 @@ services:
 
   php-debug:
     container_name: wf2__${WF2_CONTEXT_NAME}__php_debug
-    image: wearejh/php:7.2-m2
+    image: ${WF2_PHP_IMAGE}
     volumes:
       - app-src:/var/www
       - composer-cache:/home/www-data/.composer/cache

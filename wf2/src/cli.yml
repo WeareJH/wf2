@@ -14,17 +14,17 @@ args:
       short: v
       multiple: true
       help: Sets the level of verbosity
+  - php:
+      long: php
+      help: choose 7.1 or 7.2
+      possible_values: [ "7.1", "7.2" ]
+      takes_value: true
 subcommands:
   - eject:
       about: Dump all files into the local directory for manual running
   - up:
       about: Bring up containers
       args:
-        - php:
-            long: php
-            help: choose 7.1 or 7.2
-            possible_values: [ "7.1", "7.2" ]
-            takes_value: true
         - detached:
             short: d
             help: detached
