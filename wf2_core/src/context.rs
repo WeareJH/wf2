@@ -22,6 +22,7 @@ pub enum Cmd {
     Up,
     Down,
     Stop,
+    Eject,
     Exec { trailing: String },
     Mage { trailing: String },
 }

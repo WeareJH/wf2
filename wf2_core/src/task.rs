@@ -49,10 +49,16 @@ impl fmt::Display for TaskError {
 /// Helper methods for easier creation of a Task
 ///
 impl Task {
-    pub fn file_write(path: PathBuf, description: impl Into<String>, content: Vec<u8>) -> Task {
+    pub fn file_write(
+        path: PathBuf,
+        description: impl Into<String>,
+        content: impl Into<Vec<u8>>,
+    ) -> Task {
         Task::File {
             description: description.into(),
-            kind: FileOp::Write { content },
+            kind: FileOp::Write {
+                content: content.into(),
+            },
             path,
         }
     }

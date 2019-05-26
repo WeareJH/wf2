@@ -1,10 +1,16 @@
 use std::{
+    borrow::Cow,
     collections::{btree_map::BTreeMap, HashMap},
     path::PathBuf,
 };
 
 use crate::recipes::PHP;
 use crate::{context::Context, env::create_env, task::Task};
+
+const TRAEFIK_OUTPUT_FILE: &str = ".docker/traefik/traefik.toml";
+const NGINX_OUTPUT_FILE: &str = ".docker/nginx/sites/site.conf";
+const UNISON_OUTPUT_FILE: &str = ".docker/unison/conf/sync.prf";
+const DC_OUTPUT_FILE: &str = "docker-compose.yml";
 
 pub fn up(ctx: &Context, php: &PHP) -> Vec<Task> {
     let unison_bytes = include_bytes!("m2/sync.prf");
@@ -30,17 +36,17 @@ pub fn up(ctx: &Context, php: &PHP) -> Vec<Task> {
             create_env(env_bytes, &ctx.domain),
         ),
         Task::file_write(
-            ctx.cwd.join(".docker/unison/conf/sync.prf"),
+            ctx.cwd.join(UNISON_OUTPUT_FILE),
             "Writes the unison file",
             unison_bytes.to_vec(),
         ),
         Task::file_write(
-            ctx.cwd.join(".docker/traefik/traefik.toml"),
+            ctx.cwd.join(TRAEFIK_OUTPUT_FILE),
             "Writes the traefix file",
             traefik_bytes.to_vec(),
         ),
         Task::file_write(
-            ctx.cwd.join(".docker/nginx/sites/site.conf"),
+            ctx.cwd.join(NGINX_OUTPUT_FILE),
             "Writes the nginx file",
             nginx_bytes.to_vec(),
         ),
@@ -111,4 +117,64 @@ pub fn mage(ctx: &Context, trailing: String) -> Vec<Task> {
         container_name, trailing
     );
     vec![Task::simple_command(full_command)]
+}
+
+pub fn eject(ctx: &Context, php: &PHP) -> Vec<Task> {
+    let unison_bytes = include_bytes!("m2/sync.prf");
+    let traefik_bytes = include_bytes!("m2/traefik.toml");
+    let nginx_bytes = include_bytes!("m2/site.conf");
+    let env_bytes = include_bytes!("m2/.env");
+
+    let (env, env_file_path, dc_bytes) = env_from_ctx(ctx, &php);
+
+    vec![
+        Task::file_write(
+            env_file_path.clone(),
+            "Writes the .env file to disk",
+            create_env(env_bytes, &ctx.domain),
+        ),
+        Task::file_write(
+            ctx.cwd.join(UNISON_OUTPUT_FILE),
+            "Writes the unison file",
+            unison_bytes.to_vec(),
+        ),
+        Task::file_write(
+            ctx.cwd.join(TRAEFIK_OUTPUT_FILE),
+            "Writes the traefix file",
+            traefik_bytes.to_vec(),
+        ),
+        Task::file_write(
+            ctx.cwd.join(NGINX_OUTPUT_FILE),
+            "Writes the nginx file",
+            nginx_bytes.to_vec(),
+        ),
+        Task::file_write(
+            ctx.cwd.join(DC_OUTPUT_FILE),
+            "Writes the docker-compose file",
+            replace_env(env, &dc_bytes),
+        ),
+    ]
+}
+
+fn replace_env(env: HashMap<String, String>, input: &[u8]) -> Vec<u8> {
+    use regex::{Captures, Regex};
+    let re = Regex::new(r"\$\{(.+?)}").unwrap();
+    re.replace_all(
+        std::str::from_utf8(input).unwrap(),
+        |caps: &Captures| match env.get(&caps[1]) {
+            Some(out) => out.clone(),
+            None => String::from("..."),
+        },
+    )
+    .to_string()
+    .into()
+}
+
+#[test]
+fn test_eject() {
+    let dc_bytes = b"wf__${WF2_PWD}__unison";
+    let mut hm = HashMap::new();
+    hm.insert("WF2_PWD".to_string(), "/shane".to_string());
+    let output = replace_env(hm, dc_bytes);
+    println!("{:?}", output);
 }

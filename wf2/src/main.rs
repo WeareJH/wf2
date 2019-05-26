@@ -37,9 +37,10 @@ fn main() {
     let recipe = Recipe::M2 { php };
 
     let tasks = match matches.subcommand() {
-        ("up", Some(_matches)) => recipe.resolve(&ctx, Cmd::Up),
-        ("down", Some(_matches)) => recipe.resolve(&ctx, Cmd::Down),
-        ("stop", Some(_matches)) => recipe.resolve(&ctx, Cmd::Stop),
+        ("up", ..) => recipe.resolve(&ctx, Cmd::Up),
+        ("down", ..) => recipe.resolve(&ctx, Cmd::Down),
+        ("stop", ..) => recipe.resolve(&ctx, Cmd::Stop),
+        ("eject", ..) => recipe.resolve(&ctx, Cmd::Eject),
         ("exec", Some(sub_matches)) => {
             let trail: Vec<&str> = match sub_matches.values_of("cmd") {
                 Some(cmd) => cmd.collect(),
