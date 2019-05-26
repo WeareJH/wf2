@@ -2,6 +2,7 @@ pub mod context;
 pub mod env;
 pub mod recipes;
 pub mod task;
+pub mod util;
 
 use futures::{future::lazy, future::Future, stream::iter_ok, Stream};
 
@@ -21,13 +22,10 @@ impl WF2 {
     /// Create a future that will execute all of the tasks for a given recipe
     ///
     pub fn exec(
-        ctx: Context,
-        recipe: Recipe,
+        _ctx: Context,
+        _recipe: Recipe,
         tasks: Vec<Task>,
     ) -> Box<Future<Item = (), Error = (Task, TaskError)> + Send> {
-        // define the sequence of tasks
-        let tasks_clone = tasks.clone();
-
         Box::new(lazy(move || {
             // convert the list of tasks into a sequence
             let as_futures = tasks

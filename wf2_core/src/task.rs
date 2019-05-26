@@ -11,12 +11,6 @@ use std::{
 pub type FutureSig = Box<Future<Item = usize, Error = TaskError> + Send>;
 
 #[derive(Debug, Clone)]
-pub enum FileOp {
-    Write { content: Vec<u8> },
-    Exists,
-}
-
-#[derive(Debug, Clone)]
 pub enum Task {
     File {
         description: String,
@@ -31,6 +25,12 @@ pub enum Task {
     SimpleCommand {
         command: String,
     },
+}
+
+#[derive(Debug, Clone)]
+pub enum FileOp {
+    Write { content: Vec<u8> },
+    Exists,
 }
 
 #[derive(Debug, Clone)]
@@ -112,10 +112,11 @@ impl fmt::Display for Task {
 
 ///
 /// Produce a future for each task type
-/// This should be trait-based later
 ///
-pub fn as_future(t: Task, id: usize) -> FutureSig {
-    Box::new(lazy(move || match t {
+/// TODO: This should be trait-based later
+///
+pub fn as_future(task: Task, id: usize) -> FutureSig {
+    Box::new(lazy(move || match task {
         Task::File {
             kind: FileOp::Write { content },
             path,

@@ -1,17 +1,24 @@
-use std::{
-    borrow::Cow,
-    collections::{btree_map::BTreeMap, HashMap},
-    path::PathBuf,
-};
+use std::{collections::HashMap, path::PathBuf};
 
 use crate::recipes::PHP;
-use crate::{context::Context, env::create_env, task::Task};
+use crate::{
+    context::Context,
+    env::create_env,
+    task::Task,
+    util::{path_buf_to_string, replace_env},
+};
 
 const TRAEFIK_OUTPUT_FILE: &str = ".docker/traefik/traefik.toml";
 const NGINX_OUTPUT_FILE: &str = ".docker/nginx/sites/site.conf";
 const UNISON_OUTPUT_FILE: &str = ".docker/unison/conf/sync.prf";
 const DC_OUTPUT_FILE: &str = "docker-compose.yml";
 
+const PHP_7_1: &str = "wearejh/php:7.1-m2";
+const PHP_7_2: &str = "wearejh/php:7.2-m2";
+
+///
+/// Bring the project up using given templates
+///
 pub fn up(ctx: &Context, php: &PHP) -> Vec<Task> {
     let unison_bytes = include_bytes!("m2/sync.prf");
     let traefik_bytes = include_bytes!("m2/traefik.toml");
@@ -54,6 +61,9 @@ pub fn up(ctx: &Context, php: &PHP) -> Vec<Task> {
     ]
 }
 
+///
+/// Alias for docker-compose down
+///
 pub fn down(ctx: &Context, php: &PHP) -> Vec<Task> {
     let (env, _, dc_bytes) = env_from_ctx(ctx, &php);
     vec![Task::command(
@@ -63,6 +73,9 @@ pub fn down(ctx: &Context, php: &PHP) -> Vec<Task> {
     )]
 }
 
+///
+/// Alias for docker-compose stop
+///
 pub fn stop(ctx: &Context, php: &PHP) -> Vec<Task> {
     let (env, _, dc_bytes) = env_from_ctx(ctx, &php);
     vec![Task::command(
@@ -72,35 +85,11 @@ pub fn stop(ctx: &Context, php: &PHP) -> Vec<Task> {
     )]
 }
 
-fn env_from_ctx(ctx: &Context, php: &PHP) -> (HashMap<String, String>, PathBuf, Vec<u8>) {
-    // not doing anything with this yet
-    let dc_bytes = include_bytes!("m2/docker-compose.yml");
-
-    // resolve the relative path to where the .env file will be written
-    let env_file_path = ctx.cwd.join(PathBuf::from(".docker/.docker.env"));
-
-    let php_image = match php {
-        PHP::SevenOne => "wearejh/php:7.1-m2",
-        PHP::SevenTwo => "wearejh/php:7.2-m2",
-    };
-
-    let mut env = HashMap::new();
-
-    env.insert("WF2_PHP_IMAGE".to_string(), php_image.to_string());
-    env.insert("WF2_PWD".to_string(), path_buf_to_string(&ctx.cwd));
-    env.insert("WF2_CONTEXT_NAME".to_string(), ctx.name.clone());
-    env.insert(
-        "WF2_ENV_FILE".to_string(),
-        path_buf_to_string(&env_file_path),
-    );
-    env.insert("WF2_DOMAIN".to_string(), ctx.domain.to_string());
-    (env, env_file_path, dc_bytes.to_vec())
-}
-
-fn path_buf_to_string(pb: &PathBuf) -> String {
-    pb.to_string_lossy().to_string()
-}
-
+///
+/// Alias for `docker exec` with correct user
+///
+/// TODO: Allow sudo commands?
+///
 pub fn exec(ctx: &Context, trailing: String) -> Vec<Task> {
     let container_name = format!("wf2__{}__php", ctx.name);
     let full_command = format!(
@@ -110,6 +99,9 @@ pub fn exec(ctx: &Context, trailing: String) -> Vec<Task> {
     vec![Task::simple_command(full_command)]
 }
 
+///
+/// Alias for `./bin/magento` with correct user
+///
 pub fn mage(ctx: &Context, trailing: String) -> Vec<Task> {
     let container_name = format!("wf2__{}__php", ctx.name);
     let full_command = format!(
@@ -119,6 +111,9 @@ pub fn mage(ctx: &Context, trailing: String) -> Vec<Task> {
     vec![Task::simple_command(full_command)]
 }
 
+///
+/// Write all files & replace all variables so it's ready to use
+///
 pub fn eject(ctx: &Context, php: &PHP) -> Vec<Task> {
     let unison_bytes = include_bytes!("m2/sync.prf");
     let traefik_bytes = include_bytes!("m2/traefik.toml");
@@ -156,25 +151,30 @@ pub fn eject(ctx: &Context, php: &PHP) -> Vec<Task> {
     ]
 }
 
-fn replace_env(env: HashMap<String, String>, input: &[u8]) -> Vec<u8> {
-    use regex::{Captures, Regex};
-    let re = Regex::new(r"\$\{(.+?)}").unwrap();
-    re.replace_all(
-        std::str::from_utf8(input).unwrap(),
-        |caps: &Captures| match env.get(&caps[1]) {
-            Some(out) => out.clone(),
-            None => String::from("..."),
-        },
-    )
-    .to_string()
-    .into()
-}
+///
+/// Recipe-specific stuff used in commands/files
+///
+pub fn env_from_ctx(ctx: &Context, php: &PHP) -> (HashMap<String, String>, PathBuf, Vec<u8>) {
+    // not doing anything with this yet
+    let dc_bytes = include_bytes!("m2/docker-compose.yml");
 
-#[test]
-fn test_eject() {
-    let dc_bytes = b"wf__${WF2_PWD}__unison";
-    let mut hm = HashMap::new();
-    hm.insert("WF2_PWD".to_string(), "/shane".to_string());
-    let output = replace_env(hm, dc_bytes);
-    println!("{:?}", output);
+    // resolve the relative path to where the .env file will be written
+    let env_file_path = ctx.cwd.join(PathBuf::from(".docker/.docker.env"));
+
+    let php_image = match php {
+        PHP::SevenOne => PHP_7_1,
+        PHP::SevenTwo => PHP_7_2,
+    };
+
+    let mut env = HashMap::new();
+
+    env.insert("WF2_PHP_IMAGE".to_string(), php_image.to_string());
+    env.insert("WF2_PWD".to_string(), path_buf_to_string(&ctx.cwd));
+    env.insert("WF2_CONTEXT_NAME".to_string(), ctx.name.clone());
+    env.insert(
+        "WF2_ENV_FILE".to_string(),
+        path_buf_to_string(&env_file_path),
+    );
+    env.insert("WF2_DOMAIN".to_string(), ctx.domain.to_string());
+    (env, env_file_path, dc_bytes.to_vec())
 }

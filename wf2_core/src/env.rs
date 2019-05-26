@@ -8,12 +8,13 @@ use users::{get_current_gid, get_current_uid};
 ///
 pub fn create_env(input: &[u8], domain: &str) -> Vec<u8> {
     let mut new_env = get_env_store(input);
-
     let current_uid = get_current_uid();
     let current_gid = get_current_gid();
+
     new_env.insert("HOST_UID".into(), current_uid.to_string());
     new_env.insert("HOST_GID".into(), current_gid.to_string());
 
+    // TODO: Move this to the recipe
     new_env.insert("MAGE_HOST".into(), format!("https://{}", domain));
     new_env.insert("PHP_IDE_CONFIG".into(), format!("serverName={}", domain));
 

@@ -14,6 +14,10 @@ pub enum PHP {
     SevenTwo,
 }
 
+///
+/// The goal here is to have a single place tie a recipe to a function
+/// that can return some tasks.
+///
 impl Recipe {
     pub fn resolve(&self, context: &Context, cmd: Cmd) -> Option<Vec<Task>> {
         match self {
@@ -24,7 +28,6 @@ impl Recipe {
                 Cmd::Eject => Some(m2::eject(&context, php)),
                 Cmd::Exec { trailing } => Some(m2::exec(&context, trailing.clone())),
                 Cmd::Mage { trailing } => Some(m2::mage(&context, trailing.clone())),
-                _ => None,
             },
         }
     }
