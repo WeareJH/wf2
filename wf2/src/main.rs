@@ -1,12 +1,13 @@
 #[macro_use]
 extern crate clap;
+
 use clap::{App, ArgMatches};
 
 use futures::{future::lazy, future::Future};
 use std::{env::current_dir, path::PathBuf};
 use terminal_size::{terminal_size, Height, Width};
 use wf2_core::{
-    context::{Cmd, Context, Term},
+    context::{Cmd, Context, RunMode, Term},
     recipes::{Recipe, PHP},
     WF2,
 };
@@ -43,11 +44,20 @@ fn main() {
     };
 
     //
+    // Run mode, default is Exec, but allow it to be set to dry-run
+    //
+    let run_mode = if matches.is_present("dryrun") {
+        RunMode::DryRun
+    } else {
+        RunMode::Exec
+    };
+
+    //
     // Create a context that's shared across all commands.
     //
     // TODO: make `local.m2` a CLI flag
     //
-    let ctx = Context::new(cwd, "local.m2".to_string(), term);
+    let ctx = Context::new(cwd, "local.m2".to_string(), term, run_mode);
 
     //
     // Allow the user to choose php 7.1, otherwise
@@ -106,6 +116,18 @@ fn main() {
     //
     if tasks.is_none() {
         app.print_help().unwrap();
+        return;
+    }
+
+    //
+    // if --dryrun was given, just print the commands
+    //
+    if ctx.run_mode == RunMode::DryRun {
+        tasks.map(|ts| {
+            ts.iter()
+                .enumerate()
+                .for_each(|(index, t)| println!("[{}]: {}", index, t))
+        });
         return;
     }
 

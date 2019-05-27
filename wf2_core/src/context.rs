@@ -10,18 +10,26 @@ pub struct Context {
     pub name: String,
     pub domain: String,
     pub term: Term,
+    pub run_mode: RunMode,
 }
 
 impl Context {
-    pub fn new(cwd: PathBuf, domain: String, term: Term) -> Context {
+    pub fn new(cwd: PathBuf, domain: String, term: Term, run_mode: RunMode) -> Context {
         let name = get_context_name(&cwd);
         Context {
             cwd,
             name,
             domain,
             term,
+            run_mode,
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum RunMode {
+    Exec,
+    DryRun,
 }
 
 #[derive(Debug, Clone)]

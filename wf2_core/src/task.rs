@@ -94,18 +94,27 @@ impl fmt::Display for Task {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         match self {
             Task::File {
-                kind: FileOp::Write { .. },
+                kind: FileOp::Write { content },
                 path,
                 ..
-            } => write!(f, "Write file: {:?}", path),
+            } => write!(f, "Write file: {:?}, {} bytes", path, content.len()),
             Task::File {
                 kind: FileOp::Exists,
                 path,
                 ..
-            } => write!(f, "File exists: {:?}", path),
-            Task::Command { command, .. } | Task::SimpleCommand { command, .. } => {
-                write!(f, "Command: {:?}", command)
-            }
+            } => write!(f, "File exists check: {:?}", path),
+            Task::Command {
+                command,
+                env,
+                stdin,
+            } => write!(
+                f,
+                "Command: {:?}\nEnv: {:#?}\nSTDIN: {} bytes",
+                command,
+                env,
+                stdin.len()
+            ),
+            Task::SimpleCommand { command, .. } => write!(f, "Command: {:?}", command),
         }
     }
 }
