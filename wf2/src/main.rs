@@ -4,11 +4,12 @@ extern crate clap;
 use clap::{App, ArgMatches};
 
 use futures::{future::lazy, future::Future};
-use std::{env::current_dir, path::PathBuf};
+use std::{env::current_dir, path::PathBuf, str};
 use terminal_size::{terminal_size, Height, Width};
 use wf2_core::{
     context::{Cmd, Context, RunMode, Term},
     recipes::{Recipe, PHP},
+    util::has_pv,
     WF2,
 };
 
@@ -19,6 +20,11 @@ fn main() {
     let yaml = load_yaml!("cli.yml");
     let mut app = App::from_yaml(yaml);
     let matches = app.clone().get_matches();
+
+    //
+    // Determine if `pv` is available on this machine
+    //
+    let pv = has_pv();
 
     //
     // Get the current working directory if provided as a flag,
@@ -57,7 +63,7 @@ fn main() {
     //
     // TODO: make `local.m2` a CLI flag
     //
-    let ctx = Context::new(cwd, "local.m2".to_string(), term, run_mode);
+    let ctx = Context::new(cwd, "local.m2".to_string(), term, run_mode, pv);
 
     //
     // Allow the user to choose php 7.1, otherwise

@@ -11,10 +11,17 @@ pub struct Context {
     pub domain: String,
     pub term: Term,
     pub run_mode: RunMode,
+    pub pv: Option<String>,
 }
 
 impl Context {
-    pub fn new(cwd: PathBuf, domain: String, term: Term, run_mode: RunMode) -> Context {
+    pub fn new(
+        cwd: PathBuf,
+        domain: String,
+        term: Term,
+        run_mode: RunMode,
+        pv: Option<String>,
+    ) -> Context {
         let name = get_context_name(&cwd);
         Context {
             cwd,
@@ -22,6 +29,7 @@ impl Context {
             domain,
             term,
             run_mode,
+            pv,
         }
     }
 }
