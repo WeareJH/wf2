@@ -9,15 +9,28 @@ pub struct Context {
     pub cwd: PathBuf,
     pub name: String,
     pub domain: String,
+    pub term: Term,
 }
 
 impl Context {
-    pub fn new(cwd: PathBuf, domain: String) -> Context {
+    pub fn new(cwd: PathBuf, domain: String, term: Term) -> Context {
         let name = get_context_name(&cwd);
-        Context { cwd, name, domain }
+        Context {
+            cwd,
+            name,
+            domain,
+            term,
+        }
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct Term {
+    pub height: u16,
+    pub width: u16,
+}
+
+#[derive(Debug, Clone)]
 pub enum Cmd {
     Up,
     Down,

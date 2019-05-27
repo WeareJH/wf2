@@ -4,8 +4,9 @@ use clap::{App, ArgMatches};
 
 use futures::{future::lazy, future::Future};
 use std::{env::current_dir, path::PathBuf};
+use terminal_size::{terminal_size, Height, Width};
 use wf2_core::{
-    context::{Cmd, Context},
+    context::{Cmd, Context, Term},
     recipes::{Recipe, PHP},
     WF2,
 };
@@ -31,11 +32,22 @@ fn main() {
         .unwrap_or(current_dir().unwrap());
 
     //
+    // Try to determine the height/width of the current term
+    //
+    let term = match terminal_size() {
+        Some((Width(width), Height(height))) => Term { width, height },
+        None => Term {
+            width: 80,
+            height: 30,
+        },
+    };
+
+    //
     // Create a context that's shared across all commands.
     //
     // TODO: make `local.m2` a CLI flag
     //
-    let ctx = Context::new(cwd, "local.m2".to_string());
+    let ctx = Context::new(cwd, "local.m2".to_string(), term);
 
     //
     // Allow the user to choose php 7.1, otherwise

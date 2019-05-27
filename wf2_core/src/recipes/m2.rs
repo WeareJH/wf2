@@ -93,8 +93,14 @@ pub fn stop(ctx: &Context, php: &PHP) -> Vec<Task> {
 pub fn exec(ctx: &Context, trailing: String) -> Vec<Task> {
     let container_name = format!("wf2__{}__php", ctx.name);
     let full_command = format!(
-        "docker exec -it -u www-data {} {}",
-        container_name, trailing
+        r#"
+            docker exec -it -u www-data \
+            -e COLUMNS="{}" \
+            -e LINES="{}" \
+            {} \
+            {}
+        "#,
+        ctx.term.width, ctx.term.height, container_name, trailing
     );
     vec![Task::simple_command(full_command)]
 }
@@ -105,8 +111,15 @@ pub fn exec(ctx: &Context, trailing: String) -> Vec<Task> {
 pub fn mage(ctx: &Context, trailing: String) -> Vec<Task> {
     let container_name = format!("wf2__{}__php", ctx.name);
     let full_command = format!(
-        "docker exec -it -u www-data {} ./bin/magento {}",
-        container_name, trailing
+        r#"
+            docker exec -it -u www-data \
+            -e COLUMNS="{}" \
+            -e LINES="{}" \
+            {} \
+            ./bin/magento \
+            {}
+        "#,
+        ctx.term.width, ctx.term.height, container_name, trailing
     );
     vec![Task::simple_command(full_command)]
 }
