@@ -94,16 +94,17 @@ pub fn stop(ctx: &Context, php: &PHP) -> Vec<Task> {
 ///
 /// TODO: Allow sudo commands?
 ///
-pub fn exec(ctx: &Context, trailing: String) -> Vec<Task> {
+pub fn exec(ctx: &Context, trailing: String, user: String) -> Vec<Task> {
     let container_name = format!("wf2__{}__php", ctx.name);
-    let full_command = format!(
-        r#"docker exec -it -u www-data -e COLUMNS="{width}" -e LINES="{height}" {container_name} {trailing_args}"#,
+    let exec_command = format!(
+        r#"docker exec -it -u {user} -e COLUMNS="{width}" -e LINES="{height}" {container_name} {trailing_args}"#,
+        user = user,
         width = ctx.term.width,
         height = ctx.term.height,
         container_name = container_name,
         trailing_args = trailing
     );
-    vec![Task::simple_command(full_command)]
+    vec![Task::simple_command(exec_command)]
 }
 
 ///

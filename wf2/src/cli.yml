@@ -46,6 +46,9 @@ subcommands:
   - exec:
       about: Execute commands in the PHP container
       args:
+        - root:
+            short: r
+            help: Execute commands as root
         - cmd:
             allow_hyphen_values: true
             multiple: true

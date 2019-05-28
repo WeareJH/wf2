@@ -52,7 +52,7 @@ pub enum Cmd {
     Down,
     Stop,
     Eject,
-    Exec { trailing: String },
+    Exec { trailing: String, user: String },
     Mage { trailing: String },
     DBImport { path: PathBuf }
 }

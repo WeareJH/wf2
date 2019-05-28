@@ -112,7 +112,8 @@ fn main() {
         },
         ("exec", Some(sub_matches)) => {
             let trailing = get_trailing(sub_matches);
-            recipe.resolve(&ctx, Cmd::Exec { trailing })
+            let user = if sub_matches.is_present("root") { "root" } else {"www-data"};
+            recipe.resolve(&ctx, Cmd::Exec { trailing, user: user.to_string() })
         }
         ("m", Some(sub_matches)) => {
             let trailing = get_trailing(sub_matches);

@@ -26,7 +26,7 @@ impl Recipe {
                 Cmd::Down => Some(m2::down(&context, php)),
                 Cmd::Stop => Some(m2::stop(&context, php)),
                 Cmd::Eject => Some(m2::eject(&context, php)),
-                Cmd::Exec { trailing } => Some(m2::exec(&context, trailing.clone())),
+                Cmd::Exec { trailing, user } => Some(m2::exec(&context, trailing.clone(), user.clone())),
                 Cmd::Mage { trailing } => Some(m2::mage(&context, trailing.clone())),
                 Cmd::DBImport { path } => Some(m2::db_import(&context, path.clone())),
             },
