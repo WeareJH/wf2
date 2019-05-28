@@ -7,7 +7,6 @@ use crate::{
     task::Task,
     util::{path_buf_to_string, replace_env},
 };
-use std::path::Path;
 
 const TRAEFIK_OUTPUT_FILE: &str = ".docker/traefik/traefik.toml";
 const NGINX_OUTPUT_FILE: &str = ".docker/nginx/sites/site.conf";
@@ -16,6 +15,10 @@ const DC_OUTPUT_FILE: &str = "docker-compose.yml";
 
 const PHP_7_1: &str = "wearejh/php:7.1-m2";
 const PHP_7_2: &str = "wearejh/php:7.2-m2";
+
+const DB_PASS: &str = "docker";
+const DB_USER: &str = "docker";
+const DB_NAME: &str = "docker";
 
 ///
 /// Bring the project up using given templates
@@ -119,7 +122,25 @@ pub fn mage(ctx: &Context, trailing: String) -> Vec<Task> {
 }
 
 pub fn db_import(ctx: &Context, path: PathBuf) -> Vec<Task> {
-    // snipped code
+    let container_name = format!("wf2__{}__db", ctx.name);
+    let db_import_command = match ctx.pv {
+        Some(..) => format!(
+            r#"pv -f {file} | docker exec -i {container} mysql -u{user} -p{pass} -D {db}"#,
+            file = path_buf_to_string(&path),
+            container = container_name,
+            user = DB_USER,
+            pass = DB_PASS,
+            db = DB_NAME,
+        ),
+        None => format!(
+            r#"docker exec -i {container} mysql -u{user} -p{pass} {db} < {file}"#,
+            file = path_buf_to_string(&path),
+            container = container_name,
+            user = DB_USER,
+            pass = DB_PASS,
+            db = DB_NAME,
+        )
+    };
     vec![
         Task::file_exists(path, "Ensure that the given DB file exists"),
         Task::simple_command(db_import_command)
