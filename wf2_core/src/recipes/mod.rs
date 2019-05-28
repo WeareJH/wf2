@@ -28,6 +28,7 @@ impl Recipe {
                 Cmd::Eject => Some(m2::eject(&context, php)),
                 Cmd::Exec { trailing } => Some(m2::exec(&context, trailing.clone())),
                 Cmd::Mage { trailing } => Some(m2::mage(&context, trailing.clone())),
+                Cmd::DBImport { path } => Some(m2::db_import(&context, path.clone())),
             },
         }
     }

@@ -24,6 +24,13 @@ args:
       possible_values: [ "7.1", "7.2" ]
       takes_value: true
 subcommands:
+  - db-import:
+      about: Import a DB file
+      args:
+        - file:
+           takes_value: true
+           required: true
+
   - eject:
       about: Dump all files into the local directory for manual running
   - up:

@@ -7,6 +7,7 @@ use crate::{
     task::Task,
     util::{path_buf_to_string, replace_env},
 };
+use std::path::Path;
 
 const TRAEFIK_OUTPUT_FILE: &str = ".docker/traefik/traefik.toml";
 const NGINX_OUTPUT_FILE: &str = ".docker/nginx/sites/site.conf";
@@ -115,6 +116,14 @@ pub fn mage(ctx: &Context, trailing: String) -> Vec<Task> {
         trailing_args = trailing
     );
     vec![Task::simple_command(full_command)]
+}
+
+pub fn db_import(ctx: &Context, path: PathBuf) -> Vec<Task> {
+    // snipped code
+    vec![
+        Task::file_exists(path, "Ensure that the given DB file exists"),
+        Task::simple_command(db_import_command)
+    ]
 }
 
 ///

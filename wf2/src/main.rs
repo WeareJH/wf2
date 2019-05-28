@@ -105,6 +105,11 @@ fn main() {
         ("down", ..) => recipe.resolve(&ctx, Cmd::Down),
         ("stop", ..) => recipe.resolve(&ctx, Cmd::Stop),
         ("eject", ..) => recipe.resolve(&ctx, Cmd::Eject),
+        ("db-import", Some(sub_matches)) => {
+            // .unwrap() is safe here since Clap will exit before this if it's absent
+            let trailing = sub_matches.value_of("file").map(|x| x.to_string()).unwrap();
+            recipe.resolve(&ctx, Cmd::DBImport { path: PathBuf::from(trailing) })
+        },
         ("exec", Some(sub_matches)) => {
             let trailing = get_trailing(sub_matches);
             recipe.resolve(&ctx, Cmd::Exec { trailing })
