@@ -33,6 +33,9 @@ pub fn env_from_ctx(ctx: &Context, php: &PHP) -> (HashMap<String, String>, PathB
         PHP::SevenTwo => PHP_7_2,
     };
 
+    let mut nginx_path = file_path(&ctx.cwd, FILE_PREFIX, NGINX_OUTPUT_FILE);
+    nginx_path.pop();
+
     let env: HashMap<String, String> = vec![
         (EnvVar::PhpImage, php_image.to_string()),
         (EnvVar::Pwd, path_buf_to_string(&ctx.cwd)),
@@ -47,10 +50,7 @@ pub fn env_from_ctx(ctx: &Context, php: &PHP) -> (HashMap<String, String>, PathB
             EnvVar::TraefikFile,
             path_buf_to_string(&file_path(&ctx.cwd, FILE_PREFIX, TRAEFIK_OUTPUT_FILE)),
         ),
-        (
-            EnvVar::NginxFile,
-            path_buf_to_string(&file_path(&ctx.cwd, FILE_PREFIX, NGINX_OUTPUT_FILE)),
-        ),
+        (EnvVar::NginxFile, path_buf_to_string(&nginx_path)),
     ]
     .into_iter()
     .map(|(key, val)| (key.into(), val))
@@ -61,7 +61,7 @@ pub fn env_from_ctx(ctx: &Context, php: &PHP) -> (HashMap<String, String>, PathB
 
 #[test]
 fn test_env_from_ctx() {
-    let (env, file_path, ..) = env_from_ctx(&Context::default(), &PHP::SevenOne);
+    let (env, _file_path, ..) = env_from_ctx(&Context::default(), &PHP::SevenOne);
     let hm: HashMap<String, String> = vec![
         (EnvVar::Pwd, "."),
         (EnvVar::PhpImage, "wearejh/php:7.1-m2"),
@@ -70,7 +70,7 @@ fn test_env_from_ctx() {
         (EnvVar::EnvFile, "./.wf2_m2/.docker.env"),
         (EnvVar::UnisonFile, "./.wf2_m2/unison/conf/sync.prf"),
         (EnvVar::TraefikFile, "./.wf2_m2/traefik/traefik.toml"),
-        (EnvVar::NginxFile, "./.wf2_m2/nginx/sites/site.conf"),
+        (EnvVar::NginxFile, "./.wf2_m2/nginx/sites"),
     ]
     .into_iter()
     .map(|(k, v)| (k.into(), v.into()))
