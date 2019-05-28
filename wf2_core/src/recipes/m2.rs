@@ -92,8 +92,6 @@ pub fn stop(ctx: &Context, php: &PHP) -> Vec<Task> {
 ///
 /// Alias for `docker exec` with correct user
 ///
-/// TODO: Allow sudo commands?
-///
 pub fn exec(ctx: &Context, trailing: String, user: String) -> Vec<Task> {
     let container_name = format!("wf2__{}__php", ctx.name);
     let exec_command = format!(
@@ -145,6 +143,21 @@ pub fn db_import(ctx: &Context, path: PathBuf) -> Vec<Task> {
     vec![
         Task::file_exists(path, "Ensure that the given DB file exists"),
         Task::simple_command(db_import_command)
+    ]
+}
+
+pub fn db_dump(ctx: &Context) -> Vec<Task> {
+    let container_name = format!("wf2__{}__db", ctx.name);
+    let db_dump_command = format!(
+        r#"docker exec -i {container} mysqldump -u{user} -p{pass} {db} > dump.sql"#,
+        container = container_name,
+        user = DB_USER,
+        pass = DB_PASS,
+        db = DB_NAME,
+    );
+    vec![
+        Task::simple_command(db_dump_command),
+        Task::notify("Written to file dump.sql"),
     ]
 }
 

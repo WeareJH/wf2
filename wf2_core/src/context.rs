@@ -54,7 +54,8 @@ pub enum Cmd {
     Eject,
     Exec { trailing: String, user: String },
     Mage { trailing: String },
-    DBImport { path: PathBuf }
+    DBImport { path: PathBuf },
+    DBDump
 }
 
 fn get_context_name(cwd: &PathBuf) -> String {

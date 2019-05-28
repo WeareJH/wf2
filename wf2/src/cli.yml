@@ -30,7 +30,8 @@ subcommands:
         - file:
            takes_value: true
            required: true
-
+  - db-dump:
+      about: Dump the current database to dump.sql
   - eject:
       about: Dump all files into the local directory for manual running
   - up:

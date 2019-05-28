@@ -29,6 +29,7 @@ impl Recipe {
                 Cmd::Exec { trailing, user } => Some(m2::exec(&context, trailing.clone(), user.clone())),
                 Cmd::Mage { trailing } => Some(m2::mage(&context, trailing.clone())),
                 Cmd::DBImport { path } => Some(m2::db_import(&context, path.clone())),
+                Cmd::DBDump => Some(m2::db_dump(&context)),
             },
         }
     }

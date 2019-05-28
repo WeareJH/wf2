@@ -25,6 +25,9 @@ pub enum Task {
     SimpleCommand {
         command: String,
     },
+    Notify {
+        message: String
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -85,6 +88,11 @@ impl Task {
             command: command.into(),
         }
     }
+    pub fn notify(message: impl Into<String>) -> Task {
+        Task::Notify {
+            message: message.into(),
+        }
+    }
 }
 
 ///
@@ -115,6 +123,7 @@ impl fmt::Display for Task {
                 stdin.len()
             ),
             Task::SimpleCommand { command, .. } => write!(f, "Command: {:?}", command),
+            Task::Notify { message } => write!(f, "Notify: {:?}", message),
         }
     }
 }
@@ -196,6 +205,10 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                     index: id,
                     message: format!("Could not run command, e={}", e),
                 })
+        }
+        Task::Notify { message } => {
+            println!("{}", message);
+            Ok(id)
         }
     }))
 }
