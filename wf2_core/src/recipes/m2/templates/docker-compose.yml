@@ -15,7 +15,7 @@ services:
     volumes:
       - ${WF2_PWD}:/volumes/host
       - app-src:/volumes/internal
-      - ${WF2_PWD}/.docker/unison/conf/sync.prf:/home/docker/.unison/sync.prf
+      - ${WF2_UNISON_FILE}:/home/docker/.unison/sync.prf
     env_file:
       - ${WF2_ENV_FILE}
     restart: unless-stopped
@@ -27,7 +27,7 @@ services:
     image: traefik
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${WF2_PWD}/.docker/traefik/traefik.toml:/etc/traefik/traefik.toml
+      - ${WF2_TRAEFIK_FILE}:/etc/traefik/traefik.toml
     ports:
       - 80:80
       - 443:443
@@ -49,7 +49,7 @@ services:
     container_name: wf2__${WF2_CONTEXT_NAME}__nginx
     image: wearejh/nginx:stable-m2
     volumes:
-      - ${WF2_PWD}/.docker/nginx/sites:/etc/nginx/conf.d
+      - ${WF2_NGINX_FILE}:/etc/nginx/conf.d
       - app-src:/var/www
     working_dir: /var/www
     depends_on:

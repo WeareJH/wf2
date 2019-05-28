@@ -34,6 +34,22 @@ impl Context {
     }
 }
 
+impl Default for Context {
+    fn default() -> Self {
+        Context {
+            cwd: PathBuf::from("."),
+            run_mode: RunMode::DryRun,
+            name: "__test__".into(),
+            domain: "local.test".into(),
+            pv: None,
+            term: Term {
+                height: 30,
+                width: 80,
+            },
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum RunMode {
     Exec,
@@ -55,7 +71,7 @@ pub enum Cmd {
     Exec { trailing: String, user: String },
     Mage { trailing: String },
     DBImport { path: PathBuf },
-    DBDump
+    DBDump,
 }
 
 fn get_context_name(cwd: &PathBuf) -> String {

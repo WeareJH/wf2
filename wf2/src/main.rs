@@ -108,13 +108,28 @@ fn main() {
         ("db-import", Some(sub_matches)) => {
             // .unwrap() is safe here since Clap will exit before this if it's absent
             let trailing = sub_matches.value_of("file").map(|x| x.to_string()).unwrap();
-            recipe.resolve(&ctx, Cmd::DBImport { path: PathBuf::from(trailing) })
-        },
-        ("db-dump", ..) => recipe.resolve(&ctx, Cmd::DBDump ),
+            recipe.resolve(
+                &ctx,
+                Cmd::DBImport {
+                    path: PathBuf::from(trailing),
+                },
+            )
+        }
+        ("db-dump", ..) => recipe.resolve(&ctx, Cmd::DBDump),
         ("exec", Some(sub_matches)) => {
             let trailing = get_trailing(sub_matches);
-            let user = if sub_matches.is_present("root") { "root" } else {"www-data"};
-            recipe.resolve(&ctx, Cmd::Exec { trailing, user: user.to_string() })
+            let user = if sub_matches.is_present("root") {
+                "root"
+            } else {
+                "www-data"
+            };
+            recipe.resolve(
+                &ctx,
+                Cmd::Exec {
+                    trailing,
+                    user: user.to_string(),
+                },
+            )
         }
         ("m", Some(sub_matches)) => {
             let trailing = get_trailing(sub_matches);

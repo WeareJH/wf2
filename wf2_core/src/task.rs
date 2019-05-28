@@ -26,8 +26,8 @@ pub enum Task {
         command: String,
     },
     Notify {
-        message: String
-    }
+        message: String,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -92,6 +92,28 @@ impl Task {
         Task::Notify {
             message: message.into(),
         }
+    }
+    ///
+    /// Helper for filtering tasks for only those
+    /// that operate on files
+    ///
+    pub fn file_op_paths(tasks: Vec<Task>) -> Vec<PathBuf> {
+        tasks
+            .into_iter()
+            .filter_map(|t| match t {
+                Task::File {
+                    kind: FileOp::Write { .. },
+                    path,
+                    ..
+                } => Some(path),
+                Task::File {
+                    kind: FileOp::Exists { .. },
+                    path,
+                    ..
+                } => Some(path),
+                _ => None,
+            })
+            .collect()
     }
 }
 

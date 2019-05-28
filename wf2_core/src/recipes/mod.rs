@@ -1,7 +1,10 @@
-use crate::context::{Cmd, Context};
-use crate::task::Task;
+use crate::{
+    context::{Cmd, Context},
+    task::Task,
+};
 
-mod m2;
+pub mod m2;
+pub mod magento_2;
 
 #[derive(Debug, Clone)]
 pub enum Recipe {
@@ -22,14 +25,16 @@ impl Recipe {
     pub fn resolve(&self, context: &Context, cmd: Cmd) -> Option<Vec<Task>> {
         match self {
             Recipe::M2 { php } => match cmd {
-                Cmd::Up => Some(m2::up(&context, php)),
-                Cmd::Down => Some(m2::down(&context, php)),
-                Cmd::Stop => Some(m2::stop(&context, php)),
-                Cmd::Eject => Some(m2::eject(&context, php)),
-                Cmd::Exec { trailing, user } => Some(m2::exec(&context, trailing.clone(), user.clone())),
-                Cmd::Mage { trailing } => Some(m2::mage(&context, trailing.clone())),
-                Cmd::DBImport { path } => Some(m2::db_import(&context, path.clone())),
-                Cmd::DBDump => Some(m2::db_dump(&context)),
+                Cmd::Up => Some(m2::up::exec(&context, php)),
+                Cmd::Down => Some(m2::down::exec(&context, php)),
+                Cmd::Stop => Some(m2::stop::exec(&context, php)),
+                Cmd::Eject => Some(m2::eject::exec(&context, php)),
+                Cmd::Exec { trailing, user } => {
+                    Some(m2::exec::exec(&context, trailing.clone(), user.clone()))
+                }
+                Cmd::Mage { trailing } => Some(m2::mage::exec(&context, trailing.clone())),
+                Cmd::DBImport { path } => Some(m2::db_import::exec(&context, path.clone())),
+                Cmd::DBDump => Some(m2::db_dump::exec(&context)),
             },
         }
     }
