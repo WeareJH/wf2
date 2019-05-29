@@ -13,8 +13,33 @@ this means you *do not* need PHP or Composer installed on your machine.
 
     `echo 'alias wf2="~/Downloads/wf2"' >> ~/.zshrc`
     
-   or, move the program to somewhere in your existing path - but if you
-   know what that even means, you don't need the instructions for it :)
+   or, move the program to somewhere in your existing path - see instructions below if you wish to do this:
+
+<details><summary>Instructions for adding to your path</summary>
+
+1. Move the executable from your Downloads folder to /opt
+
+    `sudo mv ~/Downloads/wf2 /opt`
+
+2. **Replace** the alias you made previously in your *zshrc* or *bash_profile* with:
+
+    `export PATH="$PATH:/opt"`
+
+3. Use the following command to refresh any already open terminals
+
+    `source ~/.zshrc`
+
+4. Or for bash users
+
+    `source ~/.bash_profile`
+
+5. Type the following command to check all is installed OK:
+
+    `wf2`
+
+6. You should see the same output as below (in features):
+
+</details>
 
 
 ## Features
