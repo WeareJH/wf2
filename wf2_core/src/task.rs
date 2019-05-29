@@ -10,7 +10,7 @@ use std::{
 
 pub type FutureSig = Box<Future<Item = usize, Error = TaskError> + Send>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Task {
     File {
         description: String,
@@ -30,7 +30,7 @@ pub enum Task {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum FileOp {
     Write { content: Vec<u8> },
     Exists,

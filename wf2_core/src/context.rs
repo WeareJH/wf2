@@ -39,7 +39,7 @@ impl Default for Context {
         Context {
             cwd: PathBuf::from("."),
             run_mode: RunMode::DryRun,
-            name: "__test__".into(),
+            name: "test".into(),
             domain: "local.test".into(),
             pv: None,
             term: Term {

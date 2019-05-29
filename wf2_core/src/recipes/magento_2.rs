@@ -66,7 +66,7 @@ fn test_env_from_ctx() {
         (EnvVar::Pwd, "."),
         (EnvVar::PhpImage, "wearejh/php:7.1-m2"),
         (EnvVar::Domain, "local.test"),
-        (EnvVar::ContextName, "__test__"),
+        (EnvVar::ContextName, "test"),
         (EnvVar::EnvFile, "./.wf2_m2/.docker.env"),
         (EnvVar::UnisonFile, "./.wf2_m2/unison/conf/sync.prf"),
         (EnvVar::TraefikFile, "./.wf2_m2/traefik/traefik.toml"),

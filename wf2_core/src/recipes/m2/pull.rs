@@ -28,8 +28,16 @@ fn test_pull_exec() {
         vec![
             "1.js".to_string(),
             "otherdir".to_string(),
-            "./vendor".to_string(),
+            "vendor".to_string(),
         ],
     );
-    println!("output={:#?}", output);
+
+    assert_eq!(
+        output,
+        vec![
+            Task::simple_command("docker cp wf2__test__php:/var/www/1.js ."),
+            Task::simple_command("docker cp wf2__test__php:/var/www/otherdir ."),
+            Task::simple_command("docker cp wf2__test__php:/var/www/vendor ."),
+        ]
+    );
 }
