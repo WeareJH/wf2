@@ -72,6 +72,7 @@ pub enum Cmd {
     Mage { trailing: String },
     DBImport { path: PathBuf },
     DBDump,
+    Pull { trailing: Vec<String> },
 }
 
 fn get_context_name(cwd: &PathBuf) -> String {

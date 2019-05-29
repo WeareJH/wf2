@@ -53,6 +53,11 @@ subcommands:
         - cmd:
             allow_hyphen_values: true
             multiple: true
+  - pull:
+      about: Pull files or folders from the PHP container to the host
+      args:
+        - cmd:
+            multiple: true
   - m:
       about: Execute commands in the PHP container
       args:

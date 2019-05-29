@@ -35,7 +35,11 @@ impl Recipe {
                 Cmd::Mage { trailing } => Some(m2::mage::exec(&context, trailing.clone())),
                 Cmd::DBImport { path } => Some(m2::db_import::exec(&context, path.clone())),
                 Cmd::DBDump => Some(m2::db_dump::exec(&context)),
+                Cmd::Pull { trailing } => Some(m2::pull::exec(&context, trailing.clone())),
             },
         }
     }
 }
+
+// wf2 pull vendor
+// docker cp wf2__php:/var/www/vendor
