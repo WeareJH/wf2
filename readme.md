@@ -40,6 +40,7 @@ SUBCOMMANDS:
     exec         Execute commands in the PHP container
     help         Prints this message or the help of the given subcommand(s)
     m            Execute commands in the PHP container
+    pull         Pull files or folders from the PHP container to the host
     stop         Take down containers & retain data
     up           Bring up containers
 ```
