@@ -35,41 +35,9 @@ this means you *do not* need PHP or Composer installed on your machine.
 
 5. Type the following command to check all is installed OK:
 
-    `which wf2`
+    `wf2`
 
-    `wf2 -h`
-
-6. You should see the following output:
-
-```
-/opt/wf2
-wf2 1.0
-Run PHP Projects with Docker
-
-USAGE:
-    wf2 [FLAGS] [OPTIONS] [SUBCOMMAND]
-
-FLAGS:
-        --dryrun     Output descriptions of the sequence of tasks, without actually executing them
-    -h, --help       Prints help information
-    -V, --version    Prints version information
-    -v               Sets the level of verbosity
-
-OPTIONS:
-        --cwd <cwd>    Sets the CWD for all docker commands
-        --php <php>    choose 7.1 or 7.2 [possible values: 7.1, 7.2]
-
-SUBCOMMANDS:
-    db-dump      Dump the current database to dump.sql
-    db-import    Import a DB file
-    down         Take down containers & delete everything
-    eject        Dump all files into the local directory for manual running
-    exec         Execute commands in the PHP container
-    help         Prints this message or the help of the given subcommand(s)
-    m            Execute commands in the PHP container
-    stop         Take down containers & retain data
-    up           Bring up containers
-```
+6. You should see the same output as below (in features):
 
 </details>
 
