@@ -5,6 +5,7 @@ workflow "Release" {
 
 action "Build Release" {
   uses = "docker://wearejh/rust-macos-build"
+  args = "pwd && cargo build --target x86_64-apple-darwin --release"
 }
 
 action "Upload to release" {
