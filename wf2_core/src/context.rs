@@ -69,6 +69,7 @@ pub enum Cmd {
     Stop,
     Eject,
     Exec { trailing: String, user: String },
+    DockerCompose { trailing: String, user: String },
     Mage { trailing: String },
     DBImport { path: PathBuf },
     DBDump,

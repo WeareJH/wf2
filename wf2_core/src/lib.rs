@@ -22,8 +22,6 @@ impl WF2 {
     /// Create a future that will execute all of the tasks for a given recipe
     ///
     pub fn exec(
-        _ctx: Context,
-        _recipe: Recipe,
         tasks: Vec<Task>,
     ) -> Box<Future<Item = (), Error = (Task, TaskError)> + Send> {
         Box::new(lazy(move || {

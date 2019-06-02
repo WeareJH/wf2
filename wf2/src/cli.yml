@@ -4,6 +4,7 @@ about: Run PHP Projects with Docker
 settings:
   - TrailingVarArg
   - AllowLeadingHyphen
+  - AllowExternalSubcommands
 args:
   - cwd:
       help: Sets the CWD for all docker commands

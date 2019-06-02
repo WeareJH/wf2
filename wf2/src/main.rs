@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate clap;
 
-use clap::{App, ArgMatches};
+use clap::{App, ArgMatches, SubCommand, Arg, AppSettings};
 
 use futures::{future::lazy, future::Future};
 use std::{env::current_dir, path::PathBuf, str};
@@ -12,6 +12,8 @@ use wf2_core::{
     util::has_pv,
     WF2,
 };
+use wf2_core::task::Task;
+use std::path::Path;
 
 fn main() {
     //
@@ -20,7 +22,65 @@ fn main() {
     let yaml = load_yaml!("cli.yml");
     let mut app = App::from_yaml(yaml);
     let matches = app.clone().get_matches();
+    let (tasks, ctx) = get_tasks_and_context(matches);
 
+    //
+    // Certain recipes may not support certain commands,
+    // so we check for None here and just display the Help
+    //
+    if tasks.is_none() {
+        app.print_help().unwrap();
+        return;
+    }
+
+    //
+    // if --dryrun was given, just print the commands
+    //
+    if ctx.run_mode == RunMode::DryRun {
+        tasks.map(|ts| {
+            ts.iter()
+                .enumerate()
+                .for_each(|(index, t)| println!("[{}]: {}", index, t))
+        });
+        return;
+    }
+
+    //
+    // This is where the tasks are executed
+    //
+    tokio::run(lazy(move || {
+        //
+        // This .unwrap() is safe here since we bailed on None earlier
+        //
+        let tasks = tasks.unwrap();
+
+        //
+        // using the Context, Recipe & Task List, generate a
+        // future that runs each task in sequence
+        //
+        let task_sequence = WF2::exec(tasks.clone());
+        let tasks_len = tasks.len();
+
+        //
+        // Do nothing for success, but print error + summary if any task fails
+        //
+        task_sequence
+            .map(|_| ())
+            .map_err(move |(task, task_error)| {
+                eprintln!("{}", task_error);
+                eprintln!("\nThis error occurred in the following task:\n");
+                eprintln!("    [Task] {}", task);
+                eprintln!(
+                    "\nSummary: {} complete, 1 errored, {} didn't start",
+                    task_error.index,
+                    tasks_len - task_error.index - 1
+                );
+                ()
+            })
+    }));
+}
+
+fn get_tasks_and_context(matches: clap::ArgMatches) -> (Option<Vec<Task>>, Context) {
     //
     // Determine if `pv` is available on this machine
     //
@@ -146,61 +206,47 @@ fn main() {
             let trailing = get_trailing(sub_matches);
             recipe.resolve(&ctx, Cmd::Mage { trailing })
         }
+        //
+        // Fall-through case. `cmd` will be the first param here,
+        // so we just need to concat that + any other trailing
+        //
+        // eg -> `wf2 logs unison -vv`
+        //      \
+        //       \
+        //      `docker-composer logs unison -vv`
+        //
+        (cmd, Some(sub_matches)) => {
+            let mut args = vec![cmd];
+            let ext_args: Vec<&str> = sub_matches.values_of("").unwrap().collect();
+            args.extend(ext_args);
+            let user = "www-data";
+            recipe.resolve(&ctx, Cmd::DockerCompose { user: user.to_string(), trailing: args.join(" ") })
+        }
         _ => None,
     };
 
-    //
-    // Certain recipes may not support certain commands,
-    // so we check for None here and just display the Help
-    //
-    if tasks.is_none() {
-        app.print_help().unwrap();
-        return;
-    }
-
-    //
-    // if --dryrun was given, just print the commands
-    //
-    if ctx.run_mode == RunMode::DryRun {
-        tasks.map(|ts| {
-            ts.iter()
-                .enumerate()
-                .for_each(|(index, t)| println!("[{}]: {}", index, t))
-        });
-        return;
-    }
-
-    //
-    // This is where the tasks are executed
-    //
-    tokio::run(lazy(move || {
-        //
-        // This .unwrap() is safe here since we bailed on None earlier
-        //
-        let tasks = tasks.unwrap();
-
-        //
-        // using the Context, Recipe & Task List, generate a
-        // future that runs each task in sequence
-        //
-        let task_sequence = WF2::exec(ctx, recipe, tasks.clone());
-        let tasks_len = tasks.len();
-
-        //
-        // Do nothing for success, but print error + summary if any task fails
-        //
-        task_sequence
-            .map(|_| ())
-            .map_err(move |(task, task_error)| {
-                eprintln!("{}", task_error);
-                eprintln!("\nThis error occurred in the following task:\n");
-                eprintln!("    [Task] {}", task);
-                eprintln!(
-                    "\nSummary: {} complete, 1 errored, {} didn't start",
-                    task_error.index,
-                    tasks_len - task_error.index - 1
-                );
-                ()
-            })
-    }));
+    (tasks, ctx)
 }
+
+#[test]
+fn test_get_tasks_and_context() {
+    let yaml = load_yaml!("cli.yml");
+    let mut app = App::from_yaml(yaml);
+    let matches = app.clone().get_matches_from(vec![
+        "prog", "restart", "php"
+    ]);
+    let (tasks, ctx) = get_tasks_and_context(matches);
+    println!("tasks={:?}", tasks.unwrap().get(0).unwrap());
+//    let files = tasks.clone().unwrap().iter().filter_map(|t| match t {
+//        Task::File { path, .. } => Some(path.clone()),
+//        _ => None
+//    }).collect::<Vec<PathBuf>>();
+//    let cmds = tasks.clone().unwrap().iter().filter_map(|t| match t {
+//        Task::Command { command, ..} => Some(command.clone()),
+//        Task::SimpleCommand { command, ..} => Some(command.clone()),
+//        _ => None
+//    }).collect::<Vec<String>>();
+//    println!("cmds={:#?}", cmds);
+//    println!("files={:#?}", files);
+}
+
