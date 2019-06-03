@@ -155,6 +155,7 @@ fn main() {
     //
     if tasks.is_none() {
         app.print_help().unwrap();
+        println!();
         return;
     }
 
