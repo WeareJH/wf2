@@ -92,6 +92,7 @@ services:
   node:
     container_name: wf2__${WF2_CONTEXT_NAME}__node
     image: wearejh/node:8-m2
+    working_dir: /var/www
     volumes:
       - app-src:/var/www
     #            - npm-cache:/home/www-data/.npm # YARN / NPM cache dirs ?!?
