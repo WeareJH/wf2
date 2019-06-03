@@ -1,0 +1,4 @@
+domains: [ acme.m2 ]
+name: Acme
+npm_path: app/code/frontend/Acme/design
+php_version: 7.2

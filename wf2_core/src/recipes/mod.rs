@@ -1,20 +1,16 @@
 use crate::{
     context::{Cmd, Context},
+    recipes::php::PHP,
     task::Task,
 };
 
 pub mod m2;
 pub mod magento_2;
+pub mod php;
 
 #[derive(Debug, Clone)]
 pub enum Recipe {
-    M2 { php: PHP },
-}
-
-#[derive(Debug, Clone)]
-pub enum PHP {
-    SevenOne,
-    SevenTwo,
+    M2,
 }
 
 ///
@@ -24,15 +20,15 @@ pub enum PHP {
 impl Recipe {
     pub fn resolve(&self, context: &Context, cmd: Cmd) -> Option<Vec<Task>> {
         match self {
-            Recipe::M2 { php } => match cmd {
-                Cmd::Up => Some(m2::up::exec(&context, php)),
-                Cmd::Down => Some(m2::down::exec(&context, php)),
-                Cmd::Stop => Some(m2::stop::exec(&context, php)),
-                Cmd::Eject => Some(m2::eject::exec(&context, php)),
+            Recipe::M2 => match cmd {
+                Cmd::Up => Some(m2::up::exec(&context)),
+                Cmd::Down => Some(m2::down::exec(&context)),
+                Cmd::Stop => Some(m2::stop::exec(&context)),
+                Cmd::Eject => Some(m2::eject::exec(&context)),
                 Cmd::Exec { trailing, user } => {
                     Some(m2::exec::exec(&context, trailing.clone(), user.clone()))
                 }
-                Cmd::DockerCompose { trailing, user } => {
+                Cmd::DockerCompose { trailing, .. } => {
                     Some(m2::docker_compose::exec(&context, trailing.clone()))
                 }
                 Cmd::Mage { trailing } => Some(m2::mage::exec(&context, trailing.clone())),

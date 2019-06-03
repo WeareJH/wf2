@@ -1,12 +1,9 @@
 use crate::{
     context::Context,
     env::create_env,
-    recipes::{
-        magento_2::{
-            env_from_ctx, file_path, DC_OUTPUT_FILE, FILE_PREFIX, NGINX_OUTPUT_FILE,
-            TRAEFIK_OUTPUT_FILE, UNISON_OUTPUT_FILE,
-        },
-        PHP,
+    recipes::magento_2::{
+        env_from_ctx, file_path, DC_OUTPUT_FILE, FILE_PREFIX, NGINX_OUTPUT_FILE,
+        TRAEFIK_OUTPUT_FILE, UNISON_OUTPUT_FILE,
     },
     task::Task,
     util::replace_env,
@@ -15,19 +12,19 @@ use crate::{
 ///
 /// Write all files & replace all variables so it's ready to use
 ///
-pub fn exec(ctx: &Context, php: &PHP) -> Vec<Task> {
+pub fn exec(ctx: &Context) -> Vec<Task> {
     let unison_bytes = include_bytes!("templates/sync.prf");
     let traefik_bytes = include_bytes!("templates/traefik.toml");
     let nginx_bytes = include_bytes!("templates/site.conf");
     let env_bytes = include_bytes!("templates/.env");
 
-    let (env, env_file_path, dc_bytes) = env_from_ctx(ctx, &php);
+    let (env, env_file_path, dc_bytes) = env_from_ctx(ctx);
 
     vec![
         Task::file_write(
             env_file_path.clone(),
             "Writes the .env file to disk",
-            create_env(env_bytes, &ctx.domain),
+            create_env(env_bytes, &ctx.default_domain()),
         ),
         Task::file_write(
             file_path(&ctx.cwd, FILE_PREFIX, UNISON_OUTPUT_FILE),
@@ -59,7 +56,7 @@ fn test_eject_exec() {
         cwd: PathBuf::from("/users/shane"),
         ..Context::default()
     };
-    let output = exec(&ctx, &PHP::SevenOne);
+    let output = exec(&ctx);
     let file_ops = Task::file_op_paths(output);
     assert_eq!(
         vec![

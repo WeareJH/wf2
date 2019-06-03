@@ -1,28 +1,50 @@
 #[macro_use]
 extern crate clap;
 
-use clap::{App, ArgMatches, SubCommand, Arg, AppSettings};
-
+use clap::{App, ArgMatches};
+use from_file::FromFileError;
 use futures::{future::lazy, future::Future};
-use std::{env::current_dir, path::PathBuf, str};
+use std::{path::PathBuf, str};
 use terminal_size::{terminal_size, Height, Width};
 use wf2_core::{
     context::{Cmd, Context, RunMode, Term},
-    recipes::{Recipe, PHP},
+    recipes::{php::PHP, Recipe},
+    task::Task,
     util::has_pv,
     WF2,
 };
-use wf2_core::task::Task;
-use std::path::Path;
 
 fn main() {
     //
     // Load the CLI configuration & get matches
     //
     let yaml = load_yaml!("cli.yml");
-    let mut app = App::from_yaml(yaml);
+    let mut app = App::from_yaml(yaml).version(crate_version!());
     let matches = app.clone().get_matches();
-    let (tasks, ctx) = get_tasks_and_context(matches);
+    let config_file_arg = matches.value_of("config").unwrap_or("wf2.yaml");
+
+    // try to read a config file
+    let ctx_file: Result<Option<Context>, String> = match Context::new_from_file(config_file_arg) {
+        Ok(ctx) => Ok(Some(ctx)),
+        Err(FromFileError::SerdeError(e)) => Err(e),
+        Err(..) => Ok(None),
+    };
+
+    // if it errored, that means it DID exist, but was invalid
+    if let Err(ref msg) = ctx_file {
+        eprintln!("error occurred trying to read wf2.yaml");
+        eprintln!("{}", msg);
+        return;
+    }
+
+    // unwrap the base context from a file or default
+    let base_ctx = match ctx_file {
+        Ok(Some(ctx)) => ctx,
+        _ => Context::default(),
+    };
+
+    // now create tasks & merged context (file + cli)
+    let (tasks, ctx) = get_tasks_and_context(matches, base_ctx);
 
     //
     // Certain recipes may not support certain commands,
@@ -80,11 +102,14 @@ fn main() {
     }));
 }
 
-fn get_tasks_and_context(matches: clap::ArgMatches) -> (Option<Vec<Task>>, Context) {
+fn get_tasks_and_context(
+    matches: clap::ArgMatches,
+    mut ctx: Context,
+) -> (Option<Vec<Task>>, Context) {
     //
     // Determine if `pv` is available on this machine
     //
-    let pv = has_pv();
+    has_pv().map(|s| ctx.pv = Some(s.clone()));
 
     //
     // Get the current working directory if provided as a flag,
@@ -93,54 +118,43 @@ fn get_tasks_and_context(matches: clap::ArgMatches) -> (Option<Vec<Task>>, Conte
     // idk about the .unwrap() here since if something as fundamental as `pwd` fails
     // then there's no hope for the rest of the program
     //
-    let cwd = matches
+    matches
         .value_of("cwd")
         .map(PathBuf::from)
-        .unwrap_or(current_dir().unwrap());
+        .map(|pb| ctx.cwd = pb);
 
     //
     // Try to determine the height/width of the current term
     //
-    let term = match terminal_size() {
-        Some((Width(width), Height(height))) => Term { width, height },
-        None => Term {
-            width: 80,
-            height: 30,
-        },
+    match terminal_size() {
+        Some((Width(width), Height(height))) => ctx.term = Term { width, height },
+        _ => { /* no-op */ }
     };
 
     //
     // Run mode, default is Exec, but allow it to be set to dry-run
     //
-    let run_mode = if matches.is_present("dryrun") {
-        RunMode::DryRun
-    } else {
-        RunMode::Exec
-    };
-
-    //
-    // Create a context that's shared across all commands.
-    //
-    // TODO: make `local.m2` a CLI flag
-    //
-    let ctx = Context::new(cwd, "local.m2".to_string(), term, run_mode, pv);
+    if matches.is_present("dryrun") {
+        ctx.run_mode = RunMode::DryRun;
+    }
 
     //
     // Allow the user to choose php 7.1, otherwise
     // default to 7.2
     //
-    let php = matches
+    matches
         .value_of("php")
-        .map_or(PHP::SevenTwo, |input| match input {
+        .map(|input| match input {
             "7.1" => PHP::SevenOne,
             _ => PHP::SevenTwo,
-        });
+        })
+        .map(|php| ctx.php_version = php);
 
     //
     // Create the recipe, hardcoded as M2 for now whilst we
     // design how to determine/load others
     //
-    let recipe = Recipe::M2 { php };
+    let recipe = Recipe::M2;
 
     //
     // Extract sub-command trailing arguments, eg:
@@ -220,7 +234,13 @@ fn get_tasks_and_context(matches: clap::ArgMatches) -> (Option<Vec<Task>>, Conte
             let ext_args: Vec<&str> = sub_matches.values_of("").unwrap().collect();
             args.extend(ext_args);
             let user = "www-data";
-            recipe.resolve(&ctx, Cmd::DockerCompose { user: user.to_string(), trailing: args.join(" ") })
+            recipe.resolve(
+                &ctx,
+                Cmd::DockerCompose {
+                    user: user.to_string(),
+                    trailing: args.join(" "),
+                },
+            )
         }
         _ => None,
     };
@@ -231,22 +251,14 @@ fn get_tasks_and_context(matches: clap::ArgMatches) -> (Option<Vec<Task>>, Conte
 #[test]
 fn test_get_tasks_and_context() {
     let yaml = load_yaml!("cli.yml");
-    let mut app = App::from_yaml(yaml);
-    let matches = app.clone().get_matches_from(vec![
-        "prog", "restart", "php"
-    ]);
-    let (tasks, ctx) = get_tasks_and_context(matches);
+    let app = App::from_yaml(yaml);
+    let matches = app
+        .clone()
+        .get_matches_from(vec!["prog", "npm", "run", "watch", "-vvv"]);
+    let (tasks, ctx) = get_tasks_and_context(
+        matches,
+        Context::new_from_file("../fixtures/config_01.yaml").unwrap(),
+    );
     println!("tasks={:?}", tasks.unwrap().get(0).unwrap());
-//    let files = tasks.clone().unwrap().iter().filter_map(|t| match t {
-//        Task::File { path, .. } => Some(path.clone()),
-//        _ => None
-//    }).collect::<Vec<PathBuf>>();
-//    let cmds = tasks.clone().unwrap().iter().filter_map(|t| match t {
-//        Task::Command { command, ..} => Some(command.clone()),
-//        Task::SimpleCommand { command, ..} => Some(command.clone()),
-//        _ => None
-//    }).collect::<Vec<String>>();
-//    println!("cmds={:#?}", cmds);
-//    println!("files={:#?}", files);
+    println!("ctx={:#?}", ctx);
 }
-

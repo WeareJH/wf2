@@ -35,9 +35,9 @@ fn test_pull_exec() {
     assert_eq!(
         output,
         vec![
-            Task::simple_command("docker cp wf2__test__php:/var/www/1.js ."),
-            Task::simple_command("docker cp wf2__test__php:/var/www/otherdir ."),
-            Task::simple_command("docker cp wf2__test__php:/var/www/vendor ."),
+            Task::simple_command("docker cp wf2__wf2_default__php:/var/www/1.js ."),
+            Task::simple_command("docker cp wf2__wf2_default__php:/var/www/otherdir ."),
+            Task::simple_command("docker cp wf2__wf2_default__php:/var/www/vendor ."),
         ]
     );
 }

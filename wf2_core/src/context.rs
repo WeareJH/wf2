@@ -1,62 +1,101 @@
+use crate::recipes::php::PHP;
+use from_file::{FromFile, FromFileError};
 use std::path::PathBuf;
 
-///
-/// Shared run context that applies
-/// to all recipes
-///
-#[derive(Debug, Clone)]
-pub struct Context {
-    pub cwd: PathBuf,
-    pub name: String,
-    pub domain: String,
-    pub term: Term,
-    pub run_mode: RunMode,
-    pub pv: Option<String>,
-}
+pub const DEFAULT_DOMAIN: &str = "local.m2";
+pub const DEFAULT_NAME: &str = "wf2_default";
 
-impl Context {
-    pub fn new(
-        cwd: PathBuf,
-        domain: String,
-        term: Term,
-        run_mode: RunMode,
-        pv: Option<String>,
-    ) -> Context {
-        let name = get_context_name(&cwd);
-        Context {
-            cwd,
-            name,
-            domain,
-            term,
-            run_mode,
-            pv,
-        }
-    }
+#[derive(Debug, Clone, Deserialize, FromFile)]
+pub struct Context {
+    #[serde(default = "default_cwd")]
+    pub cwd: PathBuf,
+
+    #[serde(default = "default_run_mode")]
+    pub run_mode: RunMode,
+
+    #[serde(default = "default_name")]
+    pub name: String,
+
+    #[serde(default)]
+    pub domains: Vec<String>,
+
+    #[serde(default = "default_term")]
+    pub term: Term,
+
+    #[serde(default)]
+    pub pv: Option<String>,
+
+    #[serde(default = "default_cwd")]
+    pub npm_path: PathBuf,
+
+    #[serde(default, deserialize_with = "crate::recipes::php::deserialize_php")]
+    pub php_version: PHP,
 }
 
 impl Default for Context {
     fn default() -> Self {
         Context {
-            cwd: PathBuf::from("."),
-            run_mode: RunMode::DryRun,
-            name: "test".into(),
-            domain: "local.test".into(),
+            cwd: default_cwd(),
+            run_mode: default_run_mode(),
+            name: default_name(),
+            domains: default_domains(),
+            term: default_term(),
             pv: None,
-            term: Term {
-                height: 30,
-                width: 80,
-            },
+            npm_path: default_cwd(),
+            php_version: PHP::SevenTwo,
         }
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+impl Context {
+    pub fn new_from_file(path: &str) -> Result<Context, FromFileError> {
+        Context::from_file(path).and_then(|mut ctx: Context| {
+            ctx.name = get_context_name(&ctx.cwd);
+            Ok(ctx)
+        })
+    }
+    pub fn default_domain(&self) -> String {
+        self.domains
+            .get(0)
+            .map_or(DEFAULT_DOMAIN.into(), |s| s.into())
+    }
+}
+
+fn default_domains() -> Vec<String> {
+    vec![DEFAULT_DOMAIN.into()]
+}
+fn default_cwd() -> PathBuf {
+    PathBuf::from(".")
+}
+fn default_run_mode() -> RunMode {
+    RunMode::DryRun
+}
+fn default_name() -> String {
+    String::from("wf2_default")
+}
+fn default_term() -> Term {
+    Term {
+        height: 30,
+        width: 80,
+    }
+}
+
+#[test]
+fn test_context_from_yaml() {
+    let r = Context::from_file("../fixtures/config_01.yaml");
+    match r {
+        Ok(ctx) => println!("context={:#?}", ctx),
+        Err(e) => eprintln!("e={:?}", e),
+    };
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 pub enum RunMode {
     Exec,
     DryRun,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Term {
     pub height: u16,
     pub width: u16,
@@ -77,6 +116,7 @@ pub enum Cmd {
 }
 
 fn get_context_name(cwd: &PathBuf) -> String {
-    let context_name = cwd.file_name().unwrap();
-    context_name.to_string_lossy().to_string()
+    cwd.file_name()
+        .map(|os_str| os_str.to_string_lossy().to_string())
+        .unwrap_or(DEFAULT_NAME.into())
 }
