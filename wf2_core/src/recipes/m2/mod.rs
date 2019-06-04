@@ -1,3 +1,4 @@
+pub mod composer;
 pub mod db_dump;
 pub mod db_import;
 pub mod docker_compose;

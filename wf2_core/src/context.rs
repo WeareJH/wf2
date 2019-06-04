@@ -78,7 +78,7 @@ fn default_run_mode() -> RunMode {
     RunMode::DryRun
 }
 fn default_name() -> String {
-    String::from("wf2_default")
+    String::from(DEFAULT_NAME)
 }
 fn default_term() -> Term {
     Term {

@@ -255,18 +255,66 @@ fn get_tasks_and_context(
     (tasks, ctx)
 }
 
-#[test]
-fn test_get_tasks_and_context() {
-    let yaml = load_yaml!("cli.yml");
-    let app = App::from_yaml(yaml);
-    let matches = app
-        .clone()
-        .get_matches_from(vec!["prog", "npm", "run", "watch", "-vvv"]);
-    let (tasks, ctx) = get_tasks_and_context(
-        matches,
-        Context::new_from_file("../fixtures/config_01.yaml").unwrap(),
-        PathBuf::from("/users"),
-    );
-    println!("tasks={:?}", tasks.unwrap().get(0).unwrap());
-    println!("ctx={:#?}", ctx);
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn setup(args: Vec<&str>, config_file: Option<&str>) -> (Option<Vec<Task>>, Context) {
+        let yaml = load_yaml!("cli.yml");
+        let app = App::from_yaml(yaml);
+        let matches = app.clone().get_matches_from(args);
+        let ctx = config_file
+            .map(|f| Context::new_from_file(f).expect("test file exists"))
+            .unwrap_or(Context::default());
+        get_tasks_and_context(matches, ctx, PathBuf::from("/users"))
+    }
+
+    #[test]
+    fn test_pass_through_npm() {
+        let args = vec!["prog", "npm", "run", "watch", "-vvv"];
+        let config = Some("../fixtures/config_01.yaml");
+        let (tasks, ..) = setup(args, config);
+        match tasks.unwrap().get(0).unwrap() {
+            Task::Command { command, .. } => {
+                assert_eq!(
+                    "docker-compose -f - run --workdir /var/www/app/code/frontend/Acme/design node npm run watch -vvv",
+                    command,
+                );
+            }
+            _ => unreachable!(),
+        };
+    }
+
+    #[test]
+    fn test_pass_through_npm_no_config() {
+        let args = vec!["prog", "npm", "run", "watch", "-vvv"];
+        let config = None;
+        let (tasks, ..) = setup(args, config);
+        match tasks.unwrap().get(0).unwrap() {
+            Task::Command { command, .. } => {
+                assert_eq!(
+                    "docker-compose -f - run --workdir /var/www/. node npm run watch -vvv",
+                    command,
+                );
+            }
+            _ => unreachable!(),
+        };
+    }
+
+    #[test]
+    fn test_pass_through_composer() {
+        let args = vec!["prog", "composer", "install", "-vvv"];
+        let config = None;
+        let (tasks, ..) = setup(args, config);
+        match tasks.unwrap().get(0).unwrap() {
+            Task::Command { command, .. } => {
+                println!("command={}", command);
+                //                assert_eq!(
+                //                    "docker exec -f - run --workdir /var/www/app/code/frontend/Acme/design node npm run watch -vvv",
+                //                    command,
+                //                );
+            }
+            _ => unreachable!(),
+        };
+    }
 }
