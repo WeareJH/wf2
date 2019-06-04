@@ -4,7 +4,7 @@ use crate::{context::Context, recipes::magento_2::env_from_ctx, task::Task};
 /// Alias for `docker-composer <...cmd>`
 ///
 pub fn exec(ctx: &Context, trailing: String) -> Vec<Task> {
-    let (env, env_file_path, dc_bytes) = env_from_ctx(ctx);
+    let (env, _env_file_path, dc_bytes) = env_from_ctx(ctx);
     let exec_command = format!(
         r#"docker-compose -f - {trailing_args}"#,
         trailing_args = trailing

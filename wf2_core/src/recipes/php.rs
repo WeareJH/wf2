@@ -34,8 +34,8 @@ where
             E: de::Error,
         {
             let r = match v {
-                7.1 => Ok(PHP::SevenOne),
-                7.2 => Ok(PHP::SevenTwo),
+                num if num == 7.1 => Ok(PHP::SevenOne),
+                num if num == 7.2 => Ok(PHP::SevenTwo),
                 _ => Err("expected either 7.1 or 7.2"),
             };
             r.map_err(E::custom)
