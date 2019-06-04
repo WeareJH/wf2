@@ -1,3 +1,7 @@
+use ansi_term::{
+    Colour::{Blue, Green, Red, Yellow},
+    Style
+};
 use futures::{future::lazy, future::Future};
 use std::{
     collections::HashMap,
@@ -44,7 +48,7 @@ pub struct TaskError {
 
 impl fmt::Display for TaskError {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "[Task Error]: {}", self.message)
+        write!(f, "{}: {}", Red.paint("[wf2 error]"), self.message)
     }
 }
 
@@ -218,7 +222,7 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                 .spawn()
                 .and_then(
                     |mut child| match child.stdin.as_mut().unwrap().write_all(&stdin) {
-                        Ok(..) => child.wait_with_output(),
+                        Ok(..) => child.wait(),
                         Err(e) => Err(e),
                     },
                 )

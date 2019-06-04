@@ -33,6 +33,8 @@ pub struct Context {
 
     #[serde(default, deserialize_with = "crate::recipes::php::deserialize_php")]
     pub php_version: PHP,
+
+    pub config_path: Option<PathBuf>,
 }
 
 impl Default for Context {
@@ -47,6 +49,7 @@ impl Default for Context {
             pv: None,
             npm_path: default_cwd(),
             php_version: PHP::SevenTwo,
+            config_path: None,
         }
     }
 }
@@ -54,7 +57,7 @@ impl Default for Context {
 impl Context {
     pub fn new_from_file(path: &str) -> Result<Context, FromFileError> {
         Context::from_file(path).and_then(|mut ctx: Context| {
-            ctx.name = get_context_name(&ctx.cwd);
+            ctx.config_path = Some(PathBuf::from(path));
             Ok(ctx)
         })
     }
@@ -62,6 +65,11 @@ impl Context {
         self.domains
             .get(0)
             .map_or(DEFAULT_DOMAIN.into(), |s| s.into())
+    }
+    pub fn set_cwd(&mut self,  pb: PathBuf) -> &mut Self {
+        self.cwd = pb;
+        self.name = get_context_name(&self.cwd);
+        self
     }
 }
 

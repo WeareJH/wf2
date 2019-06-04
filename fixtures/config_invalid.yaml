@@ -1,0 +1,5 @@
+recipe: M2
+domains: [ acme.m2 ]
+name: acme
+npm_path: app/code/frontend/Acme/design
+php_version: 7.8

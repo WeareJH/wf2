@@ -7,6 +7,10 @@ use crate::{
     },
     task::Task,
 };
+use ansi_term::{
+    Colour::{Blue, Green, Red, Yellow},
+    Style
+};
 
 ///
 /// Bring the project up using given templates
@@ -19,6 +23,13 @@ pub fn exec(ctx: &Context) -> Vec<Task> {
     let (env, env_file_path, dc_bytes) = env_from_ctx(ctx);
 
     vec![
+        Task::notify(
+            format!("{header}: using {current}\n{ctx}",
+                header = Green.paint("[wf2 info]"),
+                current = ctx.config_path.clone().map(|p| p.to_string_lossy().to_string()).unwrap_or("current".into()),
+                ctx = format!("{:#?}", ctx),
+            )
+        ),
         Task::file_exists(
             ctx.cwd.join("composer.json"),
             "Ensure that composer.json exists",

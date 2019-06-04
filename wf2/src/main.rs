@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate clap;
 
+mod error;
+
 use clap::{App, ArgMatches};
 use from_file::FromFileError;
 use futures::{future::lazy, future::Future};
@@ -14,6 +16,13 @@ use wf2_core::{
     util::has_pv,
     WF2,
 };
+use crate::error::CLIError;
+use ansi_term::{
+    Colour::{Blue, Green, Red, Yellow},
+    Style
+};
+
+const DEFAULT_CONFIG_FILE: &str = "wf2.yml";
 
 fn main() {
     //
@@ -22,19 +31,21 @@ fn main() {
     let yaml = load_yaml!("cli.yml");
     let mut app = App::from_yaml(yaml).version(crate_version!());
     let matches = app.clone().get_matches();
-    let config_file_arg = matches.value_of("config").unwrap_or("wf2.yaml");
+    let config_file_arg = matches.value_of("config").unwrap_or(DEFAULT_CONFIG_FILE);
 
     // try to read a config file
-    let ctx_file: Result<Option<Context>, String> = match Context::new_from_file(config_file_arg) {
+    let ctx_file: Result<Option<Context>, CLIError> = match Context::new_from_file(config_file_arg, ) {
         Ok(ctx) => Ok(Some(ctx)),
-        Err(FromFileError::SerdeError(e)) => Err(e),
-        Err(..) => Ok(None),
+        Err(FromFileError::SerdeError(e)) => Err(CLIError::InvalidConfig(e)),
+        Err(e) => {
+            eprintln!("Some other err {}", e);
+            Ok(None)
+        },
     };
 
     // if it errored, that means it DID exist, but was invalid
-    if let Err(ref msg) = ctx_file {
-        eprintln!("error occurred trying to read wf2.yaml");
-        eprintln!("{}", msg);
+    if let Err(ref err) = ctx_file {
+        eprintln!("{}", err);
         return;
     }
 
@@ -122,8 +133,8 @@ fn get_tasks_and_context(
     // then there's no hope for the rest of the program
     //
     match matches.value_of("cwd").map(PathBuf::from) {
-        Some(p) => ctx.cwd = p,
-        _ => ctx.cwd = cwd.clone(),
+        Some(p) => ctx.set_cwd(p),
+        _ => ctx.set_cwd(cwd.clone()),
     };
 
     //
@@ -259,21 +270,21 @@ fn get_tasks_and_context(
 mod tests {
     use super::*;
 
-    fn setup(args: Vec<&str>, config_file: Option<&str>) -> (Option<Vec<Task>>, Context) {
+    fn setup(args: Vec<&str>, config_file: Option<&str>, cwd: &str) -> (Option<Vec<Task>>, Context) {
         let yaml = load_yaml!("cli.yml");
         let app = App::from_yaml(yaml);
         let matches = app.clone().get_matches_from(args);
         let ctx = config_file
             .map(|f| Context::new_from_file(f).expect("test file exists"))
             .unwrap_or(Context::default());
-        get_tasks_and_context(matches, ctx, PathBuf::from("/users"))
+        get_tasks_and_context(matches, ctx, PathBuf::from(cwd))
     }
 
     #[test]
     fn test_pass_through_npm() {
         let args = vec!["prog", "npm", "run", "watch", "-vvv"];
         let config = Some("../fixtures/config_01.yaml");
-        let (tasks, ..) = setup(args, config);
+        let (tasks, ..) = setup(args, config, "/users");
         match tasks.unwrap().get(0).unwrap() {
             Task::Command { command, .. } => {
                 assert_eq!(
@@ -289,7 +300,7 @@ mod tests {
     fn test_pass_through_npm_no_config() {
         let args = vec!["prog", "npm", "run", "watch", "-vvv"];
         let config = None;
-        let (tasks, ..) = setup(args, config);
+        let (tasks, ..) = setup(args, config, "/users");
         match tasks.unwrap().get(0).unwrap() {
             Task::Command { command, .. } => {
                 assert_eq!(
@@ -302,19 +313,11 @@ mod tests {
     }
 
     #[test]
-    fn test_pass_through_composer() {
-        let args = vec!["prog", "composer", "install", "-vvv"];
+    fn test_merge_context() {
+        let args = vec!["prog"];
         let config = None;
-        let (tasks, ..) = setup(args, config);
-        match tasks.unwrap().get(0).unwrap() {
-            Task::Command { command, .. } => {
-                println!("command={}", command);
-                //                assert_eq!(
-                //                    "docker exec -f - run --workdir /var/www/app/code/frontend/Acme/design node npm run watch -vvv",
-                //                    command,
-                //                );
-            }
-            _ => unreachable!(),
-        };
+        let (.., ctx) = setup(args, config, "/users/sites/acme-site");
+        assert_eq!("acme-site", ctx.name);
+        assert_eq!(PathBuf::from("/users/sites/acme-site"), ctx.cwd);
     }
 }
