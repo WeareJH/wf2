@@ -5,6 +5,7 @@ pub mod down;
 pub mod eject;
 pub mod exec;
 pub mod mage;
+pub mod npm;
 pub mod pull;
 pub mod stop;
 pub mod up;

@@ -1,4 +1,4 @@
-use crate::recipes::php::PHP;
+use crate::recipes::{php::PHP, Recipe};
 use from_file::{FromFile, FromFileError};
 use std::path::PathBuf;
 
@@ -7,6 +7,9 @@ pub const DEFAULT_NAME: &str = "wf2_default";
 
 #[derive(Debug, Clone, Deserialize, FromFile)]
 pub struct Context {
+    #[serde(default = "default_recipe")]
+    pub recipe: Recipe,
+
     #[serde(default = "default_cwd")]
     pub cwd: PathBuf,
 
@@ -35,6 +38,7 @@ pub struct Context {
 impl Default for Context {
     fn default() -> Self {
         Context {
+            recipe: default_recipe(),
             cwd: default_cwd(),
             run_mode: default_run_mode(),
             name: default_name(),
@@ -63,6 +67,9 @@ impl Context {
 
 fn default_domains() -> Vec<String> {
     vec![DEFAULT_DOMAIN.into()]
+}
+fn default_recipe() -> Recipe {
+    Recipe::M2
 }
 fn default_cwd() -> PathBuf {
     PathBuf::from(".")
@@ -109,6 +116,7 @@ pub enum Cmd {
     Eject,
     Exec { trailing: String, user: String },
     DockerCompose { trailing: String, user: String },
+    Npm { trailing: String, user: String },
     Mage { trailing: String },
     DBImport { path: PathBuf },
     DBDump,

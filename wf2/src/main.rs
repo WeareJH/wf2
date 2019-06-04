@@ -4,6 +4,7 @@ extern crate clap;
 use clap::{App, ArgMatches};
 use from_file::FromFileError;
 use futures::{future::lazy, future::Future};
+use std::env::current_dir;
 use std::{path::PathBuf, str};
 use terminal_size::{terminal_size, Height, Width};
 use wf2_core::{
@@ -44,7 +45,8 @@ fn main() {
     };
 
     // now create tasks & merged context (file + cli)
-    let (tasks, ctx) = get_tasks_and_context(matches, base_ctx);
+    let (tasks, ctx) =
+        get_tasks_and_context(matches, base_ctx, current_dir().expect("CWD is accessible"));
 
     //
     // Certain recipes may not support certain commands,
@@ -105,6 +107,7 @@ fn main() {
 fn get_tasks_and_context(
     matches: clap::ArgMatches,
     mut ctx: Context,
+    cwd: PathBuf,
 ) -> (Option<Vec<Task>>, Context) {
     //
     // Determine if `pv` is available on this machine
@@ -118,10 +121,10 @@ fn get_tasks_and_context(
     // idk about the .unwrap() here since if something as fundamental as `pwd` fails
     // then there's no hope for the rest of the program
     //
-    matches
-        .value_of("cwd")
-        .map(PathBuf::from)
-        .map(|pb| ctx.cwd = pb);
+    match matches.value_of("cwd").map(PathBuf::from) {
+        Some(p) => ctx.cwd = p,
+        _ => ctx.cwd = cwd.clone(),
+    };
 
     //
     // Try to determine the height/width of the current term
@@ -134,8 +137,8 @@ fn get_tasks_and_context(
     //
     // Run mode, default is Exec, but allow it to be set to dry-run
     //
-    if matches.is_present("dryrun") {
-        ctx.run_mode = RunMode::DryRun;
+    if !matches.is_present("dryrun") {
+        ctx.run_mode = RunMode::Exec;
     }
 
     //
@@ -234,13 +237,17 @@ fn get_tasks_and_context(
             let ext_args: Vec<&str> = sub_matches.values_of("").unwrap().collect();
             args.extend(ext_args);
             let user = "www-data";
-            recipe.resolve(
-                &ctx,
-                Cmd::DockerCompose {
+            let cmd = match cmd {
+                "npm" => Cmd::Npm {
                     user: user.to_string(),
                     trailing: args.join(" "),
                 },
-            )
+                _ => Cmd::DockerCompose {
+                    user: user.to_string(),
+                    trailing: args.join(" "),
+                },
+            };
+            recipe.resolve(&ctx, cmd)
         }
         _ => None,
     };
@@ -258,6 +265,7 @@ fn test_get_tasks_and_context() {
     let (tasks, ctx) = get_tasks_and_context(
         matches,
         Context::new_from_file("../fixtures/config_01.yaml").unwrap(),
+        PathBuf::from("/users"),
     );
     println!("tasks={:?}", tasks.unwrap().get(0).unwrap());
     println!("ctx={:#?}", ctx);

@@ -8,7 +8,7 @@ pub mod m2;
 pub mod magento_2;
 pub mod php;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub enum Recipe {
     M2,
 }
@@ -31,6 +31,7 @@ impl Recipe {
                 Cmd::DockerCompose { trailing, .. } => {
                     Some(m2::docker_compose::exec(&context, trailing.clone()))
                 }
+                Cmd::Npm { trailing, .. } => Some(m2::npm::exec(&context, trailing.clone())),
                 Cmd::Mage { trailing } => Some(m2::mage::exec(&context, trailing.clone())),
                 Cmd::DBImport { path } => Some(m2::db_import::exec(&context, path.clone())),
                 Cmd::DBDump => Some(m2::db_dump::exec(&context)),
