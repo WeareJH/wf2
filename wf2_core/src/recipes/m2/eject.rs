@@ -2,12 +2,12 @@ use crate::{
     context::Context,
     env::create_env,
     recipes::magento_2::{
-        env_from_ctx, file_path, DC_OUTPUT_FILE, FILE_PREFIX, NGINX_OUTPUT_FILE,
+        env_from_ctx, file_path, FILE_PREFIX, NGINX_OUTPUT_FILE,
         TRAEFIK_OUTPUT_FILE, UNISON_OUTPUT_FILE,
     },
     task::Task,
-    util::replace_env,
 };
+use crate::recipes::m2::docker_compose::DockerCompose;
 
 ///
 /// Write all files & replace all variables so it's ready to use
@@ -17,8 +17,8 @@ pub fn exec(ctx: &Context) -> Vec<Task> {
     let traefik_bytes = include_bytes!("templates/traefik.toml");
     let nginx_bytes = include_bytes!("templates/site.conf");
     let env_bytes = include_bytes!("templates/.env");
-
-    let (env, env_file_path, dc_bytes) = env_from_ctx(ctx);
+    let dc = DockerCompose::from_ctx(&ctx);
+    let (env, env_file_path) = env_from_ctx(ctx);
 
     vec![
         Task::file_write(
@@ -41,11 +41,7 @@ pub fn exec(ctx: &Context) -> Vec<Task> {
             "Writes the nginx file",
             nginx_bytes.to_vec(),
         ),
-        Task::file_write(
-            ctx.cwd.join(DC_OUTPUT_FILE),
-            "Writes the docker-compose file",
-            replace_env(env, &dc_bytes),
-        ),
+        dc.eject(env),
     ]
 }
 

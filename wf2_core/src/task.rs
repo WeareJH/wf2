@@ -24,7 +24,6 @@ pub enum Task {
     Command {
         command: String,
         env: HashMap<String, String>,
-        stdin: Vec<u8>,
     },
     SimpleCommand {
         command: String,
@@ -78,13 +77,11 @@ impl Task {
     }
     pub fn command(
         command: impl Into<String>,
-        env: HashMap<String, String>,
-        stdin: impl Into<Vec<u8>>,
+        env: HashMap<String, String>
     ) -> Task {
         Task::Command {
             command: command.into(),
             env,
-            stdin: stdin.into(),
         }
     }
     pub fn simple_command(command: impl Into<String>) -> Task {
@@ -140,13 +137,11 @@ impl fmt::Display for Task {
             Task::Command {
                 command,
                 env,
-                stdin,
             } => write!(
                 f,
-                "Command: {:?}\nEnv: {:#?}\nSTDIN: {} bytes",
+                "Command: {:?}\nEnv: {:#?}",
                 command,
-                env,
-                stdin.len()
+                env
             ),
             Task::SimpleCommand { command, .. } => write!(f, "Command: {:?}", command),
             Task::Notify { message } => write!(f, "Notify: {:?}", message),
@@ -210,26 +205,20 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
         Task::Command {
             command,
             env,
-            stdin,
         } => {
             let mut child_process = Command::new("sh");
 
             child_process.arg("-c").arg(command).envs(&env);
-            child_process.stdin(Stdio::piped());
+            child_process.stdin(Stdio::inherit());
             child_process.stdout(Stdio::inherit());
 
             child_process
                 .spawn()
-                .and_then(
-                    |mut child| match child.stdin.as_mut().unwrap().write_all(&stdin) {
-                        Ok(..) => child.wait(),
-                        Err(e) => Err(e),
-                    },
-                )
+                .and_then(|mut c| c.wait())
                 .map(|_| id)
                 .map_err(|e| TaskError {
                     index: id,
-                    message: format!("Could not run command, e={}", e),
+                    message: format!("Could not run simple command, e={}", e),
                 })
         }
         Task::Notify { message } => {

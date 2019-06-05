@@ -18,9 +18,7 @@ pub const DB_NAME: &str = "docker";
 ///
 /// Recipe-specific stuff used in commands/files
 ///
-pub fn env_from_ctx(ctx: &Context) -> (HashMap<String, String>, PathBuf, Vec<u8>) {
-    // not doing anything with this yet
-    let dc_bytes = include_bytes!("m2/templates/docker-compose.yml");
+pub fn env_from_ctx(ctx: &Context) -> (HashMap<String, String>, PathBuf) {
 
     // resolve the relative path to where the .env file will be written
     let env_file_path = ctx.cwd.join(PathBuf::from(format!(
@@ -56,7 +54,7 @@ pub fn env_from_ctx(ctx: &Context) -> (HashMap<String, String>, PathBuf, Vec<u8>
     .map(|(key, val)| (key.into(), val))
     .collect();
 
-    (env, env_file_path, dc_bytes.to_vec())
+    (env, env_file_path)
 }
 
 #[test]

@@ -11,6 +11,7 @@ use ansi_term::{
     Colour::{Blue, Green, Red, Yellow},
     Style
 };
+use crate::recipes::m2::docker_compose::DockerCompose;
 
 ///
 /// Bring the project up using given templates
@@ -20,7 +21,8 @@ pub fn exec(ctx: &Context) -> Vec<Task> {
     let traefik_bytes = include_bytes!("templates/traefik.toml");
     let nginx_bytes = include_bytes!("templates/site.conf");
     let env_bytes = include_bytes!("templates/.env");
-    let (env, env_file_path, dc_bytes) = env_from_ctx(ctx);
+    let (env, env_file_path) = env_from_ctx(ctx);
+    let dc = DockerCompose::from_ctx(&ctx);
 
     vec![
         Task::notify(
@@ -59,7 +61,8 @@ pub fn exec(ctx: &Context) -> Vec<Task> {
             "Writes the nginx file",
             nginx_bytes.to_vec(),
         ),
-        Task::command("docker-compose -f - up", env, dc_bytes.to_vec()),
+        dc.write(),
+        dc.cmd_task("up", env),
     ]
 }
 

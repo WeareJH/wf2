@@ -1,4 +1,3 @@
-use from_file::FromFileError;
 use std::fmt;
 use ansi_term::{
     Colour::{Blue, Green, Red, Yellow},
