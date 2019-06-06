@@ -3,6 +3,8 @@ extern crate clap;
 
 mod error;
 
+use crate::error::CLIError;
+
 use clap::{App, ArgMatches};
 use from_file::FromFileError;
 use futures::{future::lazy, future::Future};
@@ -15,11 +17,6 @@ use wf2_core::{
     task::Task,
     util::has_pv,
     WF2,
-};
-use crate::error::CLIError;
-use ansi_term::{
-    Colour::{Blue, Green, Red, Yellow},
-    Style
 };
 
 const DEFAULT_CONFIG_FILE: &str = "wf2.yml";
@@ -34,13 +31,14 @@ fn main() {
     let config_file_arg = matches.value_of("config").unwrap_or(DEFAULT_CONFIG_FILE);
 
     // try to read a config file
-    let ctx_file: Result<Option<Context>, CLIError> = match Context::new_from_file(config_file_arg, ) {
+    let ctx_file: Result<Option<Context>, CLIError> = match Context::new_from_file(config_file_arg)
+    {
         Ok(ctx) => Ok(Some(ctx)),
         Err(FromFileError::SerdeError(e)) => Err(CLIError::InvalidConfig(e)),
         Err(e) => {
             eprintln!("Some other err {}", e);
             Ok(None)
-        },
+        }
     };
 
     // if it errored, that means it DID exist, but was invalid
@@ -269,8 +267,13 @@ fn get_tasks_and_context(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use wf2_core::task::FileOp;
 
-    fn setup(args: Vec<&str>, config_file: Option<&str>, cwd: &str) -> (Option<Vec<Task>>, Context) {
+    fn setup(
+        args: Vec<&str>,
+        config_file: Option<&str>,
+        cwd: &str,
+    ) -> (Option<Vec<Task>>, Context) {
         let yaml = load_yaml!("cli.yml");
         let app = App::from_yaml(yaml);
         let matches = app.clone().get_matches_from(args);
@@ -280,20 +283,38 @@ mod tests {
         get_tasks_and_context(matches, ctx, PathBuf::from(cwd))
     }
 
+    fn test(tasks: Vec<Task>, expected_cmd: &str, expected_path: &str) {
+        match tasks.get(0).unwrap() {
+            Task::Seq(tasks) => {
+                match tasks.get(0) {
+                    Some(Task::File {
+                        kind: FileOp::Write { .. },
+                        path,
+                        ..
+                    }) => {
+                        assert_eq!(PathBuf::from(expected_path), *path);
+                    }
+                    _ => unreachable!(),
+                };
+                match tasks.get(1) {
+                    Some(Task::Command { command, env }) => {
+                        assert_eq!(expected_cmd, command);
+                    }
+                    _ => unreachable!(),
+                };
+            }
+            _ => unreachable!(),
+        };
+    }
+
     #[test]
     fn test_pass_through_npm() {
         let args = vec!["prog", "npm", "run", "watch", "-vvv"];
         let config = Some("../fixtures/config_01.yaml");
         let (tasks, ..) = setup(args, config, "/users");
-        match tasks.unwrap().get(0).unwrap() {
-            Task::Command { command, .. } => {
-                assert_eq!(
-                    "docker-compose -f - run --workdir /var/www/app/code/frontend/Acme/design node npm run watch -vvv",
-                    command,
-                );
-            }
-            _ => unreachable!(),
-        };
+        let expected_cmd = "docker-compose -f /users/.wf2_m2/docker-compose.yml run --workdir /var/www/app/code/frontend/Acme/design node npm run watch -vvv";
+        let expected_path = "/users/.wf2_m2/docker-compose.yml";
+        test(tasks.unwrap(), expected_cmd, expected_path);
     }
 
     #[test]
@@ -301,15 +322,9 @@ mod tests {
         let args = vec!["prog", "npm", "run", "watch", "-vvv"];
         let config = None;
         let (tasks, ..) = setup(args, config, "/users");
-        match tasks.unwrap().get(0).unwrap() {
-            Task::Command { command, .. } => {
-                assert_eq!(
-                    "docker-compose -f - run --workdir /var/www/. node npm run watch -vvv",
-                    command,
-                );
-            }
-            _ => unreachable!(),
-        };
+        let expected_cmd = "docker-compose -f /users/.wf2_m2/docker-compose.yml run --workdir /var/www/. node npm run watch -vvv";
+        let expected_path = "/users/.wf2_m2/docker-compose.yml";
+        test(tasks.unwrap(), expected_cmd, expected_path);
     }
 
     #[test]

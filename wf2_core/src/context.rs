@@ -66,7 +66,7 @@ impl Context {
             .get(0)
             .map_or(DEFAULT_DOMAIN.into(), |s| s.into())
     }
-    pub fn set_cwd(&mut self,  pb: PathBuf) -> &mut Self {
+    pub fn set_cwd(&mut self, pb: PathBuf) -> &mut Self {
         self.cwd = pb;
         self.name = get_context_name(&self.cwd);
         self

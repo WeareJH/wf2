@@ -1,3 +1,4 @@
+use crate::recipes::m2::docker_compose::DockerCompose;
 use crate::{
     context::Context,
     env::create_env,
@@ -7,11 +8,7 @@ use crate::{
     },
     task::Task,
 };
-use ansi_term::{
-    Colour::{Blue, Green, Red, Yellow},
-    Style
-};
-use crate::recipes::m2::docker_compose::DockerCompose;
+use ansi_term::{Colour::Green, Style};
 
 ///
 /// Bring the project up using given templates
@@ -25,13 +22,16 @@ pub fn exec(ctx: &Context) -> Vec<Task> {
     let dc = DockerCompose::from_ctx(&ctx);
 
     vec![
-        Task::notify(
-            format!("{header}: using {current}\n{ctx}",
-                header = Green.paint("[wf2 info]"),
-                current = ctx.config_path.clone().map(|p| p.to_string_lossy().to_string()).unwrap_or("current".into()),
-                ctx = format!("{:#?}", ctx),
-            )
-        ),
+        Task::notify(format!(
+            "{header}: using {current}\n{ctx}",
+            header = Green.paint("[wf2 info]"),
+            current = ctx
+                .config_path
+                .clone()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or("current".into()),
+            ctx = format!("{:#?}", ctx),
+        )),
         Task::file_exists(
             ctx.cwd.join("composer.json"),
             "Ensure that composer.json exists",
@@ -61,7 +61,6 @@ pub fn exec(ctx: &Context) -> Vec<Task> {
             "Writes the nginx file",
             nginx_bytes.to_vec(),
         ),
-        dc.write(),
         dc.cmd_task("up", env),
     ]
 }

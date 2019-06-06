@@ -19,7 +19,6 @@ pub const DB_NAME: &str = "docker";
 /// Recipe-specific stuff used in commands/files
 ///
 pub fn env_from_ctx(ctx: &Context) -> (HashMap<String, String>, PathBuf) {
-
     // resolve the relative path to where the .env file will be written
     let env_file_path = ctx.cwd.join(PathBuf::from(format!(
         "{}/{}",

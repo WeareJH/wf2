@@ -1,7 +1,5 @@
-use ansi_term::{
-    Colour::{Blue, Green, Red, Yellow},
-    Style
-};
+use crate::WF2;
+use ansi_term::{Colour::Red, Style};
 use futures::{future::lazy, future::Future};
 use std::{
     collections::HashMap,
@@ -31,6 +29,7 @@ pub enum Task {
     Notify {
         message: String,
     },
+    Seq(Vec<Task>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -75,10 +74,7 @@ impl Task {
             path,
         }
     }
-    pub fn command(
-        command: impl Into<String>,
-        env: HashMap<String, String>
-    ) -> Task {
+    pub fn command(command: impl Into<String>, env: HashMap<String, String>) -> Task {
         Task::Command {
             command: command.into(),
             env,
@@ -134,17 +130,18 @@ impl fmt::Display for Task {
                 path,
                 ..
             } => write!(f, "File exists check: {:?}", path),
-            Task::Command {
-                command,
-                env,
-            } => write!(
-                f,
-                "Command: {:?}\nEnv: {:#?}",
-                command,
-                env
-            ),
+            Task::Command { command, env } => write!(f, "Command: {:?}\nEnv: {:#?}", command, env),
             Task::SimpleCommand { command, .. } => write!(f, "Command: {:?}", command),
             Task::Notify { message } => write!(f, "Notify: {:?}", message),
+            Task::Seq(tasks) => write!(
+                f,
+                "Task Sequence: \n{}",
+                tasks
+                    .iter()
+                    .map(|task| format!("{}", task))
+                    .collect::<Vec<String>>()
+                    .join("\n")
+            ),
         }
     }
 }
@@ -202,10 +199,7 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                     message: format!("Could not run simple command, e={}", e),
                 })
         }
-        Task::Command {
-            command,
-            env,
-        } => {
+        Task::Command { command, env } => {
             let mut child_process = Command::new("sh");
 
             child_process.arg("-c").arg(command).envs(&env);
@@ -224,6 +218,14 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
         Task::Notify { message } => {
             println!("{}", message);
             Ok(id)
+        }
+        Task::Seq(tasks) => {
+            let task_sequence = WF2::exec(tasks.clone());
+            let output = task_sequence.wait();
+            output.and_then(|_| Ok(id)).map_err(|e| TaskError {
+                index: id,
+                message: format!("Task Seq Item, e={:?}", e),
+            })
         }
     }))
 }

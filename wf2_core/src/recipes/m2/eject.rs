@@ -1,13 +1,13 @@
+use crate::recipes::m2::docker_compose::DockerCompose;
 use crate::{
     context::Context,
     env::create_env,
     recipes::magento_2::{
-        env_from_ctx, file_path, FILE_PREFIX, NGINX_OUTPUT_FILE,
-        TRAEFIK_OUTPUT_FILE, UNISON_OUTPUT_FILE,
+        env_from_ctx, file_path, FILE_PREFIX, NGINX_OUTPUT_FILE, TRAEFIK_OUTPUT_FILE,
+        UNISON_OUTPUT_FILE,
     },
     task::Task,
 };
-use crate::recipes::m2::docker_compose::DockerCompose;
 
 ///
 /// Write all files & replace all variables so it's ready to use
