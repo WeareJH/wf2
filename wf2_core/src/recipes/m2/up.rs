@@ -1,10 +1,9 @@
-use crate::recipes::m2::docker_compose::DockerCompose;
 use crate::{
     context::Context,
+    docker_compose::DockerCompose,
     env::create_env,
     recipes::magento_2::{
-        env_from_ctx, file_path, FILE_PREFIX, NGINX_OUTPUT_FILE, TRAEFIK_OUTPUT_FILE,
-        UNISON_OUTPUT_FILE,
+        env_from_ctx, file_path, NGINX_OUTPUT_FILE, TRAEFIK_OUTPUT_FILE, UNISON_OUTPUT_FILE,
     },
     task::Task,
 };
@@ -47,17 +46,17 @@ pub fn exec(ctx: &Context) -> Vec<Task> {
             create_env(env_bytes, &ctx.default_domain()),
         ),
         Task::file_write(
-            file_path(&ctx.cwd, FILE_PREFIX, UNISON_OUTPUT_FILE),
+            ctx.cwd.join(&ctx.file_prefix).join(UNISON_OUTPUT_FILE),
             "Writes the unison file",
             unison_bytes.to_vec(),
         ),
         Task::file_write(
-            file_path(&ctx.cwd, FILE_PREFIX, TRAEFIK_OUTPUT_FILE),
+            ctx.cwd.join(&ctx.file_prefix).join(TRAEFIK_OUTPUT_FILE),
             "Writes the traefix file",
             traefik_bytes.to_vec(),
         ),
         Task::file_write(
-            file_path(&ctx.cwd, FILE_PREFIX, NGINX_OUTPUT_FILE),
+            ctx.cwd.join(&ctx.file_prefix).join(NGINX_OUTPUT_FILE),
             "Writes the nginx file",
             nginx_bytes.to_vec(),
         ),
@@ -79,10 +78,10 @@ fn test_up_exec() {
             "/users/shane/composer.json",
             "/users/shane/composer.lock",
             "/users/shane/auth.json",
-            "/users/shane/.wf2_m2/.docker.env",
-            "/users/shane/.wf2_m2/unison/conf/sync.prf",
-            "/users/shane/.wf2_m2/traefik/traefik.toml",
-            "/users/shane/.wf2_m2/nginx/sites/site.conf"
+            "/users/shane/.wf2_default/.docker.env",
+            "/users/shane/.wf2_default/unison/conf/sync.prf",
+            "/users/shane/.wf2_default/traefik/traefik.toml",
+            "/users/shane/.wf2_default/nginx/sites/site.conf"
         ]
         .into_iter()
         .map(|s| PathBuf::from(s))

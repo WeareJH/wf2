@@ -1,4 +1,4 @@
-use crate::recipes::m2::docker_compose::DockerCompose;
+use crate::docker_compose::DockerCompose;
 use crate::util::path_buf_to_string;
 use crate::{context::Context, recipes::magento_2::env_from_ctx, task::Task};
 use std::path::PathBuf;
@@ -21,6 +21,7 @@ pub fn exec(ctx: &Context, trailing: String) -> Vec<Task> {
 mod tests {
 
     use super::*;
+    use crate::task::FileOp;
 
     fn test(tasks: Vec<Task>, expected_cmd: &str, expected_path: &str) {
         match tasks.get(0).unwrap() {
@@ -55,8 +56,8 @@ mod tests {
             },
             "npm i".into(),
         );
-        let expected_cmd = "docker-compose -f /users/.wf2_m2/docker-compose.yml run --workdir /var/www/. node npm i";
-        let expected_path = "/users/.wf2_m2/docker-compose.yml";
+        let expected_cmd = "docker-compose -f /users/.wf2_default/docker-compose.yml run --workdir /var/www/. node npm i";
+        let expected_path = "/users/.wf2_default/docker-compose.yml";
         test(tasks, expected_cmd, expected_path);
     }
 
@@ -69,8 +70,8 @@ mod tests {
             },
             "npm i".into(),
         );
-        let expected_cmd = "docker-compose -f ./.wf2_m2/docker-compose.yml run --workdir /var/www/app/design/theme node npm i";
-        let expected_path = "./.wf2_m2/docker-compose.yml";
+        let expected_cmd = "docker-compose -f ./.wf2_default/docker-compose.yml run --workdir /var/www/app/design/theme node npm i";
+        let expected_path = "./.wf2_default/docker-compose.yml";
         test(tasks, expected_cmd, expected_path);
     }
 }

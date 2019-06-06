@@ -1,4 +1,4 @@
-use crate::recipes::{php::PHP, Recipe};
+use crate::recipes::{php::PHP, RecipeKinds};
 use from_file::{FromFile, FromFileError};
 use std::path::PathBuf;
 
@@ -8,7 +8,7 @@ pub const DEFAULT_NAME: &str = "wf2_default";
 #[derive(Debug, Clone, Deserialize, FromFile)]
 pub struct Context {
     #[serde(default = "default_recipe")]
-    pub recipe: Recipe,
+    pub recipe: RecipeKinds,
 
     #[serde(default = "default_cwd")]
     pub cwd: PathBuf,
@@ -34,7 +34,11 @@ pub struct Context {
     #[serde(default, deserialize_with = "crate::recipes::php::deserialize_php")]
     pub php_version: PHP,
 
+    #[serde(default)]
     pub config_path: Option<PathBuf>,
+
+    #[serde(default = "default_file_prefix")]
+    pub file_prefix: PathBuf,
 }
 
 impl Default for Context {
@@ -50,6 +54,7 @@ impl Default for Context {
             npm_path: default_cwd(),
             php_version: PHP::SevenTwo,
             config_path: None,
+            file_prefix: default_file_prefix(),
         }
     }
 }
@@ -76,8 +81,11 @@ impl Context {
 fn default_domains() -> Vec<String> {
     vec![DEFAULT_DOMAIN.into()]
 }
-fn default_recipe() -> Recipe {
-    Recipe::M2
+fn default_file_prefix() -> PathBuf {
+    PathBuf::from(format!(".{}", DEFAULT_NAME))
+}
+fn default_recipe() -> RecipeKinds {
+    RecipeKinds::M2
 }
 fn default_cwd() -> PathBuf {
     PathBuf::from(".")
@@ -123,7 +131,6 @@ pub enum Cmd {
     Stop,
     Eject,
     Exec { trailing: String, user: String },
-    DockerCompose { trailing: String, user: String },
     Npm { trailing: String, user: String },
     Mage { trailing: String },
     DBImport { path: PathBuf },

@@ -1,6 +1,5 @@
 use crate::{
     context::Context,
-    recipes::magento_2::{env_from_ctx, file_path, DC_OUTPUT_FILE, FILE_PREFIX},
     task::Task,
     util::{path_buf_to_string, replace_env},
 };
@@ -13,12 +12,14 @@ pub struct DockerCompose {
     pub bytes: Vec<u8>,
 }
 
+pub const DC_OUTPUT_FILE: &str = "docker-compose.yml";
+
 impl DockerCompose {
     pub fn from_ctx(ctx: &Context) -> DockerCompose {
         DockerCompose {
-            file: file_path(&ctx.cwd, FILE_PREFIX, DC_OUTPUT_FILE),
+            file: ctx.cwd.join(&ctx.file_prefix).join(DC_OUTPUT_FILE),
             eject_file: ctx.cwd.join(DC_OUTPUT_FILE),
-            bytes: include_bytes!("templates/docker-compose.yml").to_vec(),
+            bytes: include_bytes!("recipes/m2/templates/docker-compose.yml").to_vec(),
         }
     }
     pub fn cmd_string(&self, trailing: impl Into<String>) -> String {
@@ -48,15 +49,4 @@ impl DockerCompose {
             replace_env(env, &self.bytes),
         )
     }
-}
-
-///
-/// Alias for `docker-composer <...cmd>`
-///
-pub fn exec(ctx: &Context, trailing: String) -> Vec<Task> {
-    let (env, ..) = env_from_ctx(ctx);
-    vec![Task::command(
-        DockerCompose::from_ctx(&ctx).cmd_string(trailing),
-        env,
-    )]
 }

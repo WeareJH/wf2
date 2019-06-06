@@ -1,5 +1,5 @@
 use crate::context::Context;
-use crate::recipes::m2::docker_compose::DockerCompose;
+use crate::docker_compose::DockerCompose;
 use crate::recipes::magento_2::env_from_ctx;
 use crate::task::Task;
 

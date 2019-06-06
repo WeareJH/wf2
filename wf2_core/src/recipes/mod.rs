@@ -1,5 +1,6 @@
 use crate::{
     context::{Cmd, Context},
+    recipes::m2::M2Recipe,
     recipes::php::PHP,
     task::Task,
 };
@@ -8,37 +9,21 @@ pub mod m2;
 pub mod magento_2;
 pub mod php;
 
-#[derive(Debug, Clone, Deserialize)]
-pub enum Recipe {
+#[derive(Debug, Clone, Copy, Deserialize)]
+pub enum RecipeKinds {
     M2,
 }
 
-///
-/// The goal here is to have a single place tie a recipe to a function
-/// that can return some tasks.
-///
-impl Recipe {
-    pub fn resolve(&self, context: &Context, cmd: Cmd) -> Option<Vec<Task>> {
-        match self {
-            Recipe::M2 => match cmd {
-                Cmd::Up => Some(m2::up::exec(&context)),
-                Cmd::Down => Some(m2::down::exec(&context)),
-                Cmd::Stop => Some(m2::stop::exec(&context)),
-                Cmd::Eject => Some(m2::eject::exec(&context)),
-                Cmd::Exec { trailing, user } => {
-                    Some(m2::exec::exec(&context, trailing.clone(), user.clone()))
-                }
-                Cmd::DockerCompose { trailing, .. } => {
-                    Some(m2::docker_compose::exec(&context, trailing.clone()))
-                }
-                Cmd::Npm { trailing, .. } => Some(m2::npm::exec(&context, trailing.clone())),
-                Cmd::Mage { trailing } => Some(m2::mage::exec(&context, trailing.clone())),
-                Cmd::DBImport { path } => Some(m2::db_import::exec(&context, path.clone())),
-                Cmd::DBDump => Some(m2::db_dump::exec(&context)),
-                Cmd::Pull { trailing } => Some(m2::pull::exec(&context, trailing.clone())),
-            },
+impl RecipeKinds {
+    pub fn select(kind: &RecipeKinds) -> impl Recipe {
+        match *kind {
+            RecipeKinds::M2 => M2Recipe,
         }
     }
+}
+
+pub trait Recipe {
+    fn resolve_cmd(&self, ctx: &Context, cmd: Cmd) -> Option<Vec<Task>>;
 }
 
 // wf2 pull vendor

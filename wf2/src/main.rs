@@ -13,7 +13,7 @@ use std::{path::PathBuf, str};
 use terminal_size::{terminal_size, Height, Width};
 use wf2_core::{
     context::{Cmd, Context, RunMode, Term},
-    recipes::{php::PHP, Recipe},
+    recipes::{php::PHP, Recipe, RecipeKinds},
     task::Task,
     util::has_pv,
     WF2,
@@ -163,12 +163,6 @@ fn get_tasks_and_context(
         .map(|php| ctx.php_version = php);
 
     //
-    // Create the recipe, hardcoded as M2 for now whilst we
-    // design how to determine/load others
-    //
-    let recipe = Recipe::M2;
-
-    //
     // Extract sub-command trailing arguments, eg:
     //
     //                  captured
@@ -186,22 +180,19 @@ fn get_tasks_and_context(
     //
     // Get the task list by checking which sub-command was used
     //
-    let tasks = match matches.subcommand() {
-        ("up", ..) => recipe.resolve(&ctx, Cmd::Up),
-        ("down", ..) => recipe.resolve(&ctx, Cmd::Down),
-        ("stop", ..) => recipe.resolve(&ctx, Cmd::Stop),
-        ("eject", ..) => recipe.resolve(&ctx, Cmd::Eject),
+    let cmd = match matches.subcommand() {
+        ("up", ..) => Some(Cmd::Up),
+        ("down", ..) => Some(Cmd::Down),
+        ("stop", ..) => Some(Cmd::Stop),
+        ("eject", ..) => Some(Cmd::Eject),
         ("db-import", Some(sub_matches)) => {
             // .unwrap() is safe here since Clap will exit before this if it's absent
             let trailing = sub_matches.value_of("file").map(|x| x.to_string()).unwrap();
-            recipe.resolve(
-                &ctx,
-                Cmd::DBImport {
-                    path: PathBuf::from(trailing),
-                },
-            )
+            Some(Cmd::DBImport {
+                path: PathBuf::from(trailing),
+            })
         }
-        ("db-dump", ..) => recipe.resolve(&ctx, Cmd::DBDump),
+        ("db-dump", ..) => Some(Cmd::DBDump),
         ("pull", Some(sub_matches)) => {
             let trailing = match sub_matches.values_of("cmd") {
                 Some(cmd) => cmd
@@ -211,7 +202,7 @@ fn get_tasks_and_context(
                     .collect(),
                 None => vec![],
             };
-            recipe.resolve(&ctx, Cmd::Pull { trailing })
+            Some(Cmd::Pull { trailing })
         }
         ("exec", Some(sub_matches)) => {
             let trailing = get_trailing(sub_matches);
@@ -220,17 +211,14 @@ fn get_tasks_and_context(
             } else {
                 "www-data"
             };
-            recipe.resolve(
-                &ctx,
-                Cmd::Exec {
-                    trailing,
-                    user: user.to_string(),
-                },
-            )
+            Some(Cmd::Exec {
+                trailing,
+                user: user.to_string(),
+            })
         }
         ("m", Some(sub_matches)) => {
             let trailing = get_trailing(sub_matches);
-            recipe.resolve(&ctx, Cmd::Mage { trailing })
+            Some(Cmd::Mage { trailing })
         }
         //
         // Fall-through case. `cmd` will be the first param here,
@@ -243,25 +231,27 @@ fn get_tasks_and_context(
         //
         (cmd, Some(sub_matches)) => {
             let mut args = vec![cmd];
-            let ext_args: Vec<&str> = sub_matches.values_of("").unwrap().collect();
+            let ext_args: Vec<&str> = match sub_matches.values_of("") {
+                Some(trailing) => trailing.collect(),
+                None => vec![]
+            };
             args.extend(ext_args);
             let user = "www-data";
-            let cmd = match cmd {
-                "npm" => Cmd::Npm {
+            match cmd {
+                "npm" => Some(Cmd::Npm {
                     user: user.to_string(),
                     trailing: args.join(" "),
-                },
-                _ => Cmd::DockerCompose {
-                    user: user.to_string(),
-                    trailing: args.join(" "),
-                },
-            };
-            recipe.resolve(&ctx, cmd)
+                }),
+                _ => None,
+            }
         }
         _ => None,
     };
 
-    (tasks, ctx)
+    match cmd {
+        Some(cmd) => (RecipeKinds::select(&ctx.recipe).resolve_cmd(&ctx, cmd), ctx),
+        None => (None, ctx),
+    }
 }
 
 #[cfg(test)]
@@ -312,8 +302,8 @@ mod tests {
         let args = vec!["prog", "npm", "run", "watch", "-vvv"];
         let config = Some("../fixtures/config_01.yaml");
         let (tasks, ..) = setup(args, config, "/users");
-        let expected_cmd = "docker-compose -f /users/.wf2_m2/docker-compose.yml run --workdir /var/www/app/code/frontend/Acme/design node npm run watch -vvv";
-        let expected_path = "/users/.wf2_m2/docker-compose.yml";
+        let expected_cmd = "docker-compose -f /users/.wf2_default/docker-compose.yml run --workdir /var/www/app/code/frontend/Acme/design node npm run watch -vvv";
+        let expected_path = "/users/.wf2_default/docker-compose.yml";
         test(tasks.unwrap(), expected_cmd, expected_path);
     }
 
@@ -322,8 +312,8 @@ mod tests {
         let args = vec!["prog", "npm", "run", "watch", "-vvv"];
         let config = None;
         let (tasks, ..) = setup(args, config, "/users");
-        let expected_cmd = "docker-compose -f /users/.wf2_m2/docker-compose.yml run --workdir /var/www/. node npm run watch -vvv";
-        let expected_path = "/users/.wf2_m2/docker-compose.yml";
+        let expected_cmd = "docker-compose -f /users/.wf2_default/docker-compose.yml run --workdir /var/www/. node npm run watch -vvv";
+        let expected_path = "/users/.wf2_default/docker-compose.yml";
         test(tasks.unwrap(), expected_cmd, expected_path);
     }
 

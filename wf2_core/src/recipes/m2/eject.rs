@@ -1,10 +1,9 @@
-use crate::recipes::m2::docker_compose::DockerCompose;
+use crate::docker_compose::DockerCompose;
 use crate::{
     context::Context,
     env::create_env,
     recipes::magento_2::{
-        env_from_ctx, file_path, FILE_PREFIX, NGINX_OUTPUT_FILE, TRAEFIK_OUTPUT_FILE,
-        UNISON_OUTPUT_FILE,
+        env_from_ctx, file_path, NGINX_OUTPUT_FILE, TRAEFIK_OUTPUT_FILE, UNISON_OUTPUT_FILE,
     },
     task::Task,
 };
@@ -27,17 +26,17 @@ pub fn exec(ctx: &Context) -> Vec<Task> {
             create_env(env_bytes, &ctx.default_domain()),
         ),
         Task::file_write(
-            file_path(&ctx.cwd, FILE_PREFIX, UNISON_OUTPUT_FILE),
+            ctx.cwd.join(&ctx.file_prefix).join(UNISON_OUTPUT_FILE),
             "Writes the unison file",
             unison_bytes.to_vec(),
         ),
         Task::file_write(
-            file_path(&ctx.cwd, FILE_PREFIX, TRAEFIK_OUTPUT_FILE),
+            ctx.cwd.join(&ctx.file_prefix).join(TRAEFIK_OUTPUT_FILE),
             "Writes the traefix file",
             traefik_bytes.to_vec(),
         ),
         Task::file_write(
-            file_path(&ctx.cwd, FILE_PREFIX, NGINX_OUTPUT_FILE),
+            ctx.cwd.join(&ctx.file_prefix).join(NGINX_OUTPUT_FILE),
             "Writes the nginx file",
             nginx_bytes.to_vec(),
         ),
@@ -56,10 +55,10 @@ fn test_eject_exec() {
     let file_ops = Task::file_op_paths(output);
     assert_eq!(
         vec![
-            "/users/shane/.wf2_m2/.docker.env",
-            "/users/shane/.wf2_m2/unison/conf/sync.prf",
-            "/users/shane/.wf2_m2/traefik/traefik.toml",
-            "/users/shane/.wf2_m2/nginx/sites/site.conf",
+            "/users/shane/.wf2_default/.docker.env",
+            "/users/shane/.wf2_default/unison/conf/sync.prf",
+            "/users/shane/.wf2_default/traefik/traefik.toml",
+            "/users/shane/.wf2_default/nginx/sites/site.conf",
             "/users/shane/docker-compose.yml"
         ]
         .into_iter()

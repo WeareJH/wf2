@@ -1,12 +1,10 @@
 use crate::{context::Context, recipes::PHP, util::path_buf_to_string};
 use std::{collections::HashMap, path::PathBuf};
 
-pub const FILE_PREFIX: &str = ".wf2_m2";
 pub const ENV_OUTPUT_FILE: &str = ".docker.env";
 pub const TRAEFIK_OUTPUT_FILE: &str = "traefik/traefik.toml";
 pub const NGINX_OUTPUT_FILE: &str = "nginx/sites/site.conf";
 pub const UNISON_OUTPUT_FILE: &str = "unison/conf/sync.prf";
-pub const DC_OUTPUT_FILE: &str = "docker-compose.yml";
 
 pub const PHP_7_1: &str = "wearejh/php:7.1-m2";
 pub const PHP_7_2: &str = "wearejh/php:7.2-m2";
@@ -20,17 +18,14 @@ pub const DB_NAME: &str = "docker";
 ///
 pub fn env_from_ctx(ctx: &Context) -> (HashMap<String, String>, PathBuf) {
     // resolve the relative path to where the .env file will be written
-    let env_file_path = ctx.cwd.join(PathBuf::from(format!(
-        "{}/{}",
-        FILE_PREFIX, ENV_OUTPUT_FILE
-    )));
+    let env_file_path = ctx.cwd.join(&ctx.file_prefix).join(ENV_OUTPUT_FILE);
 
     let php_image = match ctx.php_version {
         PHP::SevenOne => PHP_7_1,
         PHP::SevenTwo => PHP_7_2,
     };
 
-    let mut nginx_path = file_path(&ctx.cwd, FILE_PREFIX, NGINX_OUTPUT_FILE);
+    let mut nginx_path = ctx.cwd.join(&ctx.file_prefix).join(NGINX_OUTPUT_FILE);
     nginx_path.pop();
 
     let env: HashMap<String, String> = vec![
@@ -41,11 +36,11 @@ pub fn env_from_ctx(ctx: &Context) -> (HashMap<String, String>, PathBuf) {
         (EnvVar::Domain, ctx.default_domain()),
         (
             EnvVar::UnisonFile,
-            path_buf_to_string(&file_path(&ctx.cwd, FILE_PREFIX, UNISON_OUTPUT_FILE)),
+            path_buf_to_string(&ctx.cwd.join(&ctx.file_prefix).join(UNISON_OUTPUT_FILE)),
         ),
         (
             EnvVar::TraefikFile,
-            path_buf_to_string(&file_path(&ctx.cwd, FILE_PREFIX, TRAEFIK_OUTPUT_FILE)),
+            path_buf_to_string(&ctx.cwd.join(&ctx.file_prefix).join(TRAEFIK_OUTPUT_FILE)),
         ),
         (EnvVar::NginxFile, path_buf_to_string(&nginx_path)),
     ]
@@ -65,10 +60,10 @@ fn test_env_from_ctx() {
         (EnvVar::PhpImage, "wearejh/php:7.2-m2"),
         (EnvVar::Domain, DEFAULT_DOMAIN),
         (EnvVar::ContextName, DEFAULT_NAME),
-        (EnvVar::EnvFile, "./.wf2_m2/.docker.env"),
-        (EnvVar::UnisonFile, "./.wf2_m2/unison/conf/sync.prf"),
-        (EnvVar::TraefikFile, "./.wf2_m2/traefik/traefik.toml"),
-        (EnvVar::NginxFile, "./.wf2_m2/nginx/sites"),
+        (EnvVar::EnvFile, "./.wf2_default/.docker.env"),
+        (EnvVar::UnisonFile, "./.wf2_default/unison/conf/sync.prf"),
+        (EnvVar::TraefikFile, "./.wf2_default/traefik/traefik.toml"),
+        (EnvVar::NginxFile, "./.wf2_default/nginx/sites"),
     ]
     .into_iter()
     .map(|(k, v)| (k.into(), v.into()))
