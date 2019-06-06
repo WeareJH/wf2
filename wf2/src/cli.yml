@@ -30,6 +30,8 @@ args:
       possible_values: [ "7.1", "7.2" ]
       takes_value: true
 subcommands:
+  - doctor:
+      about: Try to fix common issues with a recipe
   - db-import:
       about: Import a DB file
       args:

@@ -35,10 +35,7 @@ fn main() {
     {
         Ok(ctx) => Ok(Some(ctx)),
         Err(FromFileError::SerdeError(e)) => Err(CLIError::InvalidConfig(e)),
-        Err(e) => {
-            eprintln!("Some other err {}", e);
-            Ok(None)
-        }
+        Err(..) => Ok(None),
     };
 
     // if it errored, that means it DID exist, but was invalid
@@ -181,6 +178,7 @@ fn get_tasks_and_context(
     // Get the task list by checking which sub-command was used
     //
     let cmd = match matches.subcommand() {
+        ("doctor", ..) => Some(Cmd::Doctor),
         ("up", ..) => Some(Cmd::Up),
         ("down", ..) => Some(Cmd::Down),
         ("stop", ..) => Some(Cmd::Stop),
@@ -233,7 +231,7 @@ fn get_tasks_and_context(
             let mut args = vec![cmd];
             let ext_args: Vec<&str> = match sub_matches.values_of("") {
                 Some(trailing) => trailing.collect(),
-                None => vec![]
+                None => vec![],
             };
             args.extend(ext_args);
             let user = "www-data";
@@ -242,10 +240,16 @@ fn get_tasks_and_context(
                     user: user.to_string(),
                     trailing: args.join(" "),
                 }),
+                "composer" => Some(Cmd::Composer {
+                    trailing: args.join(" "),
+                }),
                 _ => None,
             }
         }
-        _ => None,
+        _o => {
+            println!("o={:?}", _o);
+            None
+        }
     };
 
     match cmd {
@@ -273,7 +277,7 @@ mod tests {
         get_tasks_and_context(matches, ctx, PathBuf::from(cwd))
     }
 
-    fn test(tasks: Vec<Task>, expected_cmd: &str, expected_path: &str) {
+    fn test_npm(tasks: Vec<Task>, expected_cmd: &str, expected_path: &str) {
         match tasks.get(0).unwrap() {
             Task::Seq(tasks) => {
                 match tasks.get(0) {
@@ -287,7 +291,7 @@ mod tests {
                     _ => unreachable!(),
                 };
                 match tasks.get(1) {
-                    Some(Task::Command { command, env }) => {
+                    Some(Task::Command { command, .. }) => {
                         assert_eq!(expected_cmd, command);
                     }
                     _ => unreachable!(),
@@ -304,7 +308,7 @@ mod tests {
         let (tasks, ..) = setup(args, config, "/users");
         let expected_cmd = "docker-compose -f /users/.wf2_default/docker-compose.yml run --workdir /var/www/app/code/frontend/Acme/design node npm run watch -vvv";
         let expected_path = "/users/.wf2_default/docker-compose.yml";
-        test(tasks.unwrap(), expected_cmd, expected_path);
+        test_npm(tasks.unwrap(), expected_cmd, expected_path);
     }
 
     #[test]
@@ -314,7 +318,22 @@ mod tests {
         let (tasks, ..) = setup(args, config, "/users");
         let expected_cmd = "docker-compose -f /users/.wf2_default/docker-compose.yml run --workdir /var/www/. node npm run watch -vvv";
         let expected_path = "/users/.wf2_default/docker-compose.yml";
-        test(tasks.unwrap(), expected_cmd, expected_path);
+        test_npm(tasks.unwrap(), expected_cmd, expected_path);
+    }
+
+    #[test]
+    fn test_pass_through_composer() {
+        let args = vec!["prog", "composer", "install", "-vvv"];
+        let config = None;
+        let (tasks, ..) = setup(args, config, "/crafters");
+        let expected_cmd = r#"docker exec -it -u www-data wf2__crafters__php composer install -vvv"#;
+        let expected_path = "/users/.wf2_default/docker-compose.yml";
+        match tasks.unwrap().get(0).unwrap() {
+            Task::SimpleCommand { command } => {
+                assert_eq!(expected_cmd, command);
+            }
+            _ => unreachable!(),
+        };
     }
 
     #[test]

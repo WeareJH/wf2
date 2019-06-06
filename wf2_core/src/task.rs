@@ -139,7 +139,13 @@ impl fmt::Display for Task {
                 tasks
                     .iter()
                     .enumerate()
-                    .map(|(index, task)| format!("{:indent$} [{index}] {task}", "", indent = 4, index = index, task = task))
+                    .map(|(index, task)| format!(
+                        "{:indent$} [{index}] {task}",
+                        "",
+                        indent = 4,
+                        index = index,
+                        task = task
+                    ))
                     .collect::<Vec<String>>()
                     .join("\n")
             ),

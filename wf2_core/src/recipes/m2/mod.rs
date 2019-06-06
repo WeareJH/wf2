@@ -29,6 +29,23 @@ impl Recipe for M2Recipe {
             Cmd::DBImport { path } => Some(db_import::exec(&ctx, path.clone())),
             Cmd::DBDump => Some(db_dump::exec(&ctx)),
             Cmd::Pull { trailing } => Some(pull::exec(&ctx, trailing.clone())),
+            Cmd::Doctor => Some(self.doctor(&ctx)),
+            Cmd::Composer { trailing } => Some(composer::exec(&ctx, trailing.clone())),
         }
+    }
+}
+
+impl M2Recipe {
+    ///
+    /// Try to fix common issues, for now just the unison thing
+    ///
+    pub fn doctor(&self, ctx: &Context) -> Vec<Task> {
+        vec![
+            Task::notify("Trying to fix an issue with unison permissions"),
+            Task::simple_command(format!(
+                "docker exec -it wf2__{}__unison chown -R docker:docker /volumes/internal",
+                ctx.name
+            )),
+        ]
     }
 }
