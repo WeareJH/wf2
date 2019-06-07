@@ -5,7 +5,9 @@ workflow "Release" {
 
 action "Build Release" {
   uses = "docker://wearejh/rust-macos-build"
-  args = "pwd && cargo build --target x86_64-apple-darwin --release"
+  env = {
+    BUILD_DIR = "/github/workspace"
+  }
 }
 
 action "Upload to release" {
