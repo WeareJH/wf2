@@ -1,8 +1,5 @@
-use crate::{
-    context::Context,
-    recipes::magento_2::{DB_NAME, DB_PASS, DB_USER},
-    task::Task,
-};
+use crate::recipes::m2::m2_env::{DB_NAME, DB_PASS, DB_USER};
+use crate::{context::Context, task::Task};
 
 pub fn exec(ctx: &Context) -> Vec<Task> {
     let container_name = format!("wf2__{}__db", ctx.name);

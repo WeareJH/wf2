@@ -4,7 +4,13 @@ about: Run PHP Projects with Docker
 settings:
   - TrailingVarArg
   - AllowLeadingHyphen
+  - AllowExternalSubcommands
 args:
+  - config:
+      help: path to a wf2.yml config file
+      required: false
+      takes_value: true
+      long: config
   - cwd:
       help: Sets the CWD for all docker commands
       required: false
@@ -24,6 +30,8 @@ args:
       possible_values: [ "7.1", "7.2" ]
       takes_value: true
 subcommands:
+  - doctor:
+      about: Try to fix common issues with a recipe
   - db-import:
       about: Import a DB file
       args:

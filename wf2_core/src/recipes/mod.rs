@@ -1,45 +1,44 @@
 use crate::{
     context::{Cmd, Context},
+    recipes::m2::M2Recipe,
     task::Task,
 };
 
 pub mod m2;
-pub mod magento_2;
-
-#[derive(Debug, Clone)]
-pub enum Recipe {
-    M2 { php: PHP },
-}
-
-#[derive(Debug, Clone)]
-pub enum PHP {
-    SevenOne,
-    SevenTwo,
-}
 
 ///
-/// The goal here is to have a single place tie a recipe to a function
-/// that can return some tasks.
+/// A way to determine with Recipe is being used.
 ///
-impl Recipe {
-    pub fn resolve(&self, context: &Context, cmd: Cmd) -> Option<Vec<Task>> {
-        match self {
-            Recipe::M2 { php } => match cmd {
-                Cmd::Up => Some(m2::up::exec(&context, php)),
-                Cmd::Down => Some(m2::down::exec(&context, php)),
-                Cmd::Stop => Some(m2::stop::exec(&context, php)),
-                Cmd::Eject => Some(m2::eject::exec(&context, php)),
-                Cmd::Exec { trailing, user } => {
-                    Some(m2::exec::exec(&context, trailing.clone(), user.clone()))
-                }
-                Cmd::Mage { trailing } => Some(m2::mage::exec(&context, trailing.clone())),
-                Cmd::DBImport { path } => Some(m2::db_import::exec(&context, path.clone())),
-                Cmd::DBDump => Some(m2::db_dump::exec(&context)),
-                Cmd::Pull { trailing } => Some(m2::pull::exec(&context, trailing.clone())),
-            },
+/// Once you have this [`RecipeKinds`], you can convert
+/// a [`Context`] + [`Cmd`] into a `Vec` of [`Task`]
+///
+/// # Examples
+///
+/// ```
+/// use wf2_core::task::Task;
+/// use wf2_core::recipes::RecipeKinds;
+/// use wf2_core::context::{Context, Cmd};
+///
+/// let ctx = Context::default();
+/// let cmd = Cmd::Up;
+/// let tasks = RecipeKinds::select(&RecipeKinds::M2).resolve_cmd(&ctx, cmd).unwrap();
+///
+/// assert_eq!(tasks.len(), 9);
+/// ```
+///
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
+pub enum RecipeKinds {
+    M2,
+}
+
+impl RecipeKinds {
+    pub fn select(kind: &RecipeKinds) -> Box<dyn Recipe> {
+        match *kind {
+            RecipeKinds::M2 => Box::new(M2Recipe)
         }
     }
 }
 
-// wf2 pull vendor
-// docker cp wf2__php:/var/www/vendor
+pub trait Recipe {
+    fn resolve_cmd(&self, ctx: &Context, cmd: Cmd) -> Option<Vec<Task>>;
+}
