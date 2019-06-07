@@ -70,4 +70,6 @@ SUBCOMMANDS:
     pull         Pull files or folders from the PHP container to the host
     stop         Take down containers & retain data
     up           Bring up containers
+    composer     Passes thru, eg: `wf2 composer install -vvv`      
+    npm          Passes thru, eg: `wf2 npm i` 
 ```
