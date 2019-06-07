@@ -6,7 +6,27 @@ use crate::{
 
 pub mod m2;
 
-#[derive(Debug, Clone, Copy, Deserialize)]
+///
+/// A way to determine with Recipe is being used.
+///
+/// Once you have this [`RecipeKinds`], you can convert
+/// a [`Context`] + [`Cmd`] into a `Vec` of [`Task`]
+///
+/// # Examples
+///
+/// ```
+/// use wf2_core::task::Task;
+/// use wf2_core::recipes::RecipeKinds;
+/// use wf2_core::context::{Context, Cmd};
+///
+/// let ctx = Context::default();
+/// let cmd = Cmd::Up;
+/// let tasks = RecipeKinds::select(&RecipeKinds::M2).resolve_cmd(&ctx, cmd).unwrap();
+///
+/// assert_eq!(tasks.len(), 9);
+/// ```
+///
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
 pub enum RecipeKinds {
     M2,
 }

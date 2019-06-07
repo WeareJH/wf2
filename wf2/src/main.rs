@@ -11,13 +11,13 @@ use futures::{future::lazy, future::Future};
 use std::env::current_dir;
 use std::{path::PathBuf, str};
 use terminal_size::{terminal_size, Height, Width};
-use wf2_core::php::PHP;
-use wf2_core::{
+pub use wf2_core::{
     context::{Cmd, Context, RunMode, Term},
     recipes::{Recipe, RecipeKinds},
     task::Task,
     util::has_pv,
     WF2,
+    php::PHP,
 };
 
 const DEFAULT_CONFIG_FILE: &str = "wf2.yml";

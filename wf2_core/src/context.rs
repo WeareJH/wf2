@@ -4,8 +4,51 @@ use from_file::{FromFile, FromFileError};
 use std::path::PathBuf;
 
 pub const DEFAULT_DOMAIN: &str = "local.m2";
-pub const DEFAULT_NAME: &str = "wf2_default";
 
+///
+/// The
+///
+pub struct Cwd(PathBuf);
+
+///
+/// The [`Context`] will be given to all recipes when they are
+/// trying to resolve tasks.
+///
+/// # Examples
+///
+/// Context has default implementations for every field for maximum
+/// flexibility
+///
+/// ```
+/// use wf2_core::context::Context;
+/// use wf2_core::recipes::RecipeKinds;
+/// use wf2_core::php::PHP;
+///
+/// let ctx = Context::default();
+///
+/// assert_eq!(ctx.recipe, RecipeKinds::M2);
+/// assert_eq!(ctx.php_version, PHP::SevenTwo);
+/// ```
+///
+/// You can also create a context directly from a file
+///
+/// ```
+/// # use from_file::FromFileError;
+/// # use std::path::PathBuf;
+/// # fn main() -> Result<(), FromFileError> {
+/// # use wf2_core::context::Context;
+/// # use wf2_core::recipes::RecipeKinds;
+/// # use wf2_core::php::PHP;
+/// let ctx = Context::new_from_file("../fixtures/config_01.yaml")?;
+///
+/// assert_eq!(ctx.recipe, RecipeKinds::M2);
+/// assert_eq!(ctx.php_version, PHP::SevenTwo);
+/// assert_eq!(ctx.domains, vec![String::from("acme.m2")]);
+/// assert_eq!(ctx.npm_path, PathBuf::from("app/code/frontend/Acme/design"));
+/// # Ok(())
+/// # }
+/// ```
+///
 #[derive(Debug, Clone, Deserialize, FromFile)]
 pub struct Context {
     #[serde(default = "default_recipe")]
@@ -42,6 +85,8 @@ pub struct Context {
     pub file_prefix: PathBuf,
 }
 
+pub const DEFAULT_NAME: &str = "wf2_default";
+
 impl Default for Context {
     fn default() -> Self {
         Context {
@@ -63,6 +108,12 @@ impl Default for Context {
 impl Context {
     pub fn new_from_file(path: &str) -> Result<Context, FromFileError> {
         Context::from_file(path).and_then(|mut ctx: Context| {
+            ctx.config_path = Some(PathBuf::from(path));
+            Ok(ctx)
+        })
+    }
+    pub fn new_from_str(str: &str) -> Result<Context, FromFileError> {
+        Context::from_yaml_string(path).and_then(|mut ctx: Context| {
             ctx.config_path = Some(PathBuf::from(path));
             Ok(ctx)
         })

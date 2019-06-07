@@ -1,7 +1,16 @@
 use serde::de;
 use std::fmt;
 
-#[derive(Debug, Clone)]
+///
+/// The PHP version used throughout this project.
+///
+/// This can be set within your `wf2.yml` file
+///
+/// ```yaml
+/// php_version: 7.1
+/// ```
+///
+#[derive(Debug, Clone, PartialEq)]
 pub enum PHP {
     SevenOne,
     SevenTwo,
