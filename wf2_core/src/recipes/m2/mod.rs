@@ -1,5 +1,5 @@
 use crate::context::{Cmd, Context};
-use crate::recipes::{m2, Recipe};
+use crate::recipes::{Recipe};
 use crate::task::Task;
 
 pub mod composer;
@@ -8,6 +8,7 @@ pub mod db_import;
 pub mod down;
 pub mod eject;
 pub mod exec;
+pub mod m2_env;
 pub mod mage;
 pub mod npm;
 pub mod pull;

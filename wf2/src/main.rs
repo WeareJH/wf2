@@ -11,9 +11,10 @@ use futures::{future::lazy, future::Future};
 use std::env::current_dir;
 use std::{path::PathBuf, str};
 use terminal_size::{terminal_size, Height, Width};
+use wf2_core::php::PHP;
 use wf2_core::{
     context::{Cmd, Context, RunMode, Term},
-    recipes::{php::PHP, Recipe, RecipeKinds},
+    recipes::{Recipe, RecipeKinds},
     task::Task,
     util::has_pv,
     WF2,
@@ -326,8 +327,11 @@ mod tests {
         let args = vec!["prog", "composer", "install", "-vvv"];
         let config = None;
         let (tasks, ..) = setup(args, config, "/crafters");
-        let expected_cmd = r#"docker exec -it -u www-data wf2__crafters__php composer install -vvv"#;
-        let expected_path = "/users/.wf2_default/docker-compose.yml";
+        let expected_cmd =
+            r#"docker exec -it -u www-data wf2__crafters__php composer install -vvv"#;
+
+        assert_eq!(tasks.clone().unwrap().len(), 1);
+
         match tasks.unwrap().get(0).unwrap() {
             Task::SimpleCommand { command } => {
                 assert_eq!(expected_cmd, command);

@@ -1,20 +1,22 @@
 use crate::docker_compose::DockerCompose;
+use crate::recipes::m2::m2_env::{Env, M2Env};
 use crate::util::path_buf_to_string;
-use crate::{context::Context, recipes::magento_2::env_from_ctx, task::Task};
+use crate::{context::Context, task::Task};
 use std::path::PathBuf;
 
 ///
 /// Alias for `docker-composer run node <...cmd>`
 ///
 pub fn exec(ctx: &Context, trailing: String) -> Vec<Task> {
-    let (env, _env_file_path) = env_from_ctx(ctx);
+    let env = M2Env::from_ctx(ctx);
+    let dc = DockerCompose::from_ctx(&ctx);
     let dc_command = format!(
         r#"run --workdir {work_dir} {service} {trailing_args}"#,
         work_dir = path_buf_to_string(&PathBuf::from("/var/www").join(ctx.npm_path.clone())),
         service = "node",
         trailing_args = trailing
     );
-    vec![DockerCompose::from_ctx(&ctx).cmd_task(dc_command, env)]
+    vec![dc.cmd_task(dc_command, env.content())]
 }
 
 #[cfg(test)]
@@ -37,7 +39,7 @@ mod tests {
                     _ => unreachable!(),
                 };
                 match tasks.get(1) {
-                    Some(Task::Command { command, env }) => {
+                    Some(Task::Command { command, .. }) => {
                         assert_eq!(expected_cmd, command);
                     }
                     _ => unreachable!(),

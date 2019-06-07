@@ -8,6 +8,7 @@ extern crate from_file_derive;
 pub mod context;
 pub mod docker_compose;
 pub mod env;
+pub mod php;
 pub mod recipes;
 pub mod task;
 pub mod util;

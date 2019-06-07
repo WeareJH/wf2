@@ -1,13 +1,9 @@
-use crate::{
-    context::Context,
-    docker_compose::DockerCompose,
-    env::create_env,
-    recipes::magento_2::{
-        env_from_ctx, file_path, NGINX_OUTPUT_FILE, TRAEFIK_OUTPUT_FILE, UNISON_OUTPUT_FILE,
-    },
-    task::Task,
+use crate::env::Env;
+use crate::recipes::m2::m2_env::{
+    M2Env, NGINX_OUTPUT_FILE, TRAEFIK_OUTPUT_FILE, UNISON_OUTPUT_FILE,
 };
-use ansi_term::{Colour::Green, Style};
+use crate::{context::Context, docker_compose::DockerCompose, env::create_env, task::Task};
+use ansi_term::{Colour::Green};
 
 ///
 /// Bring the project up using given templates
@@ -17,7 +13,7 @@ pub fn exec(ctx: &Context) -> Vec<Task> {
     let traefik_bytes = include_bytes!("templates/traefik.toml");
     let nginx_bytes = include_bytes!("templates/site.conf");
     let env_bytes = include_bytes!("templates/.env");
-    let (env, env_file_path) = env_from_ctx(ctx);
+    let env = M2Env::from_ctx(ctx);
     let dc = DockerCompose::from_ctx(&ctx);
 
     vec![
@@ -41,7 +37,7 @@ pub fn exec(ctx: &Context) -> Vec<Task> {
         ),
         Task::file_exists(ctx.cwd.join("auth.json"), "Ensure that auth.json exists"),
         Task::file_write(
-            env_file_path.clone(),
+            env.file_path(),
             "Writes the .env file to disk",
             create_env(env_bytes, &ctx.default_domain()),
         ),
@@ -60,7 +56,7 @@ pub fn exec(ctx: &Context) -> Vec<Task> {
             "Writes the nginx file",
             nginx_bytes.to_vec(),
         ),
-        dc.cmd_task("up", env),
+        dc.cmd_task("up", env.content()),
     ]
 }
 

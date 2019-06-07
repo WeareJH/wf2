@@ -1,5 +1,9 @@
-use crate::{context::Context, recipes::PHP, util::path_buf_to_string};
-use std::{collections::HashMap, path::PathBuf};
+use crate::context::Context;
+pub use crate::env::Env;
+use crate::php::PHP;
+use crate::util::path_buf_to_string;
+use std::collections::HashMap;
+use std::path::PathBuf;
 
 pub const ENV_OUTPUT_FILE: &str = ".docker.env";
 pub const TRAEFIK_OUTPUT_FILE: &str = "traefik/traefik.toml";
@@ -12,6 +16,28 @@ pub const PHP_7_2: &str = "wearejh/php:7.2-m2";
 pub const DB_PASS: &str = "docker";
 pub const DB_USER: &str = "docker";
 pub const DB_NAME: &str = "docker";
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct M2Env {
+    pub content: HashMap<String, String>,
+    pub file_path: PathBuf,
+}
+
+impl Env for M2Env {
+    fn from_ctx(ctx: &Context) -> Self {
+        let (env, env_file_path) = env_from_ctx(ctx);
+        M2Env {
+            content: env,
+            file_path: env_file_path,
+        }
+    }
+    fn content(&self) -> HashMap<String, String> {
+        self.content.clone()
+    }
+    fn file_path(&self) -> PathBuf {
+        self.file_path.clone()
+    }
+}
 
 ///
 /// Recipe-specific stuff used in commands/files

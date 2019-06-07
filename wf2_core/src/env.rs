@@ -1,7 +1,16 @@
+use crate::context::Context;
 use snailquote::{escape, unescape};
 use std::collections::btree_map::BTreeMap;
+use std::collections::HashMap;
+use std::path::PathBuf;
 use std::str;
 use users::{get_current_gid, get_current_uid};
+
+pub trait Env {
+    fn from_ctx(ctx: &Context) -> Self;
+    fn content(&self) -> HashMap<String, String>;
+    fn file_path(&self) -> PathBuf;
+}
 
 ///
 /// Use the base template & append custom bits

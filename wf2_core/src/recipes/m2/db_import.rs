@@ -1,9 +1,5 @@
-use crate::{
-    context::Context,
-    recipes::magento_2::{DB_NAME, DB_PASS, DB_USER},
-    task::Task,
-    util::path_buf_to_string,
-};
+use crate::recipes::m2::m2_env::{DB_NAME, DB_PASS, DB_USER};
+use crate::{context::Context, task::Task, util::path_buf_to_string};
 use std::path::PathBuf;
 
 //

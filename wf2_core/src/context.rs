@@ -1,4 +1,5 @@
-use crate::recipes::{php::PHP, RecipeKinds};
+use crate::php::PHP;
+use crate::recipes::RecipeKinds;
 use from_file::{FromFile, FromFileError};
 use std::path::PathBuf;
 
@@ -31,7 +32,7 @@ pub struct Context {
     #[serde(default = "default_cwd")]
     pub npm_path: PathBuf,
 
-    #[serde(default, deserialize_with = "crate::recipes::php::deserialize_php")]
+    #[serde(default, deserialize_with = "crate::php::deserialize_php")]
     pub php_version: PHP,
 
     #[serde(default)]
