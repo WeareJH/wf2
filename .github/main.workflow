@@ -12,7 +12,7 @@ action "Build Release" {
 
 action "Upload to release" {
   uses = "JasonEtco/upload-to-release@master"
-  args = "target/x86_64-apple-darwin/release/wf2"
+  args = "target/x86_64-apple-darwin/release/wf2 application/octet-stream"
   secrets = ["GITHUB_TOKEN"]
   needs = ["Build Release"]
 }
