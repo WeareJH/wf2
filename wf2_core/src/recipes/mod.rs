@@ -12,9 +12,9 @@ pub enum RecipeKinds {
 }
 
 impl RecipeKinds {
-    pub fn select(kind: &RecipeKinds) -> impl Recipe {
+    pub fn select(kind: &RecipeKinds) -> Box<dyn Recipe> {
         match *kind {
-            RecipeKinds::M2 => M2Recipe,
+            RecipeKinds::M2 => Box::new(M2Recipe)
         }
     }
 }
