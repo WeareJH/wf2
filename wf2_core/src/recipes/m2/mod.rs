@@ -1,5 +1,5 @@
 use crate::context::{Cmd, Context};
-use crate::recipes::{Recipe};
+use crate::recipes::Recipe;
 use crate::task::Task;
 
 pub mod composer;

@@ -118,7 +118,7 @@ impl Context {
     pub fn default_domain(&self) -> String {
         self.domains
             .get(0)
-            .map_or(DEFAULT_DOMAIN.into(), |s| s.into())
+            .map_or(DEFAULT_DOMAIN.into(), |s| s.to_string())
     }
     pub fn set_cwd(&mut self, pb: PathBuf) -> &mut Self {
         self.cwd = pb;

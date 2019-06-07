@@ -1,5 +1,5 @@
 use crate::WF2;
-use ansi_term::{Colour::Red};
+use ansi_term::Colour::Red;
 use futures::{future::lazy, future::Future};
 use std::{
     collections::HashMap,

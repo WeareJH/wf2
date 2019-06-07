@@ -13,11 +13,11 @@ use std::{path::PathBuf, str};
 use terminal_size::{terminal_size, Height, Width};
 pub use wf2_core::{
     context::{Cmd, Context, RunMode, Term},
+    php::PHP,
     recipes::{Recipe, RecipeKinds},
     task::Task,
     util::has_pv,
     WF2,
-    php::PHP,
 };
 
 const DEFAULT_CONFIG_FILE: &str = "wf2.yml";
@@ -247,7 +247,7 @@ fn get_tasks_and_context(
                 _ => None,
             }
         }
-        _ => None
+        _ => None,
     };
 
     match cmd {

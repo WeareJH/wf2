@@ -3,7 +3,7 @@ use crate::recipes::m2::m2_env::{
     M2Env, NGINX_OUTPUT_FILE, TRAEFIK_OUTPUT_FILE, UNISON_OUTPUT_FILE,
 };
 use crate::{context::Context, docker_compose::DockerCompose, env::create_env, task::Task};
-use ansi_term::{Colour::Green};
+use ansi_term::Colour::Green;
 
 ///
 /// Bring the project up using given templates
