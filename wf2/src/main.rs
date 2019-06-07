@@ -247,10 +247,7 @@ fn get_tasks_and_context(
                 _ => None,
             }
         }
-        _o => {
-            println!("o={:?}", _o);
-            None
-        }
+        _ => None
     };
 
     match cmd {

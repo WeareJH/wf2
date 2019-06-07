@@ -54,12 +54,14 @@ FLAGS:
     -v               Sets the level of verbosity
 
 OPTIONS:
-        --cwd <cwd>    Sets the CWD for all docker commands
-        --php <php>    choose 7.1 or 7.2 [possible values: 7.1, 7.2]
+        --config <config>    path to a wf2.yml config file
+        --cwd <cwd>          Sets the CWD for all docker commands
+        --php <php>          choose 7.1 or 7.2 [possible values: 7.1, 7.2]
 
 SUBCOMMANDS:
     db-dump      Dump the current database to dump.sql
     db-import    Import a DB file
+    doctor       Try to fix common issues with a recipe
     down         Take down containers & delete everything
     eject        Dump all files into the local directory for manual running
     exec         Execute commands in the PHP container
