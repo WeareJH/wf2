@@ -112,11 +112,8 @@ impl Context {
             Ok(ctx)
         })
     }
-    pub fn new_from_str(str: &str) -> Result<Context, FromFileError> {
-        Context::from_yaml_string(path).and_then(|mut ctx: Context| {
-            ctx.config_path = Some(PathBuf::from(path));
-            Ok(ctx)
-        })
+    pub fn new_from_str(yaml_str: &str) -> Result<Context, FromFileError> {
+        Context::from_yaml_string(yaml_str.to_string())
     }
     pub fn default_domain(&self) -> String {
         self.domains
