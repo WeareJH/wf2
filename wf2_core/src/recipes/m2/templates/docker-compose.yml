@@ -11,8 +11,11 @@ version: '3.7'
 
 volumes:
   db-data:
+    name: wf2__${WF2_CONTEXT_NAME}__db-data
   app-src:
+    name: wf2__${WF2_CONTEXT_NAME}__app-src
   composer-cache:
+    name: wf2__${WF2_CONTEXT_NAME}__composer-cache
 
 services:
   unison:
