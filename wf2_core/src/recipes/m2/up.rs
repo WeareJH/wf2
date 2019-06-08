@@ -18,14 +18,13 @@ pub fn exec(ctx: &Context) -> Vec<Task> {
 
     vec![
         Task::notify(format!(
-            "{header}: using {current}\n{ctx}",
+            "{header}: using {current}",
             header = Green.paint("[wf2 info]"),
             current = ctx
                 .config_path
                 .clone()
                 .map(|p| p.to_string_lossy().to_string())
                 .unwrap_or("current".into()),
-            ctx = format!("{:#?}", ctx),
         )),
         Task::file_exists(
             ctx.cwd.join("composer.json"),
