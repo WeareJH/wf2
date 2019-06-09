@@ -2,7 +2,6 @@ use crate::error::CLIError;
 use clap::ArgMatches;
 use from_file::FromFileError;
 use std::{
-    env::current_dir,
     path::PathBuf,
     process::{Command, Output},
 };
@@ -24,18 +23,18 @@ pub struct CLIInput {
 impl CLIInput {
     pub fn new_from_file(
         matches: &ArgMatches,
-        path: &str,
-        pwd: impl Into<PathBuf>,
+        file_path: &str,
+        cwd: impl Into<PathBuf>,
     ) -> Result<CLIInput, CLIError> {
-        let pwd = pwd.into();
+        let cwd = cwd.into();
 
         // try to read a config file
-        let ctx_file: Result<Option<Context>, CLIError> = match Context::new_from_file(path.into())
-        {
-            Ok(ctx) => Ok(Some(ctx)),
-            Err(FromFileError::SerdeError(e)) => Err(CLIError::InvalidConfig(e)),
-            Err(..) => Ok(None),
-        };
+        let ctx_file: Result<Option<Context>, CLIError> =
+            match Context::new_from_file(file_path.into()) {
+                Ok(ctx) => Ok(Some(ctx)),
+                Err(FromFileError::SerdeError(e)) => Err(CLIError::InvalidConfig(e)),
+                Err(..) => Ok(None),
+            };
 
         // if it errored, that means it DID exist, but was invalid
         if let Err(err) = ctx_file {
@@ -50,7 +49,7 @@ impl CLIInput {
         };
 
         // Overrides because of CLI flags
-        let overrides = CLIInput::matches_to_context_overrides(&matches, &base_ctx, &pwd);
+        let overrides = CLIInput::matches_to_context_overrides(&matches, &base_ctx, &cwd);
 
         // Now merge the base context (file or default) with any CLI overrides
         {
@@ -58,7 +57,7 @@ impl CLIInput {
         };
 
         // now convert a context + PWD into a Vec<Task>
-        let tasks = CLIInput::get_tasks_from_cli(&matches, &base_ctx, pwd);
+        let tasks = CLIInput::get_tasks_from_cli(&matches, &base_ctx);
 
         Ok(CLIInput {
             ctx: base_ctx,
@@ -68,15 +67,15 @@ impl CLIInput {
 
     pub fn new_from_matches(
         matches: &ArgMatches,
-        pwd: impl Into<PathBuf>,
+        cwd: impl Into<PathBuf>,
     ) -> Result<CLIInput, CLIError> {
-        let pwd = pwd.into();
+        let cwd = cwd.into();
         // unwrap the base context from the file above, or use the default as
         // the base onto which CLI flags can be applied
         let mut base_ctx = Context::default();
 
         // Overrides because of CLI flags
-        let overrides = CLIInput::matches_to_context_overrides(&matches, &base_ctx, &pwd);
+        let overrides = CLIInput::matches_to_context_overrides(&matches, &base_ctx, &cwd);
 
         // Now merge the base context (file or default) with any CLI overrides
         {
@@ -84,7 +83,7 @@ impl CLIInput {
         };
 
         // now convert a context + PWD into a Vec<Task>
-        let tasks = CLIInput::get_tasks_from_cli(&matches, &base_ctx, pwd);
+        let tasks = CLIInput::get_tasks_from_cli(&matches, &base_ctx);
 
         Ok(CLIInput {
             ctx: base_ctx,
@@ -151,11 +150,7 @@ impl CLIInput {
         }
     }
 
-    pub fn get_tasks_from_cli(
-        matches: &ArgMatches,
-        ctx: &Context,
-        cwd: PathBuf,
-    ) -> Option<Vec<Task>> {
+    pub fn get_tasks_from_cli(matches: &ArgMatches, ctx: &Context) -> Option<Vec<Task>> {
         //
         // Extract sub-command trailing arguments, eg:
         //

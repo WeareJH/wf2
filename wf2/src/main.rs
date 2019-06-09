@@ -1,15 +1,13 @@
 #[macro_use]
 extern crate clap;
 
-use crate::{
-    cli_input::{CLIInput, DEFAULT_CONFIG_FILE},
-    error::CLIError,
-};
-use clap::{App};
+use clap::App;
 use futures::{future::lazy, future::Future};
-use std::{env::current_dir};
-use wf2_core::{WF2};
+use std::env::current_dir;
 use wf2_core::context::RunMode;
+use wf2_core::WF2;
+
+use crate::cli_input::{CLIInput, DEFAULT_CONFIG_FILE};
 
 mod cli_input;
 mod error;
@@ -25,6 +23,7 @@ fn main() {
     let config_file_arg = matches.value_of("config").unwrap_or(DEFAULT_CONFIG_FILE);
     let cli_input = CLIInput::new_from_file(&matches, config_file_arg, current_dir().expect("cwd"));
 
+    // if anything has errored, do not proceed
     if cli_input.is_err() {
         match cli_input {
             Err(ref e) => {
@@ -46,7 +45,7 @@ fn main() {
     }
 
     //
-    // if --dryrun was given, just print the commands
+    // if --dryrun was given, just print the commands and return
     //
     if cli_input.ctx.run_mode == RunMode::DryRun {
         cli_input.tasks.map(|ts| {
@@ -59,6 +58,7 @@ fn main() {
 
     // This is where the tasks are executed
     tokio::run(lazy(move || {
+
         // This .unwrap() is safe here since we bailed on None earlier
         let tasks = cli_input.tasks.unwrap();
 
