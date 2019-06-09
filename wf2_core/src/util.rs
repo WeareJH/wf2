@@ -1,4 +1,3 @@
-use std::process::{Command, Output};
 use std::{collections::HashMap, path::PathBuf};
 
 pub fn path_buf_to_string(pb: &PathBuf) -> String {
@@ -17,20 +16,6 @@ pub fn replace_env(env: HashMap<String, String>, input: &[u8]) -> Vec<u8> {
     )
     .to_string()
     .into()
-}
-
-pub fn has_pv() -> Option<String> {
-    let mut cmd = Command::new("which");
-    cmd.arg("pv");
-    match cmd.output() {
-        Ok(Output { status, stdout, .. }) => match status.code() {
-            Some(0) => std::str::from_utf8(&stdout)
-                .map(|s| s.trim().to_string())
-                .ok(),
-            _ => None,
-        },
-        Err(..) => None,
-    }
 }
 
 #[test]

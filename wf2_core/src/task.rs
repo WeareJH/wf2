@@ -227,7 +227,7 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
             Ok(id)
         }
         Task::Seq(tasks) => {
-            let task_sequence = WF2::exec(tasks.clone());
+            let task_sequence = WF2::sequence(tasks.clone());
             let output = task_sequence.wait();
             output.and_then(|_| Ok(id)).map_err(|e| TaskError {
                 index: id,

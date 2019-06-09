@@ -26,9 +26,9 @@ pub struct WF2 {}
 
 impl WF2 {
     ///
-    /// Create a future that will execute all of the tasks for a given recipe
+    /// Create a future that will execute all of the tasks in sequence
     ///
-    pub fn exec(tasks: Vec<Task>) -> Box<Future<Item = (), Error = (Task, TaskError)> + Send> {
+    pub fn sequence(tasks: Vec<Task>) -> Box<Future<Item = (), Error = (Task, TaskError)> + Send> {
         Box::new(lazy(move || {
             // convert the list of tasks into a sequence
             let as_futures = tasks
