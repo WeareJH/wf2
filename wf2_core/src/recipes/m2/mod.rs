@@ -13,6 +13,20 @@ pub mod npm;
 pub mod pull;
 pub mod up;
 
+///
+/// PHP 7.1 + 7.2 Environments for use with Magento 2.
+///
+/// Includes:
+///
+/// - traefik
+/// - varnish
+/// - nginx
+/// - php 7.1 + 7.2
+/// - node
+/// - db
+/// - redis
+/// - blackfire
+///
 pub struct M2Recipe;
 
 impl Recipe for M2Recipe {
@@ -72,7 +86,50 @@ impl M2Recipe {
     }
 
     ///
-    /// Alias for `docker exec` with correct user
+    /// Alias for `docker exec` inside the PHP Container.
+    ///
+    /// Note: if the command you're running requires flags like `-h`, then you
+    /// need to place `--` directly after `exec` (see below)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use wf2_core::recipes::m2::M2Recipe;
+    /// # use wf2_core::context::Context;
+    /// # use wf2_core::task::Task;
+    /// # let m2 = M2Recipe;
+    /// #
+    /// let input = "wf2 exec -- ls -lh";
+    /// let expected = r#"docker exec -it -u www-data -e COLUMNS="80" -e LINES="30" wf2__wf2_default__php ls -lh"#;
+    /// #
+    /// # let tasks = m2.exec(&Context::default(), input.split_whitespace().skip(3).collect::<Vec<&str>>().join(" "), String::from("www-data"));
+    /// # match tasks.get(0).unwrap() {
+    /// #     Task::SimpleCommand { command, .. } => {
+    /// #         assert_eq!(expected, command);
+    /// #     }
+    /// #     _ => unreachable!(),
+    /// # };
+    /// ```
+    ///
+    /// ## With `-r` (root)
+    ///
+    /// ```
+    /// # use wf2_core::recipes::m2::M2Recipe;
+    /// # use wf2_core::context::Context;
+    /// # use wf2_core::task::Task;
+    /// # let m2 = M2Recipe;
+    /// #
+    /// let input = "wf2 exec -r -- rm -rf vendor";
+    /// let expected = r#"docker exec -it -u root -e COLUMNS="80" -e LINES="30" wf2__wf2_default__php rm -rf vendor"#;
+    /// #
+    /// # let tasks = m2.exec(&Context::default(), input.split_whitespace().skip(4).collect::<Vec<&str>>().join(" "), String::from("root"));
+    /// # match tasks.get(0).unwrap() {
+    /// #     Task::SimpleCommand { command, .. } => {
+    /// #         assert_eq!(expected, command);
+    /// #     }
+    /// #     _ => unreachable!(),
+    /// # };
+    /// ```
     ///
     pub fn exec(&self, ctx: &Context, trailing: String, user: String) -> Vec<Task> {
         let container_name = format!("wf2__{}__php", ctx.name);
@@ -257,7 +314,7 @@ impl M2Recipe {
     /// #
     /// # let tasks = m2.composer(
     /// #     &Context::default(),
-    ///       input.split_whitespace().skip(1).collect::<Vec<&str>>().join(" "),
+    /// #      input.split_whitespace().skip(1).collect::<Vec<&str>>().join(" "),
     /// # );
     /// # match tasks.get(0).unwrap() {
     /// #     Task::SimpleCommand { command, .. } => {
