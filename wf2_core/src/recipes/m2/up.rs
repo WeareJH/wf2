@@ -24,7 +24,7 @@ pub fn exec(ctx: &Context) -> Vec<Task> {
                 .config_path
                 .clone()
                 .map(|p| p.to_string_lossy().to_string())
-                .unwrap_or("current".into()),
+                .unwrap_or("default, since no config was provided".into())
         )),
         Task::file_exists(
             ctx.cwd.join("composer.json"),
