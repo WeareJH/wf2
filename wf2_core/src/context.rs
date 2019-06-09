@@ -6,11 +6,6 @@ use std::path::PathBuf;
 pub const DEFAULT_DOMAIN: &str = "local.m2";
 
 ///
-/// The
-///
-pub struct Cwd(PathBuf);
-
-///
 /// The [`Context`] will be given to all recipes when they are
 /// trying to resolve tasks.
 ///
@@ -207,20 +202,4 @@ pub enum RunMode {
 pub struct Term {
     pub height: u16,
     pub width: u16,
-}
-
-#[derive(Debug, Clone)]
-pub enum Cmd {
-    Up,
-    Down,
-    Stop,
-    Eject,
-    Exec { trailing: String, user: String },
-    Doctor,
-    Pull { trailing: Vec<String> },
-    DBImport { path: PathBuf },
-    DBDump,
-    Npm { trailing: String, user: String },
-    Mage { trailing: String },
-    Composer { trailing: String },
 }
