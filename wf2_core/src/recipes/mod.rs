@@ -1,8 +1,4 @@
-use crate::{
-    context::{Cmd, Context},
-    recipes::m2::M2Recipe,
-    task::Task,
-};
+use crate::{cmd::Cmd, context::Context, recipes::m2::M2Recipe, task::Task};
 
 pub mod m2;
 
@@ -17,7 +13,8 @@ pub mod m2;
 /// ```
 /// use wf2_core::task::Task;
 /// use wf2_core::recipes::RecipeKinds;
-/// use wf2_core::context::{Context, Cmd};
+/// use wf2_core::context::{Context};
+/// use wf2_core::cmd::{Cmd};
 ///
 /// let ctx = Context::default();
 /// let cmd = Cmd::Up;

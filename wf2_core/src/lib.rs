@@ -5,6 +5,7 @@ extern crate serde;
 #[macro_use]
 extern crate from_file_derive;
 
+pub mod cmd;
 pub mod context;
 pub mod docker_compose;
 pub mod env;

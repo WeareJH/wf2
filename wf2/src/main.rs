@@ -58,7 +58,6 @@ fn main() {
 
     // This is where the tasks are executed
     tokio::run(lazy(move || {
-
         // This .unwrap() is safe here since we bailed on None earlier
         let tasks = cli_input.tasks.unwrap();
 
