@@ -7,7 +7,8 @@ use std::{
 };
 use terminal_size::{terminal_size, Height, Width};
 use wf2_core::{
-    context::{Cmd, Context, ContextOverrides, RunMode, Term},
+    cmd::Cmd,
+    context::{Context, ContextOverrides, RunMode, Term},
     php::PHP,
     recipes::RecipeKinds,
     task::Task,
@@ -112,7 +113,7 @@ impl CLIInput {
         // but add a deprecated message
         let php_version = matches
             .value_of("php")
-            .map_or(PHP::SevenTwo, |input| match input {
+            .map_or(ctx.php_version.clone(), |input| match input {
                 "7.1" => PHP::SevenOne,
                 _ => PHP::SevenTwo,
             });
@@ -287,6 +288,22 @@ mod tests {
             }
             _ => unreachable!(),
         };
+    }
+
+    #[test]
+    fn test_php_version_in_config() {
+        let args = vec!["prog", "up"];
+        let config = Some("../fixtures/config_php_71.yaml");
+        let cli_input = setup(args, config, "/users").unwrap();
+        assert_eq!(cli_input.ctx.php_version, PHP::SevenOne);
+    }
+
+    #[test]
+    fn test_php_version_in_flag() {
+        let args = vec!["prog", "--php", "7.1", "up"];
+        let config = Some("../fixtures/config_01.yaml");
+        let cli_input = setup(args, config, "/users").unwrap();
+        assert_eq!(cli_input.ctx.php_version, PHP::SevenOne);
     }
 
     #[test]
