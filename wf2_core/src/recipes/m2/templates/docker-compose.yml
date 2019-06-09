@@ -17,6 +17,10 @@ volumes:
   composer-cache:
     name: wf2__${WF2_CONTEXT_NAME}__composer-cache
 
+networks:
+  default:
+    name: wf2__${WF2_CONTEXT_NAME}__default-network
+
 services:
   unison:
     container_name: wf2__${WF2_CONTEXT_NAME}__unison
