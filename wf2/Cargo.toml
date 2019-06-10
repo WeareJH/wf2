@@ -9,7 +9,7 @@ license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-wf2_core = { path = "../wf2_core", version = "0.2.0" }
+wf2_core = { path = "../wf2_core", version = "0.3.0" }
 tokio = "0.1.20"
 futures = "0.1.27"
 clap = { version = "2.33.0", features = ["yaml"] }
