@@ -283,16 +283,23 @@ impl M2Recipe {
     pub fn db_dump(&self, ctx: &Context) -> Vec<Task> {
         use m2_env::{DB_NAME, DB_PASS, DB_USER};
         let container_name = format!("wf2__{}__db", ctx.name);
+
+        //TODO: think about how we want to handle the case when a home directory can,
+        //not be detected although this may be an egdecase.
+        let home_dir = dirs::home_dir().expect("Home directory could not be found");
+        let output_path = home_dir.join(".wf2_dump/dump.sql");
+
         let db_dump_command = format!(
-            r#"docker exec -i {container} mysqldump -u{user} -p{pass} {db} > dump.sql"#,
+            r#"docker exec -i {container} mysqldump -u{user} -p{pass} {db} > {output}"#,
             container = container_name,
             user = DB_USER,
             pass = DB_PASS,
             db = DB_NAME,
+            output = output_path.display()
         );
         vec![
             Task::simple_command(db_dump_command),
-            Task::notify("Written to file dump.sql"),
+            Task::notify(format!("Written to file {}", output_path.display())),
         ]
     }
 
