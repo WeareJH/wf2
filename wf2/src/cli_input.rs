@@ -16,25 +16,24 @@ use wf2_core::{
 
 pub const DEFAULT_CONFIG_FILE: &str = "wf2.yml";
 
+#[derive(Debug)]
 pub struct CLIInput {
     pub ctx: Context,
     pub tasks: Option<Vec<Task>>,
 }
 
 impl CLIInput {
-    pub fn new_from_file(
-        matches: &ArgMatches,
-        file_path: &str,
-        cwd: impl Into<PathBuf>,
-    ) -> Result<CLIInput, CLIError> {
-        let cwd = cwd.into();
-
+    pub fn create_context(file_path: impl Into<String>) -> Result<Context, CLIError> {
         // try to read a config file
         let ctx_file: Result<Option<Context>, CLIError> =
             match Context::new_from_file(file_path.into()) {
                 Ok(ctx) => Ok(Some(ctx)),
                 Err(FromFileError::SerdeError(e)) => Err(CLIError::InvalidConfig(e)),
-                Err(..) => Ok(None),
+//                Err(FromFileError::FileOpen(path)) => Err(CLIError::MissingConfig(path)),
+//                Err(FromFileError::InvalidExtension) => Err(CLIError::InvalidExtension),
+                Err(e) => {
+                    Ok(None)
+                }
             };
 
         // if it errored, that means it DID exist, but was invalid
@@ -44,26 +43,30 @@ impl CLIInput {
 
         // unwrap the base context from the file above, or use the default as
         // the base onto which CLI flags can be applied
-        let mut base_ctx = match ctx_file {
-            Ok(Some(ctx)) => ctx,
-            _ => Context::default(),
-        };
+        match ctx_file {
+            Ok(Some(ctx)) => Ok(ctx),
+            _ => Ok(Context::default()),
+        }
+    }
+    pub fn new_from_ctx(
+        matches: &ArgMatches,
+        ctx: &Context,
+        cwd: impl Into<PathBuf>,
+    ) -> Result<CLIInput, CLIError> {
+        let cwd = cwd.into();
+        let mut ctx = ctx.clone();
 
         // Overrides because of CLI flags
-        let overrides = CLIInput::matches_to_context_overrides(&matches, &base_ctx, &cwd);
+        let overrides = CLIInput::matches_to_context_overrides(&matches, &ctx, &cwd);
 
         // Now merge the base context (file or default) with any CLI overrides
         {
-            base_ctx.merge(overrides);
+            ctx.merge(overrides);
         };
 
-        // now convert a context + PWD into a Vec<Task>
-        let tasks = CLIInput::get_tasks_from_cli(&matches, &base_ctx);
+        let tasks = CLIInput::get_tasks_from_cli(&matches, &ctx);
 
-        Ok(CLIInput {
-            ctx: base_ctx,
-            tasks,
-        })
+        Ok(CLIInput { ctx, tasks })
     }
 
     pub fn new_from_matches(
@@ -259,9 +262,10 @@ mod tests {
         let yaml = load_yaml!("cli.yml");
         let app = App::from_yaml(yaml);
         let matches = app.clone().get_matches_from(args);
+        let ctx = CLIInput::create_context(config_file.unwrap_or(DEFAULT_CONFIG_FILE));
 
         match config_file {
-            Some(cf) => CLIInput::new_from_file(&matches, cf, cwd),
+            Some(..) => CLIInput::new_from_ctx(&matches, &ctx.expect("should work"), cwd),
             None => CLIInput::new_from_matches(&matches, cwd),
         }
     }

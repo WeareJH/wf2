@@ -4,6 +4,7 @@ use crate::docker_compose::DockerCompose;
 use crate::recipes::Recipe;
 use crate::task::Task;
 use crate::util::path_buf_to_string;
+use clap::{App, SubCommand};
 use m2_env::{Env, M2Env};
 use std::path::PathBuf;
 
@@ -29,7 +30,7 @@ pub mod up;
 ///
 pub struct M2Recipe;
 
-impl Recipe for M2Recipe {
+impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
     fn resolve_cmd(&self, ctx: &Context, cmd: Cmd) -> Option<Vec<Task>> {
         match cmd {
             Cmd::Up => Some(up::exec(&ctx)),
@@ -46,6 +47,29 @@ impl Recipe for M2Recipe {
             Cmd::Doctor => Some(self.doctor(&ctx)),
             Cmd::Composer { trailing } => Some(self.composer(&ctx, trailing.clone())),
         }
+    }
+    fn subcommands(&self) -> Vec<App<'a, 'b>> {
+        vec![
+            SubCommand::with_name("db-import")
+                .about("(--M2--) Import a DB file")
+                .arg_from_usage("<file> 'db file to import'"),
+            SubCommand::with_name("db-dump")
+                .about("(--M2--) Dump the current database to dump.sql"),
+            SubCommand::with_name("exec")
+                .about("(--M2--) Execute commands in the PHP container")
+                .args_from_usage(
+                    "-r --root 'Execute commands as root'
+                                  [args]... 'Trailing args'",
+                ),
+            SubCommand::with_name("m")
+                .about("(--M2--) Execute ./bin/magento commands inside the PHP container")
+                .args_from_usage("[args]... 'Trailing args'"),
+        ]
+    }
+    fn pass_thru_commands(&self) -> Vec<(String, String)> {
+        vec![
+            ("composer", "run composer commands with the corrent user")
+        ].into_iter().map(|(name, help)| (name.into(), help.into())).collect()
     }
 }
 

@@ -113,7 +113,8 @@ impl Default for Context {
 }
 
 impl Context {
-    pub fn new_from_file(path: &str) -> Result<Context, FromFileError> {
+    pub fn new_from_file(path: impl Into<String>) -> Result<Context, FromFileError> {
+        let path = &path.into();
         Context::from_file(path).and_then(|mut ctx: Context| {
             ctx.config_path = Some(PathBuf::from(path));
             Ok(ctx)
