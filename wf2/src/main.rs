@@ -1,10 +1,10 @@
 #[macro_use]
 extern crate clap;
 
-use clap::{App, AppSettings, Arg, SubCommand};
+use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use futures::{future::lazy, future::Future};
 use std::env::current_dir;
-use wf2_core::context::RunMode;
+use wf2_core::context::{Context, RunMode};
 use wf2_core::WF2;
 
 use crate::cli_input::{CLIInput, DEFAULT_CONFIG_FILE};
@@ -80,41 +80,87 @@ fn main() {
     }));
 }
 
+fn get_ctx(app: clap::App, input: Vec<String>) -> Result<Context, CLIError> {
+    let matches = app.clone().get_matches_from_safe(input.clone());
+    match matches {
+        Ok(matches) => match matches.value_of("config") {
+            Some(file_path) => CLIInput::create_context_from_arg(file_path),
+            None => CLIInput::create_context(DEFAULT_CONFIG_FILE.to_string()),
+        },
+        Err(clap::Error {
+            message,
+            kind: clap::ErrorKind::HelpDisplayed,
+            info,
+        }) => {
+            let without: Vec<String> = input
+                .into_iter()
+                .filter(|arg| &arg[..] != "--help")
+                .collect();
+            get_ctx(app.clone(), without)
+        }
+        Err(e) => {
+            Err(CLIError::InvalidConfig("Noop".into()))
+        }
+    }
+}
+
 fn create_from_input(input: Vec<impl Into<String>>) -> Result<CLIInput, CLIError> {
     let input: Vec<String> = input.into_iter().map(|s| s.into()).collect();
     let base_app = base_app();
     let base_sub = base_subcommands();
     let base_len = base_sub.len();
     let app = append_sub(base_app, base_sub, 0);
+    let ctx = get_ctx(app.clone(), input.clone())?;
+    let recipe = RecipeKinds::select(&ctx.recipe);
 
-    let matches = app
-        .clone()
-        .get_matches_from_safe(input.clone())
-        .map_err(|e| CLIError::Config(e))?;
+    let after_help_lines = get_after_help_lines(recipe.pass_thru_commands());
+    let s_slice: &str = &after_help_lines[..];
 
-    let config_arg = matches.value_of("config").map(|s| s.to_string());
-
-    let ctx_from_file =
-        CLIInput::create_context(config_arg.unwrap_or(DEFAULT_CONFIG_FILE.to_string()))?;
-
-    let recipe = RecipeKinds::select(&ctx_from_file.recipe);
-    let after_help = recipe
-        .pass_thru_commands()
-        .into_iter()
-        .map(|(name, help)| format!("{} {}", name, help))
-        .collect::<Vec<String>>();
-
-    let joined = after_help.join("\n");
-    let s_slice: &str = &joined[..];
-
-    let app = append_sub(app, recipe.subcommands(), base_len + 1)
-        .after_help(s_slice);
+    let app = append_sub(app, recipe.subcommands(), base_len + 1).after_help(s_slice);
 
     CLIInput::new_from_ctx(
         &app.clone().get_matches_from(input),
-        &ctx_from_file,
+        &ctx,
         current_dir().expect("cwd"),
     )
+}
+
+fn get_after_help_lines(commands: Vec<(String, String)>) -> String {
+    match commands.clone().get(0) {
+        Some(t) => {
+            let longest = commands.iter().fold(
+                commands[0].clone(),
+                |(prev_name, prev_desc), (name, help)| {
+                    if name.len() > prev_name.len() {
+                        (name.to_string(), help.to_string())
+                    } else {
+                        (prev_name, prev_desc)
+                    }
+                },
+            );
+            let longest = longest.0.len();
+            let lines = commands
+                .into_iter()
+                .map(|(name, help)| {
+                    let cur_len = name.len();
+                    let diff = longest - cur_len;
+                    let diff = match longest - cur_len {
+                        0 => 4,
+                        _ => diff + 4,
+                    };
+                    format!(
+                        "    {name}{:diff$}{help}",
+                        " ",
+                        name = name,
+                        diff = diff,
+                        help = help
+                    )
+                })
+                .collect::<Vec<String>>();
+            format!("PASS THRU COMMANDS:\n{}", lines.join("\n"))
+        }
+        None => String::from(""),
+    }
 }
 
 fn base_subcommands<'a>() -> Vec<clap::App<'a, 'a>> {

@@ -8,6 +8,7 @@ pub enum CLIError {
     InvalidConfig(String),
     MissingConfig(PathBuf),
     InvalidExtension,
+    Unknown,
     Config(clap::Error),
 }
 
@@ -29,6 +30,7 @@ impl fmt::Display for CLIError {
                 header = Red.paint("[wf2] [ERROR] CLIError::InvalidExtension"),
             ),
             CLIError::Config(clap::Error { message, .. }) => format!("{}", message),
+            CLIError::Unknown => format!("{}", Red.paint("[wf2] [ERROR] CLIError::Unknown")),
         };
         write!(f, "{}", output)
     }

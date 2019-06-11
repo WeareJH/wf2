@@ -51,25 +51,31 @@ impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
     fn subcommands(&self) -> Vec<App<'a, 'b>> {
         vec![
             SubCommand::with_name("db-import")
-                .about("(--M2--) Import a DB file")
+                .about("[M2] Import a DB file")
                 .arg_from_usage("<file> 'db file to import'"),
-            SubCommand::with_name("db-dump")
-                .about("(--M2--) Dump the current database to dump.sql"),
+            SubCommand::with_name("db-dump").about("[M2] Dump the current database to dump.sql"),
             SubCommand::with_name("exec")
-                .about("(--M2--) Execute commands in the PHP container")
+                .about("[M2] Execute commands in the PHP container")
                 .args_from_usage(
                     "-r --root 'Execute commands as root'
                                   [args]... 'Trailing args'",
                 ),
             SubCommand::with_name("m")
-                .about("(--M2--) Execute ./bin/magento commands inside the PHP container")
+                .about("[M2] Execute ./bin/magento commands inside the PHP container")
                 .args_from_usage("[args]... 'Trailing args'"),
         ]
     }
     fn pass_thru_commands(&self) -> Vec<(String, String)> {
         vec![
-            ("composer", "run composer commands with the corrent user")
-        ].into_iter().map(|(name, help)| (name.into(), help.into())).collect()
+            (
+                "composer",
+                "[M2] Run composer commands with the correct user",
+            ),
+            ("npm", "[M2] Run npm commands with the correct user"),
+        ]
+        .into_iter()
+        .map(|(name, help)| (name.into(), help.into()))
+        .collect()
     }
 }
 
