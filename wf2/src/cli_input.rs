@@ -23,17 +23,35 @@ pub struct CLIInput {
 }
 
 impl CLIInput {
-    pub fn create_context(file_path: impl Into<String>) -> Result<Context, CLIError> {
-        // try to read a config file
+    pub fn create_context_from_arg(file_path: impl Into<String>) -> Result<Context, CLIError> {
         let ctx_file: Result<Option<Context>, CLIError> =
             match Context::new_from_file(file_path.into()) {
                 Ok(ctx) => Ok(Some(ctx)),
                 Err(FromFileError::SerdeError(e)) => Err(CLIError::InvalidConfig(e)),
-//                Err(FromFileError::FileOpen(path)) => Err(CLIError::MissingConfig(path)),
-//                Err(FromFileError::InvalidExtension) => Err(CLIError::InvalidExtension),
-                Err(e) => {
-                    Ok(None)
-                }
+                Err(FromFileError::FileOpen(path)) => Err(CLIError::MissingConfig(path)),
+                Err(FromFileError::InvalidExtension) => Err(CLIError::InvalidExtension),
+                Err(..) => Err(CLIError::InvalidExtension),
+            };
+
+        // if it errored, that means it DID exist, but was invalid
+        if let Err(err) = ctx_file {
+            return Err(err);
+        }
+
+        // unwrap the base context from the file above, or use the default as
+        // the base onto which CLI flags can be applied
+        match ctx_file {
+            Ok(Some(ctx)) => Ok(ctx),
+            _ => Ok(Context::default()),
+        }
+    }
+    pub fn create_context(file_path: impl Into<String>) -> Result<Context, CLIError> {
+        // try to read a default config file
+        let ctx_file: Result<Option<Context>, CLIError> =
+            match Context::new_from_file(file_path.into()) {
+                Ok(ctx) => Ok(Some(ctx)),
+                Err(FromFileError::SerdeError(e)) => Err(CLIError::InvalidConfig(e)),
+                Err(e) => Ok(None),
             };
 
         // if it errored, that means it DID exist, but was invalid
