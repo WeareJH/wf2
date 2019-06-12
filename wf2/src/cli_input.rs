@@ -7,6 +7,9 @@ use wf2_core::context::Term;
 
 pub const DEFAULT_CONFIG_FILE: &str = "wf2.yml";
 
+///
+/// This struct encapsulates the properties of the running environment
+///
 #[derive(Debug, Default)]
 pub struct CLIInput {
     pub args: Vec<String>,

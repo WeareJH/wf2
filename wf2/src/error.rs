@@ -8,8 +8,8 @@ pub enum CLIError {
     InvalidConfig(String),
     MissingConfig(PathBuf),
     InvalidExtension,
-    Unknown,
-    Config(clap::Error),
+    //    Unknown,
+    //    Config(clap::Error),
     VersionDisplayed(String),
 }
 
@@ -30,8 +30,8 @@ impl fmt::Display for CLIError {
                 "{header}\nPlease provide a path to a *.yml file",
                 header = Red.paint("[wf2] [ERROR] CLIError::InvalidExtension"),
             ),
-            CLIError::Config(clap::Error { message, .. }) => format!("{}", message),
-            CLIError::Unknown => format!("{}", Red.paint("[wf2] [ERROR] CLIError::Unknown")),
+            //            CLIError::Config(clap::Error { message, .. }) => format!("{}", message),
+            //            CLIError::Unknown => format!("{}", Red.paint("[wf2] [ERROR] CLIError::Unknown")),
             CLIError::VersionDisplayed(version) => format!("{}", version),
         };
         write!(f, "{}", output)

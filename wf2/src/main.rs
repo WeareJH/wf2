@@ -1,24 +1,21 @@
 #[macro_use]
 extern crate clap;
 
-use clap::{App, AppSettings, Arg, SubCommand};
 use futures::{future::lazy, future::Future};
-use wf2_core::context::{Context, RunMode};
+use wf2_core::context::RunMode;
 use wf2_core::WF2;
 
 use crate::cli_input::CLIInput;
-use crate::cli_output::{CLIOutput};
-use crate::error::CLIError;
-use wf2_core::recipes::RecipeKinds;
+use crate::cli_output::CLIOutput;
 
 mod cli;
-mod cli_output;
 mod cli_input;
+mod cli_output;
 mod error;
 mod tests;
 
 fn main() {
-    // parse input
+    // create output, from the cli environment (input)
     let cli_output = CLIOutput::from_input(CLIInput::new());
 
     // exit early on errors
@@ -81,4 +78,3 @@ fn main() {
             })
     }));
 }
-
