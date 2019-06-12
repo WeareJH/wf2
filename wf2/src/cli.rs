@@ -1,10 +1,12 @@
-use clap::{App, AppSettings, SubCommand, Arg};
+use crate::cli_input::DEFAULT_CONFIG_FILE;
 use crate::cli_output::CLIOutput;
 use crate::error::CLIError;
+use clap::{App, AppSettings, Arg, SubCommand};
 use wf2_core::context::Context;
-use crate::cli_input::DEFAULT_CONFIG_FILE;
 
-pub struct CLI<'a, 'b>(pub clap::App<'a, 'b>);
+pub struct CLI<'a, 'b> {
+    pub app: clap::App<'a, 'b>,
+}
 
 impl<'a, 'b> CLI<'a, 'b> {
     pub fn new() -> CLI<'a, 'b> {
@@ -60,83 +62,108 @@ impl<'a, 'b> CLI<'a, 'b> {
                 AppSettings::AllowLeadingHyphen,
                 AppSettings::TrailingVarArg,
             ]);
-        CLI(app)
+        CLI { app }
     }
-    pub fn get_ctx(app: clap::App, input: Vec<String>) -> Result<Context, CLIError> {
-        let matches = app.clone().get_matches_from_safe(input.clone());
+
+    pub fn get_ctx(&self, input: Vec<String>) -> Result<Context, CLIError> {
+        let matches = self.app.clone().get_matches_from_safe(input.clone());
         match matches {
             Ok(matches) => match matches.value_of("config") {
                 Some(file_path) => CLIOutput::create_context_from_arg(file_path),
                 None => CLIOutput::create_context(DEFAULT_CONFIG_FILE.to_string()),
             },
             Err(clap::Error {
-                    kind: clap::ErrorKind::HelpDisplayed,
-                    ..
-                }) => {
+                kind: clap::ErrorKind::HelpDisplayed,
+                ..
+            }) => {
                 let without: Vec<String> = input
                     .into_iter()
                     .filter(|arg| &arg[..] != "--help")
                     .collect();
-                CLI::get_ctx(app.clone(), without)
+                self.get_ctx(without)
             }
             Err(clap::Error {
-                    message,
-                    kind: clap::ErrorKind::VersionDisplayed,
-                    ..
-                }) => Err(CLIError::VersionDisplayed(message)),
+                message,
+                kind: clap::ErrorKind::VersionDisplayed,
+                ..
+            }) => Err(CLIError::VersionDisplayed(message)),
             Err(e) => Err(CLIError::InvalidConfig(e.to_string())),
         }
     }
+}
 
-    pub fn get_after_help_lines(commands: Vec<(String, String)>) -> String {
-        match commands.clone().get(0) {
-            Some(_t) => {
-                let longest = commands.iter().fold(
-                    commands[0].clone(),
-                    |(prev_name, prev_desc), (name, help)| {
-                        if name.len() > prev_name.len() {
-                            (name.to_string(), help.to_string())
-                        } else {
-                            (prev_name, prev_desc)
-                        }
-                    },
-                );
-                let longest = longest.0.len();
-                let lines = commands
-                    .into_iter()
-                    .map(|(name, help)| {
-                        let cur_len = name.len();
-                        let diff = longest - cur_len;
-                        let diff = match longest - cur_len {
-                            0 => 4,
-                            _ => diff + 4,
-                        };
-                        format!(
-                            "    {name}{:diff$}{help}",
-                            " ",
-                            name = name,
-                            diff = diff,
-                            help = help
-                        )
-                    })
-                    .collect::<Vec<String>>();
-                format!("PASS THRU COMMANDS:\n{}", lines.join("\n"))
-            }
-            None => String::from(""),
+///
+/// Append Subcommands to the CLI
+///
+pub fn append_subcommands<'a, 'b>(
+    app: clap::App<'a, 'b>,
+    items: Vec<App<'a, 'b>>,
+    offset: usize,
+) -> clap::App<'a, 'b> {
+    items
+        .into_iter()
+        .enumerate()
+        .fold(app, |acc, (index, item)| {
+            acc.subcommand(item.display_order(offset + index))
+        })
+}
+
+///
+/// Produce the 'PASS THRU COMMANDS' section of the help message
+///
+pub fn get_after_help_lines(commands: Vec<(String, String)>) -> String {
+    match commands.clone().get(0) {
+        Some(_t) => {
+            let longest = commands.iter().fold(
+                commands[0].clone(),
+                |(prev_name, prev_desc), (name, help)| {
+                    if name.len() > prev_name.len() {
+                        (name.to_string(), help.to_string())
+                    } else {
+                        (prev_name, prev_desc)
+                    }
+                },
+            );
+            let longest = longest.0.len();
+            let lines = commands
+                .into_iter()
+                .map(|(name, help)| {
+                    let cur_len = name.len();
+                    let diff = longest - cur_len;
+                    let diff = match longest - cur_len {
+                        0 => 4,
+                        _ => diff + 4,
+                    };
+                    format!(
+                        "    {name}{:diff$}{help}",
+                        " ",
+                        name = name,
+                        diff = diff,
+                        help = help
+                    )
+                })
+                .collect::<Vec<String>>();
+            format!("PASS THRU COMMANDS:\n{}", lines.join("\n"))
         }
-    }
-
-    pub fn append_sub(
-        app: clap::App<'a, 'b>,
-        items: Vec<App<'a, 'b>>,
-        offset: usize,
-    ) -> clap::App<'a, 'b> {
-        items
-            .into_iter()
-            .enumerate()
-            .fold(app, |acc, (index, item)| {
-                acc.subcommand(item.display_order(offset + index))
-            })
+        None => String::from(""),
     }
 }
 
+#[test]
+fn test_get_after_help_lines() {
+    let actual = get_after_help_lines(vec![
+        (String::from("npm"), String::from("help string")),
+        (
+            String::from("composer"),
+            String::from("another help string"),
+        ),
+        (String::from("m"), String::from("another help string")),
+    ]);
+    assert_eq!(
+        actual,
+        "PASS THRU COMMANDS:
+    npm         help string
+    composer    another help string
+    m           another help string"
+    );
+}

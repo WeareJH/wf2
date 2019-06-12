@@ -1,6 +1,6 @@
+use crate::cli::{append_subcommands, get_after_help_lines, CLI};
 use crate::cli_input::CLIInput;
 use crate::error::CLIError;
-use crate::cli::CLI;
 
 use clap::ArgMatches;
 use from_file::FromFileError;
@@ -20,19 +20,24 @@ pub struct CLIOutput {
 }
 
 impl CLIOutput {
+    ///
+    /// Create CLIOutput from CLIInput
+    ///
     pub fn from_input(input: CLIInput) -> Result<CLIOutput, CLIError> {
         let input_args: Vec<String> = input.args.clone().into_iter().map(|s| s.into()).collect();
-        let app = CLI::new();
         let base_len = 6;
-        let ctx = CLI::get_ctx(app.0.clone(), input.args.clone())?;
+        let cli = CLI::new();
+        let ctx = cli.get_ctx(input.args.clone())?;
         let recipe = RecipeKinds::select(&ctx.recipe);
 
-        let after_help_lines = CLI::get_after_help_lines(recipe.pass_thru_commands());
-        let s_slice: &str = &after_help_lines[..];
+        // Get
+        let after_help_lines = get_after_help_lines(recipe.pass_thru_commands());
 
-        let app = CLI::append_sub(app.0, recipe.subcommands(), base_len + 1).after_help(s_slice);
+        // append recipe subcommands
+        let app = append_subcommands(cli.app, recipe.subcommands(), base_len + 1)
+            .after_help(&after_help_lines[..]);
 
-        CLIOutput::new_from_ctx(&app.clone().get_matches_from(input_args), &ctx, input)
+        CLIOutput::from_ctx(&app.clone().get_matches_from(input_args), &ctx, input)
     }
     pub fn create_context_from_arg(file_path: impl Into<String>) -> Result<Context, CLIError> {
         let ctx_file: Result<Option<Context>, CLIError> =
@@ -77,7 +82,7 @@ impl CLIOutput {
             _ => Ok(Context::default()),
         }
     }
-    pub fn new_from_ctx(
+    pub fn from_ctx(
         matches: &ArgMatches,
         ctx: &Context,
         input: CLIInput,
@@ -95,28 +100,6 @@ impl CLIOutput {
         let tasks = CLIOutput::get_tasks_from_cli(&matches, &ctx);
 
         Ok(CLIOutput { ctx, tasks })
-    }
-
-    pub fn new_from_matches(matches: &ArgMatches, input: CLIInput) -> Result<CLIOutput, CLIError> {
-        // unwrap the base context from the file above, or use the default as
-        // the base onto which CLI flags can be applied
-        let mut base_ctx = Context::default();
-
-        // Overrides because of CLI flags
-        let overrides = CLIOutput::matches_to_context_overrides(&matches, &base_ctx, input);
-
-        // Now merge the base context (file or default) with any CLI overrides
-        {
-            base_ctx.merge(overrides);
-        };
-
-        // now convert a context + PWD into a Vec<Task>
-        let tasks = CLIOutput::get_tasks_from_cli(&matches, &base_ctx);
-
-        Ok(CLIOutput {
-            ctx: base_ctx,
-            tasks,
-        })
     }
 
     pub fn matches_to_context_overrides(
