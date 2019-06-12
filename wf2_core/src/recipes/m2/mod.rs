@@ -33,7 +33,7 @@ pub struct M2Recipe;
 impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
     fn resolve_cmd(&self, ctx: &Context, cmd: Cmd) -> Option<Vec<Task>> {
         match cmd {
-            Cmd::Up => Some(up::exec(&ctx)),
+            Cmd::Up { detached } => Some(up::exec(&ctx, detached)),
             Cmd::Eject => Some(eject::exec(&ctx)),
             Cmd::Pull { trailing } => Some(pull::exec(&ctx, trailing.clone())),
             Cmd::Down => Some(self.down(&ctx)),

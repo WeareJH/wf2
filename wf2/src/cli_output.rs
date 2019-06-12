@@ -147,7 +147,9 @@ impl CLIOutput {
         //
         let cmd = match matches.subcommand() {
             ("doctor", ..) => Some(Cmd::Doctor),
-            ("up", ..) => Some(Cmd::Up),
+            ("up", Some(sub_matches)) => {
+                Some(Cmd::Up { detached: sub_matches.is_present("detached") })
+            },
             ("down", ..) => Some(Cmd::Down),
             ("stop", ..) => Some(Cmd::Stop),
             ("eject", ..) => Some(Cmd::Eject),

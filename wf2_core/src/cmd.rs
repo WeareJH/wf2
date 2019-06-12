@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub enum Cmd {
-    Up,
+    Up { detached: bool },
     Down,
     Stop,
     Eject,
