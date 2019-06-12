@@ -143,21 +143,6 @@ impl CLIOutput {
 
     pub fn get_tasks_from_cli(matches: &ArgMatches, ctx: &Context) -> Option<Vec<Task>> {
         //
-        // Extract sub-command trailing arguments, eg:
-        //
-        //                  captured
-        //             |-----------------|
-        //    wf2 exec  ./bin/magento c:f
-        //
-        let get_trailing = |sub_matches: &ArgMatches| {
-            let output = match sub_matches.values_of("cmd") {
-                Some(cmd) => cmd.collect::<Vec<&str>>(),
-                None => vec![],
-            };
-            output.join(" ")
-        };
-
-        //
         // Get the task list by checking which sub-command was used
         //
         let cmd = match matches.subcommand() {
@@ -166,14 +151,6 @@ impl CLIOutput {
             ("down", ..) => Some(Cmd::Down),
             ("stop", ..) => Some(Cmd::Stop),
             ("eject", ..) => Some(Cmd::Eject),
-            ("db-import", Some(sub_matches)) => {
-                // .unwrap() is safe here since Clap will exit before this if it's absent
-                let trailing = sub_matches.value_of("file").map(|x| x.to_string()).unwrap();
-                Some(Cmd::DBImport {
-                    path: PathBuf::from(trailing),
-                })
-            }
-            ("db-dump", ..) => Some(Cmd::DBDump),
             ("pull", Some(sub_matches)) => {
                 let trailing = match sub_matches.values_of("cmd") {
                     Some(cmd) => cmd
@@ -185,49 +162,8 @@ impl CLIOutput {
                 };
                 Some(Cmd::Pull { trailing })
             }
-            ("exec", Some(sub_matches)) => {
-                let trailing = get_trailing(sub_matches);
-                let user = if sub_matches.is_present("root") {
-                    "root"
-                } else {
-                    "www-data"
-                };
-                Some(Cmd::Exec {
-                    trailing,
-                    user: user.to_string(),
-                })
-            }
-            ("m", Some(sub_matches)) => {
-                let trailing = get_trailing(sub_matches);
-                Some(Cmd::Mage { trailing })
-            }
-            //
-            // Fall-through case. `cmd` will be the first param here,
-            // so we just need to concat that + any other trailing
-            //
-            // eg -> `wf2 logs unison -vv`
-            //      \
-            //       \
-            //      `docker-composer logs unison -vv`
-            //
             (cmd, Some(sub_matches)) => {
-                let mut args = vec![cmd];
-                let ext_args: Vec<&str> = match sub_matches.values_of("") {
-                    Some(trailing) => trailing.collect(),
-                    None => vec![],
-                };
-                args.extend(ext_args);
-                let user = "www-data";
-                match cmd {
-                    "npm" => Some(Cmd::Npm {
-                        user: user.to_string(),
-                        trailing: args.join(" "),
-                    }),
-                    "composer" => Some(Cmd::Composer {
-                        trailing: args.join(" "),
-                    }),
-                    _ => None,
-                }
+                RecipeKinds::select(&ctx.recipe).select_command((cmd, Some(sub_matches)))
             }
             _ => None,
         };

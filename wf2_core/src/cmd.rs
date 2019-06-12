@@ -11,7 +11,5 @@ pub enum Cmd {
     Pull { trailing: Vec<String> },
     DBImport { path: PathBuf },
     DBDump,
-    Npm { trailing: String, user: String },
-    Mage { trailing: String },
-    Composer { trailing: String },
+    PassThrough { cmd: String, trailing: String },
 }
