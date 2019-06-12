@@ -179,23 +179,6 @@ fn test_context_from_yaml() {
     };
 }
 
-#[test]
-fn test_merge_two_contexts() {
-    let ctx_from_file = Context::from_file("../fixtures/config_01.yaml");
-
-    let ctx_from_matches = Context {
-        run_mode: RunMode::Exec,
-        cwd: PathBuf::from("/users/shane"),
-        php_version: PHP::SevenOne,
-        ..Context::default()
-    };
-
-    //    match r {
-    //        Ok(ctx) => println!("context={:#?}", ctx),
-    //        Err(e) => eprintln!("e={:?}", e),
-    //    };
-}
-
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub enum RunMode {
     Exec,

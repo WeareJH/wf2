@@ -4,7 +4,7 @@ use crate::docker_compose::DockerCompose;
 use crate::recipes::Recipe;
 use crate::task::Task;
 use crate::util::path_buf_to_string;
-use clap::{App, SubCommand};
+use clap::{App, ArgMatches, SubCommand};
 use m2_env::{Env, M2Env};
 use std::path::PathBuf;
 
@@ -35,17 +35,65 @@ impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
         match cmd {
             Cmd::Up => Some(up::exec(&ctx)),
             Cmd::Eject => Some(eject::exec(&ctx)),
-            Cmd::Npm { trailing, .. } => Some(npm::exec(&ctx, trailing.clone())),
             Cmd::Pull { trailing } => Some(pull::exec(&ctx, trailing.clone())),
-
             Cmd::Down => Some(self.down(&ctx)),
             Cmd::Stop => Some(self.stop(&ctx)),
             Cmd::Exec { trailing, user } => Some(self.exec(&ctx, trailing.clone(), user.clone())),
-            Cmd::Mage { trailing } => Some(self.mage(&ctx, trailing.clone())),
             Cmd::DBImport { path } => Some(self.db_import(&ctx, path.clone())),
             Cmd::DBDump => Some(self.db_dump(&ctx)),
             Cmd::Doctor => Some(self.doctor(&ctx)),
-            Cmd::Composer { trailing } => Some(self.composer(&ctx, trailing.clone())),
+            Cmd::PassThrough { cmd, trailing } => match &cmd[..] {
+                "npm" => Some(npm::exec(&ctx, trailing.clone())),
+                "composer" => Some(self.composer(&ctx, trailing.clone())),
+                "m" => Some(self.mage(&ctx, trailing.clone())),
+                _ => None,
+            },
+        }
+    }
+    fn select_command(&self, input: (&str, Option<&ArgMatches<'a>>)) -> Option<Cmd> {
+        match input {
+            ("db-import", Some(sub_matches)) => {
+                // .unwrap() is safe here since Clap will exit before this if it's absent
+                let trailing = sub_matches.value_of("file").map(|x| x.to_string()).unwrap();
+                Some(Cmd::DBImport {
+                    path: PathBuf::from(trailing),
+                })
+            }
+            ("db-dump", ..) => Some(Cmd::DBDump),
+            ("exec", Some(sub_matches)) => {
+                let trailing = get_trailing(sub_matches);
+                let user = if sub_matches.is_present("root") {
+                    "root"
+                } else {
+                    "www-data"
+                };
+                Some(Cmd::Exec {
+                    trailing,
+                    user: user.to_string(),
+                })
+            }
+            //
+            // Fall-through case. `cmd` will be the first param here,
+            // so we just need to concat that + any other trailing
+            //
+            // eg -> `wf2 logs unison -vv`
+            //      \
+            //       \
+            //      `docker-composer logs unison -vv`
+            //
+            (cmd, Some(sub_matches)) => {
+                let mut args = vec![cmd];
+                let ext_args: Vec<&str> = match sub_matches.values_of("") {
+                    Some(trailing) => trailing.collect(),
+                    None => vec![],
+                };
+                args.extend(ext_args);
+                Some(Cmd::PassThrough {
+                    cmd: cmd.to_string(),
+                    trailing: args.join(" "),
+                })
+            }
+            _ => None,
         }
     }
     fn subcommands(&self) -> Vec<App<'a, 'b>> {
@@ -60,9 +108,6 @@ impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
                     "-r --root 'Execute commands as root'
                                   [cmd]... 'Trailing args'",
                 ),
-            SubCommand::with_name("m")
-                .about("[M2] Execute ./bin/magento commands inside the PHP container")
-                .args_from_usage("[cmd]... 'Trailing args'"),
         ]
     }
     fn pass_thru_commands(&self) -> Vec<(String, String)> {
@@ -72,11 +117,30 @@ impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
                 "[M2] Run composer commands with the correct user",
             ),
             ("npm", "[M2] Run npm commands with the correct user"),
+            (
+                "m",
+                "[M2] Execute ./bin/magento commands inside the PHP container",
+            ),
         ]
         .into_iter()
         .map(|(name, help)| (name.into(), help.into()))
         .collect()
     }
+}
+
+//
+// Extract sub-command trailing arguments, eg:
+//
+//                  captured
+//             |-----------------|
+//    wf2 exec  ./bin/magento c:f
+//
+fn get_trailing(sub_matches: &ArgMatches) -> String {
+    let output = match sub_matches.values_of("cmd") {
+        Some(cmd) => cmd.collect::<Vec<&str>>(),
+        None => vec![],
+    };
+    output.join(" ")
 }
 
 impl M2Recipe {

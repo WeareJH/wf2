@@ -1,8 +1,4 @@
-use crate::{
-    context::Context,
-    task::Task,
-    util::{path_buf_to_string, replace_env},
-};
+use crate::{context::Context, task::Task, util::replace_env};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
