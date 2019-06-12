@@ -5,6 +5,8 @@ use std::process::{Command, Output};
 use terminal_size::{terminal_size, Height, Width};
 use wf2_core::context::Term;
 
+pub const DEFAULT_CONFIG_FILE: &str = "wf2.yml";
+
 #[derive(Debug, Default)]
 pub struct CLIInput {
     pub args: Vec<String>,
