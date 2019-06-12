@@ -58,11 +58,11 @@ impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
                 .about("[M2] Execute commands in the PHP container")
                 .args_from_usage(
                     "-r --root 'Execute commands as root'
-                                  [args]... 'Trailing args'",
+                                  [cmd]... 'Trailing args'",
                 ),
             SubCommand::with_name("m")
                 .about("[M2] Execute ./bin/magento commands inside the PHP container")
-                .args_from_usage("[args]... 'Trailing args'"),
+                .args_from_usage("[cmd]... 'Trailing args'"),
         ]
     }
     fn pass_thru_commands(&self) -> Vec<(String, String)> {

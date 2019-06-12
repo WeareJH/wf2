@@ -10,6 +10,7 @@ use wf2_core::WF2;
 use crate::cli_input::{CLIInput, DEFAULT_CONFIG_FILE};
 use crate::error::CLIError;
 use std::env;
+use std::path::PathBuf;
 use wf2_core::recipes::RecipeKinds;
 
 mod cli_input;
@@ -17,7 +18,10 @@ mod error;
 
 fn main() {
     // parse input
-    let cli_input = create_from_input(env::args().collect::<Vec<String>>());
+    let cli_input = create_from_input(
+        env::args().collect::<Vec<String>>(),
+        current_dir().expect("cwd"),
+    );
 
     // exit early on errors
     if cli_input.is_err() {
@@ -98,13 +102,20 @@ fn get_ctx(app: clap::App, input: Vec<String>) -> Result<Context, CLIError> {
                 .collect();
             get_ctx(app.clone(), without)
         }
-        Err(e) => {
-            Err(CLIError::InvalidConfig("Noop".into()))
-        }
+        Err(clap::Error {
+            message,
+            kind: clap::ErrorKind::VersionDisplayed,
+            info,
+        }) => Err(CLIError::VersionDisplayed(message)),
+        Err(e) => Err(CLIError::InvalidConfig(e.to_string())),
     }
 }
 
-fn create_from_input(input: Vec<impl Into<String>>) -> Result<CLIInput, CLIError> {
+pub fn create_from_input(
+    input: Vec<impl Into<String>>,
+    cwd: impl Into<PathBuf>,
+) -> Result<CLIInput, CLIError> {
+    let cwd = cwd.into();
     let input: Vec<String> = input.into_iter().map(|s| s.into()).collect();
     let base_app = base_app();
     let base_sub = base_subcommands();
@@ -118,11 +129,7 @@ fn create_from_input(input: Vec<impl Into<String>>) -> Result<CLIInput, CLIError
 
     let app = append_sub(app, recipe.subcommands(), base_len + 1).after_help(s_slice);
 
-    CLIInput::new_from_ctx(
-        &app.clone().get_matches_from(input),
-        &ctx,
-        current_dir().expect("cwd"),
-    )
+    CLIInput::new_from_ctx(&app.clone().get_matches_from(input), &ctx, cwd)
 }
 
 fn get_after_help_lines(commands: Vec<(String, String)>) -> String {
@@ -196,6 +203,12 @@ fn base_app<'a, 'b>() -> clap::App<'a, 'b> {
                 .help("path to a wf2.yml config file")
                 .takes_value(true)
                 .long("config"),
+            // backwards compat, should remove soon
+            Arg::with_name("php")
+                .help("path to a wf2.yml config file")
+                .takes_value(true)
+                .possible_values(&["7.1", "7.2"])
+                .long("php"),
             Arg::with_name("cwd")
                 .help("Sets the CWD for all docker commands")
                 .takes_value(true)
@@ -235,6 +248,6 @@ mod tests {
 
     #[test]
     fn test_main() {
-        let _ctx = create_from_input(vec!["prog", "--config", "../fixtures/config_01.yaml"]);
+        let _ctx = create_from_input(vec!["prog", "--config", "../fixtures/config_01.yaml"], "");
     }
 }

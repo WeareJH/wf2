@@ -273,20 +273,10 @@ impl CLIInput {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::create_from_input;
     use clap::App;
+    use std::env;
     use wf2_core::task::FileOp;
-
-    fn setup(args: Vec<&str>, config_file: Option<&str>, cwd: &str) -> Result<CLIInput, CLIError> {
-        let yaml = load_yaml!("cli.yml");
-        let app = App::from_yaml(yaml);
-        let matches = app.clone().get_matches_from(args);
-        let ctx = CLIInput::create_context(config_file.unwrap_or(DEFAULT_CONFIG_FILE));
-
-        match config_file {
-            Some(..) => CLIInput::new_from_ctx(&matches, &ctx.expect("should work"), cwd),
-            None => CLIInput::new_from_matches(&matches, cwd),
-        }
-    }
 
     fn test_npm(tasks: Vec<Task>, expected_cmd: &str, expected_path: &str) {
         match tasks.get(0).unwrap() {
@@ -313,26 +303,51 @@ mod tests {
     }
 
     #[test]
+    fn exec_command() {
+        let args = vec!["prog", "exec", "ls"];
+        let cli_input = create_from_input(args, "");
+        let t1 = cli_input.unwrap().tasks.unwrap().get(0).unwrap().clone();
+        match t1 {
+            Task::SimpleCommand {command, ..} => {
+                assert_eq!(command, "docker exec -it -u www-data -e COLUMNS=\"80\" -e LINES=\"30\" wf2__wf2_default__php ls")
+            },
+            _ => unreachable!()
+        }
+    }
+
+    #[test]
     fn test_php_version_in_config() {
-        let args = vec!["prog", "up"];
-        let config = Some("../fixtures/config_php_71.yaml");
-        let cli_input = setup(args, config, "/users").unwrap();
-        assert_eq!(cli_input.ctx.php_version, PHP::SevenOne);
+        let args = vec!["prog", "--config", "../fixtures/config_php_71.yaml", "up"];
+        let cli_input = create_from_input(args, "");
+        assert_eq!(cli_input.unwrap().ctx.php_version, PHP::SevenOne);
     }
 
     #[test]
     fn test_php_version_in_flag() {
-        let args = vec!["prog", "--php", "7.1", "up"];
-        let config = Some("../fixtures/config_01.yaml");
-        let cli_input = setup(args, config, "/users").unwrap();
-        assert_eq!(cli_input.ctx.php_version, PHP::SevenOne);
+        let args = vec![
+            "prog",
+            "--config",
+            "../fixtures/config_01.yaml",
+            "--php",
+            "7.1",
+            "up",
+        ];
+        let cli_input = create_from_input(args, "");
+        assert_eq!(cli_input.unwrap().ctx.php_version, PHP::SevenOne);
     }
 
     #[test]
     fn test_pass_through_npm() {
-        let args = vec!["prog", "npm", "run", "watch", "-vvv"];
-        let config = Some("../fixtures/config_01.yaml");
-        let cli_input = setup(args, config, "/users").unwrap();
+        let args = vec![
+            "prog",
+            "--config",
+            "../fixtures/config_01.yaml",
+            "npm",
+            "run",
+            "watch",
+            "-vvv",
+        ];
+        let cli_input = create_from_input(args, "/users").unwrap();
         let expected_cmd = "docker-compose -f /users/.wf2_default/docker-compose.yml run --workdir /var/www/app/code/frontend/Acme/design node npm run watch -vvv";
         let expected_path = "/users/.wf2_default/docker-compose.yml";
         test_npm(cli_input.tasks.unwrap(), expected_cmd, expected_path);
@@ -341,8 +356,7 @@ mod tests {
     #[test]
     fn test_pass_through_npm_no_config() {
         let args = vec!["prog", "npm", "run", "watch", "-vvv"];
-        let config = None;
-        let cli_input = setup(args, config, "/users").unwrap();
+        let cli_input = create_from_input(args, "/users").unwrap();
         let expected_cmd = "docker-compose -f /users/.wf2_default/docker-compose.yml run --workdir /var/www/. node npm run watch -vvv";
         let expected_path = "/users/.wf2_default/docker-compose.yml";
         test_npm(cli_input.tasks.unwrap(), expected_cmd, expected_path);
@@ -351,8 +365,7 @@ mod tests {
     #[test]
     fn test_pass_through_composer() {
         let args = vec!["prog", "composer", "install", "-vvv"];
-        let config = None;
-        let cli_input = setup(args, config, "/crafters").unwrap();
+        let cli_input = create_from_input(args, "/users/sites/crafters").unwrap();
         let expected_cmd =
             r#"docker exec -it -u www-data wf2__crafters__php composer install -vvv"#;
 
@@ -369,8 +382,7 @@ mod tests {
     #[test]
     fn test_merge_context() {
         let args = vec!["prog"];
-        let config = None;
-        let cli_input = setup(args, config, "/users/sites/acme-site").unwrap();
+        let cli_input = create_from_input(args, "/users/sites/acme-site").unwrap();
         assert_eq!("acme-site", cli_input.ctx.name);
         assert_eq!(PathBuf::from("/users/sites/acme-site"), cli_input.ctx.cwd);
     }
