@@ -14,6 +14,7 @@ use wf2_core::recipes::RecipeKinds;
 mod cli_input;
 mod cli_output;
 mod error;
+mod tests;
 
 fn main() {
     // parse input
@@ -231,23 +232,4 @@ fn append_sub<'a, 'b>(
         .fold(app, |acc, (index, item)| {
             acc.subcommand(item.display_order(offset + index))
         })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use wf2_core::context::Term;
-
-    #[test]
-    fn test_main() {
-        let args = vec!["prog", "--config", "../fixtures/config_01.yaml"];
-        let _ctx = create_from_input(CLIInput {
-            args: args.into_iter().map(String::from).collect(),
-            term: Term {
-                width: 10,
-                height: 10,
-            },
-            ..CLIInput::default()
-        });
-    }
 }
