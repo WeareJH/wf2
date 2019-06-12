@@ -11,8 +11,6 @@ use wf2_core::{
     task::Task,
 };
 
-pub const DEFAULT_CONFIG_FILE: &str = "wf2.yml";
-
 #[derive(Debug)]
 pub struct CLIOutput {
     pub ctx: Context,
@@ -20,6 +18,22 @@ pub struct CLIOutput {
 }
 
 impl CLIOutput {
+    pub fn from_input(input: CLIInput) -> Result<CLIOutput, CLIError> {
+        let input_args: Vec<String> = input.args.clone().into_iter().map(|s| s.into()).collect();
+        let base_app = base_app();
+        let base_sub = base_subcommands();
+        let base_len = base_sub.len();
+        let app = append_sub(base_app, base_sub, 0);
+        let ctx = get_ctx(app.clone(), input.args.clone())?;
+        let recipe = RecipeKinds::select(&ctx.recipe);
+
+        let after_help_lines = get_after_help_lines(recipe.pass_thru_commands());
+        let s_slice: &str = &after_help_lines[..];
+
+        let app = append_sub(app, recipe.subcommands(), base_len + 1).after_help(s_slice);
+
+        CLIOutput::new_from_ctx(&app.clone().get_matches_from(input_args), &ctx, input)
+    }
     pub fn create_context_from_arg(file_path: impl Into<String>) -> Result<Context, CLIError> {
         let ctx_file: Result<Option<Context>, CLIError> =
             match Context::new_from_file(file_path.into()) {
