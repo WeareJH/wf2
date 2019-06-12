@@ -1,5 +1,7 @@
 use crate::cli_input::CLIInput;
 use crate::error::CLIError;
+use crate::cli::CLI;
+
 use clap::ArgMatches;
 use from_file::FromFileError;
 use std::path::PathBuf;
@@ -20,17 +22,15 @@ pub struct CLIOutput {
 impl CLIOutput {
     pub fn from_input(input: CLIInput) -> Result<CLIOutput, CLIError> {
         let input_args: Vec<String> = input.args.clone().into_iter().map(|s| s.into()).collect();
-        let base_app = base_app();
-        let base_sub = base_subcommands();
-        let base_len = base_sub.len();
-        let app = append_sub(base_app, base_sub, 0);
-        let ctx = get_ctx(app.clone(), input.args.clone())?;
+        let app = CLI::new();
+        let base_len = 6;
+        let ctx = CLI::get_ctx(app.0.clone(), input.args.clone())?;
         let recipe = RecipeKinds::select(&ctx.recipe);
 
-        let after_help_lines = get_after_help_lines(recipe.pass_thru_commands());
+        let after_help_lines = CLI::get_after_help_lines(recipe.pass_thru_commands());
         let s_slice: &str = &after_help_lines[..];
 
-        let app = append_sub(app, recipe.subcommands(), base_len + 1).after_help(s_slice);
+        let app = CLI::append_sub(app.0, recipe.subcommands(), base_len + 1).after_help(s_slice);
 
         CLIOutput::new_from_ctx(&app.clone().get_matches_from(input_args), &ctx, input)
     }
