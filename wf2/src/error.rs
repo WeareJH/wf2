@@ -10,6 +10,7 @@ pub enum CLIError {
     InvalidExtension,
     Unknown,
     Config(clap::Error),
+    VersionDisplayed(String),
 }
 
 impl fmt::Display for CLIError {
@@ -31,6 +32,7 @@ impl fmt::Display for CLIError {
             ),
             CLIError::Config(clap::Error { message, .. }) => format!("{}", message),
             CLIError::Unknown => format!("{}", Red.paint("[wf2] [ERROR] CLIError::Unknown")),
+            CLIError::VersionDisplayed(version) => format!("{}", version),
         };
         write!(f, "{}", output)
     }

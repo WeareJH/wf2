@@ -83,6 +83,7 @@ pub struct Context {
 ///
 /// A subset of fields from above that should be safe to override
 ///
+#[derive(Debug)]
 pub struct ContextOverrides {
     pub run_mode: RunMode,
     pub php_version: PHP,
@@ -138,6 +139,8 @@ impl Context {
         self.php_version = other.php_version;
         self.cwd = other.cwd;
         self.name = other.name;
+        self.term = other.term;
+        self.pv = other.pv;
         self
     }
 }
