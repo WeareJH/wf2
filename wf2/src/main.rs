@@ -1,31 +1,27 @@
 #[macro_use]
 extern crate clap;
 
-use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
+use clap::{App, AppSettings, Arg, SubCommand};
 use futures::{future::lazy, future::Future};
-use std::env::current_dir;
 use wf2_core::context::{Context, RunMode};
 use wf2_core::WF2;
 
-use crate::cli_input::{CLIInput, DEFAULT_CONFIG_FILE};
+use crate::cli_input::CLIInput;
+use crate::cli_output::{CLIOutput, DEFAULT_CONFIG_FILE};
 use crate::error::CLIError;
-use std::env;
-use std::path::PathBuf;
 use wf2_core::recipes::RecipeKinds;
 
 mod cli_input;
+mod cli_output;
 mod error;
 
 fn main() {
     // parse input
-    let cli_input = create_from_input(
-        env::args().collect::<Vec<String>>(),
-        current_dir().expect("cwd"),
-    );
+    let cli_output = create_from_input(CLIInput::new());
 
     // exit early on errors
-    if cli_input.is_err() {
-        match cli_input {
+    if cli_output.is_err() {
+        match cli_output {
             Err(ref e) => {
                 eprintln!("{}", e);
                 return;
@@ -34,11 +30,11 @@ fn main() {
         }
     }
 
-    let cli_input = cli_input.expect("guarded above");
+    let cli_output = cli_output.expect("guarded above");
 
     // Certain recipes may not support certain commands,
     // so we check for None here and just display the Help
-    if cli_input.tasks.is_none() {
+    if cli_output.tasks.is_none() {
         eprintln!("No tasks were found - please run 'wf2 --help' for more info");
         return;
     }
@@ -46,8 +42,8 @@ fn main() {
     //
     // if --dryrun was given, just print the commands and return
     //
-    if cli_input.ctx.run_mode == RunMode::DryRun {
-        cli_input.tasks.map(|ts| {
+    if cli_output.ctx.run_mode == RunMode::DryRun {
+        cli_output.tasks.map(|ts| {
             ts.iter()
                 .enumerate()
                 .for_each(|(index, t)| println!("[{}]: {}", index, t))
@@ -58,7 +54,7 @@ fn main() {
     // This is where the tasks are executed
     tokio::run(lazy(move || {
         // This .unwrap() is safe here since we bailed on None earlier
-        let tasks = cli_input.tasks.unwrap();
+        let tasks = cli_output.tasks.unwrap();
 
         // using the Context, Recipe & Task List, generate a
         // future that runs each task in sequence
@@ -88,13 +84,12 @@ fn get_ctx(app: clap::App, input: Vec<String>) -> Result<Context, CLIError> {
     let matches = app.clone().get_matches_from_safe(input.clone());
     match matches {
         Ok(matches) => match matches.value_of("config") {
-            Some(file_path) => CLIInput::create_context_from_arg(file_path),
-            None => CLIInput::create_context(DEFAULT_CONFIG_FILE.to_string()),
+            Some(file_path) => CLIOutput::create_context_from_arg(file_path),
+            None => CLIOutput::create_context(DEFAULT_CONFIG_FILE.to_string()),
         },
         Err(clap::Error {
-            message,
             kind: clap::ErrorKind::HelpDisplayed,
-            info,
+            ..
         }) => {
             let without: Vec<String> = input
                 .into_iter()
@@ -105,23 +100,19 @@ fn get_ctx(app: clap::App, input: Vec<String>) -> Result<Context, CLIError> {
         Err(clap::Error {
             message,
             kind: clap::ErrorKind::VersionDisplayed,
-            info,
+            ..
         }) => Err(CLIError::VersionDisplayed(message)),
         Err(e) => Err(CLIError::InvalidConfig(e.to_string())),
     }
 }
 
-pub fn create_from_input(
-    input: Vec<impl Into<String>>,
-    cwd: impl Into<PathBuf>,
-) -> Result<CLIInput, CLIError> {
-    let cwd = cwd.into();
-    let input: Vec<String> = input.into_iter().map(|s| s.into()).collect();
+pub fn create_from_input(input: CLIInput) -> Result<CLIOutput, CLIError> {
+    let input_args: Vec<String> = input.args.clone().into_iter().map(|s| s.into()).collect();
     let base_app = base_app();
     let base_sub = base_subcommands();
     let base_len = base_sub.len();
     let app = append_sub(base_app, base_sub, 0);
-    let ctx = get_ctx(app.clone(), input.clone())?;
+    let ctx = get_ctx(app.clone(), input.args.clone())?;
     let recipe = RecipeKinds::select(&ctx.recipe);
 
     let after_help_lines = get_after_help_lines(recipe.pass_thru_commands());
@@ -129,12 +120,12 @@ pub fn create_from_input(
 
     let app = append_sub(app, recipe.subcommands(), base_len + 1).after_help(s_slice);
 
-    CLIInput::new_from_ctx(&app.clone().get_matches_from(input), &ctx, cwd)
+    CLIOutput::new_from_ctx(&app.clone().get_matches_from(input_args), &ctx, input)
 }
 
 fn get_after_help_lines(commands: Vec<(String, String)>) -> String {
     match commands.clone().get(0) {
-        Some(t) => {
+        Some(_t) => {
             let longest = commands.iter().fold(
                 commands[0].clone(),
                 |(prev_name, prev_desc), (name, help)| {
@@ -245,9 +236,18 @@ fn append_sub<'a, 'b>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use wf2_core::context::Term;
 
     #[test]
     fn test_main() {
-        let _ctx = create_from_input(vec!["prog", "--config", "../fixtures/config_01.yaml"], "");
+        let args = vec!["prog", "--config", "../fixtures/config_01.yaml"];
+        let _ctx = create_from_input(CLIInput {
+            args: args.into_iter().map(String::from).collect(),
+            term: Term {
+                width: 10,
+                height: 10,
+            },
+            ..CLIInput::default()
+        });
     }
 }

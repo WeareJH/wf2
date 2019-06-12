@@ -25,7 +25,7 @@ impl DockerCompose {
     pub fn cmd_string(&self, trailing: impl Into<String>) -> String {
         format!(
             "docker-compose -f {file} {trailing}",
-            file = path_buf_to_string(&self.file),
+            file = &self.file.display(),
             trailing = trailing.into()
         )
     }

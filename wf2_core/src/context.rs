@@ -207,3 +207,12 @@ pub struct Term {
     pub height: u16,
     pub width: u16,
 }
+
+impl Default for Term {
+    fn default() -> Self {
+        Term {
+            height: 30,
+            width: 80,
+        }
+    }
+}
