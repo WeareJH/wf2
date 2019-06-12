@@ -7,7 +7,7 @@ use wf2_core::context::{Context, RunMode};
 use wf2_core::WF2;
 
 use crate::cli_input::CLIInput;
-use crate::cli_output::{CLIOutput, DEFAULT_CONFIG_FILE};
+use crate::cli_output::{CLIOutput};
 use crate::error::CLIError;
 use wf2_core::recipes::RecipeKinds;
 

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::cli_input::CLIInput;
-    use crate::create_from_input;
+    use crate::cli_output::CLIOutput;
     use std::path::PathBuf;
     use wf2_core::context::Term;
     use wf2_core::php::PHP;
@@ -17,7 +17,7 @@ mod tests {
             args,
             ..CLIInput::default()
         };
-        let cli_output = create_from_input(input);
+        let cli_output = CLIOutput::from_input(input);
         let t1 = cli_output.unwrap().tasks.unwrap().get(0).unwrap().clone();
         match t1 {
             Task::SimpleCommand {command, ..} => {
@@ -30,7 +30,7 @@ mod tests {
     #[test]
     fn test_php_version_in_config() {
         let args = vec!["prog", "--config", "../fixtures/config_php_71.yaml", "up"];
-        let cli_output = create_from_input(CLIInput {
+        let cli_output = CLIOutput::from_input(CLIInput {
             args: args.into_iter().map(String::from).collect(),
             ..CLIInput::default()
         });
@@ -47,7 +47,7 @@ mod tests {
             "7.1",
             "up",
         ];
-        let cli_output = create_from_input(CLIInput {
+        let cli_output = CLIOutput::from_input(CLIInput {
             args: args.into_iter().map(String::from).collect(),
             ..CLIInput::default()
         });
@@ -65,7 +65,7 @@ mod tests {
             "watch",
             "-vvv",
         ];
-        let cli_output = create_from_input(CLIInput {
+        let cli_output = CLIOutput::from_input(CLIInput {
             args: args.into_iter().map(String::from).collect(),
             cwd: PathBuf::from("/users"),
             ..CLIInput::default()
@@ -79,7 +79,7 @@ mod tests {
     #[test]
     fn test_pass_through_npm_no_config() {
         let args = vec!["prog", "npm", "run", "watch", "-vvv"];
-        let cli_output = create_from_input(CLIInput {
+        let cli_output = CLIOutput::from_input(CLIInput {
             args: args.into_iter().map(String::from).collect(),
             cwd: PathBuf::from("/users"),
             ..CLIInput::default()
@@ -93,7 +93,7 @@ mod tests {
     #[test]
     fn test_pass_through_composer() {
         let args = vec!["prog", "composer", "install", "-vvv"];
-        let cli_output = create_from_input(CLIInput {
+        let cli_output = CLIOutput::from_input(CLIInput {
             args: args.into_iter().map(String::from).collect(),
             cwd: PathBuf::from("/users/sites/crafters"),
             ..CLIInput::default()
@@ -115,7 +115,7 @@ mod tests {
     #[test]
     fn test_merge_context() {
         let args = vec!["prog"];
-        let cli_output = create_from_input(CLIInput {
+        let cli_output = CLIOutput::from_input(CLIInput {
             args: args.into_iter().map(String::from).collect(),
             cwd: PathBuf::from("/users/sites/acme-site"),
             ..CLIInput::default()
@@ -128,7 +128,7 @@ mod tests {
     #[test]
     fn test_main() {
         let args = vec!["prog", "--config", "../fixtures/config_01.yaml"];
-        let _ctx = create_from_input(CLIInput {
+        let _ctx = CLIOutput::from_input(CLIInput {
             args: args.into_iter().map(String::from).collect(),
             term: Term {
                 width: 10,

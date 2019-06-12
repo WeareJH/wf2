@@ -1,12 +1,67 @@
-use clap::{App, AppSettings, SubCommand};
+use clap::{App, AppSettings, SubCommand, Arg};
 use crate::cli_output::CLIOutput;
 use crate::error::CLIError;
 use wf2_core::context::Context;
 use crate::cli_input::DEFAULT_CONFIG_FILE;
 
-struct CLI;
+pub struct CLI<'a, 'b>(pub clap::App<'a, 'b>);
 
-impl CLI {
+impl<'a, 'b> CLI<'a, 'b> {
+    pub fn new() -> CLI<'a, 'b> {
+        let app = App::new("wf2")
+            .version(crate_version!())
+            .args(&[
+                Arg::with_name("config")
+                    .help("path to a wf2.yml config file")
+                    .takes_value(true)
+                    .long("config"),
+                // backwards compat, should remove soon
+                Arg::with_name("php")
+                    .help("path to a wf2.yml config file")
+                    .takes_value(true)
+                    .possible_values(&["7.1", "7.2"])
+                    .long("php"),
+                Arg::with_name("cwd")
+                    .help("Sets the CWD for all docker commands")
+                    .takes_value(true)
+                    .long("cwd"),
+                Arg::with_name("verbose")
+                    .short("v")
+                    .help("Sets the level of verbosity")
+                    .multiple(true),
+                Arg::with_name("dryrun").long("dryrun").help(
+                    "Output descriptions of the sequence of tasks, without actually executing them",
+                ),
+            ])
+            .subcommands(vec![
+                SubCommand::with_name("up")
+                    .display_order(0)
+                    .about("Bring up containers")
+                    .arg_from_usage("-d --detached 'Run in detached mode'"),
+                SubCommand::with_name("down")
+                    .display_order(1)
+                    .about("Take down containers & delete everything"),
+                SubCommand::with_name("stop")
+                    .display_order(2)
+                    .about("Take down containers & retain data"),
+                SubCommand::with_name("pull")
+                    .display_order(3)
+                    .about("Pull files or folders from the main container to the host")
+                    .arg_from_usage("[paths]... 'files or paths to pull'"),
+                SubCommand::with_name("doctor")
+                    .display_order(4)
+                    .about("Try to fix common issues with a recipe"),
+                SubCommand::with_name("eject")
+                    .display_order(5)
+                    .about("Dump all files into the local directory for manual running"),
+            ])
+            .settings(&[
+                AppSettings::AllowExternalSubcommands,
+                AppSettings::AllowLeadingHyphen,
+                AppSettings::TrailingVarArg,
+            ]);
+        CLI(app)
+    }
     pub fn get_ctx(app: clap::App, input: Vec<String>) -> Result<Context, CLIError> {
         let matches = app.clone().get_matches_from_safe(input.clone());
         match matches {
@@ -22,7 +77,7 @@ impl CLI {
                     .into_iter()
                     .filter(|arg| &arg[..] != "--help")
                     .collect();
-                get_ctx(app.clone(), without)
+                CLI::get_ctx(app.clone(), without)
             }
             Err(clap::Error {
                     message,
@@ -71,66 +126,7 @@ impl CLI {
         }
     }
 
-    pub fn base_subcommands<'a>() -> Vec<clap::App<'a, 'a>> {
-        vec![
-            SubCommand::with_name("up")
-                .display_order(0)
-                .about("Bring up containers")
-                .arg_from_usage("-d --detached 'Run in detached mode'"),
-            SubCommand::with_name("down")
-                .display_order(1)
-                .about("Take down containers & delete everything"),
-            SubCommand::with_name("stop")
-                .display_order(2)
-                .about("Take down containers & retain data"),
-            SubCommand::with_name("pull")
-                .display_order(3)
-                .about("Pull files or folders from the main container to the host")
-                .arg_from_usage("[paths]... 'files or paths to pull'"),
-            SubCommand::with_name("doctor")
-                .display_order(4)
-                .about("Try to fix common issues with a recipe"),
-            SubCommand::with_name("eject")
-                .display_order(5)
-                .about("Dump all files into the local directory for manual running"),
-        ]
-    }
-
-    fn base_app<'a, 'b>() -> clap::App<'a, 'b> {
-        let app = App::new("wf2")
-            .version(crate_version!())
-            .args(&[
-                Arg::with_name("config")
-                    .help("path to a wf2.yml config file")
-                    .takes_value(true)
-                    .long("config"),
-                // backwards compat, should remove soon
-                Arg::with_name("php")
-                    .help("path to a wf2.yml config file")
-                    .takes_value(true)
-                    .possible_values(&["7.1", "7.2"])
-                    .long("php"),
-                Arg::with_name("cwd")
-                    .help("Sets the CWD for all docker commands")
-                    .takes_value(true)
-                    .long("cwd"),
-                Arg::with_name("verbose")
-                    .short("v")
-                    .help("Sets the level of verbosity")
-                    .multiple(true),
-                Arg::with_name("dryrun").long("dryrun").help(
-                    "Output descriptions of the sequence of tasks, without actually executing them",
-                ),
-            ])
-            .settings(&[
-                AppSettings::AllowExternalSubcommands,
-                AppSettings::AllowLeadingHyphen,
-                AppSettings::TrailingVarArg,
-            ]);
-        app
-    }
-
-    fn append_sub<'a, 'b>(
+    pub fn append_sub(
         app: clap::App<'a, 'b>,
         items: Vec<App<'a, 'b>>,
         offset: usize,
@@ -143,3 +139,4 @@ impl CLI {
             })
     }
 }
+
