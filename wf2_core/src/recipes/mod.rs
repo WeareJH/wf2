@@ -18,7 +18,7 @@ pub mod m2;
 /// use wf2_core::cmd::{Cmd};
 ///
 /// let ctx = Context::default();
-/// let cmd = Cmd::Up;
+/// let cmd = Cmd::Up { detached: false };
 /// let tasks = RecipeKinds::select(&RecipeKinds::M2).resolve_cmd(&ctx, cmd).unwrap();
 ///
 /// assert_eq!(tasks.len(), 9);

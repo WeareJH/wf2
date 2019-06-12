@@ -8,7 +8,7 @@ use ansi_term::Colour::Green;
 ///
 /// Bring the project up using given templates
 ///
-pub fn exec(ctx: &Context) -> Vec<Task> {
+pub fn exec(ctx: &Context, detached: bool) -> Vec<Task> {
     let unison_bytes = include_bytes!("templates/sync.prf");
     let traefik_bytes = include_bytes!("templates/traefik.toml");
     let nginx_bytes = include_bytes!("templates/site.conf");
@@ -55,7 +55,11 @@ pub fn exec(ctx: &Context) -> Vec<Task> {
             "Writes the nginx file",
             nginx_bytes.to_vec(),
         ),
-        dc.cmd_task("up", env.content()),
+        if detached {
+            dc.cmd_task("up -d", env.content())
+        } else {
+            dc.cmd_task("up", env.content())
+        },
     ]
 }
 
@@ -66,7 +70,7 @@ fn test_up_exec() {
         cwd: PathBuf::from("/users/shane"),
         ..Context::default()
     };
-    let output = exec(&ctx);
+    let output = exec(&ctx, false);
     let file_ops = Task::file_op_paths(output);
     assert_eq!(
         vec![
@@ -83,4 +87,42 @@ fn test_up_exec() {
         .collect::<Vec<PathBuf>>(),
         file_ops
     );
+}
+
+#[test]
+fn test_up_exec_detached() {
+    let ctx = Context::default();
+    let output = exec(&ctx, true);
+    let cmd = output.clone();
+    let last = cmd.get(8).unwrap();
+    match last {
+        Task::Seq(tasks) => {
+            match tasks.get(1).unwrap() {
+                Task::Command {command, ..} => {
+                    assert_eq!(command, "docker-compose -f ./.wf2_default/docker-compose.yml up -d")
+                },
+                _ => unreachable!()
+            }
+        }
+        _ => unreachable!()
+    };
+}
+
+#[test]
+fn test_up_exec_none_detached() {
+    let ctx = Context::default();
+    let output = exec(&ctx, false);
+    let cmd = output.clone();
+    let last = cmd.get(8).unwrap();
+    match last {
+        Task::Seq(tasks) => {
+            match tasks.get(1).unwrap() {
+                Task::Command {command, ..} => {
+                    assert_eq!(command, "docker-compose -f ./.wf2_default/docker-compose.yml up")
+                },
+                _ => unreachable!()
+            }
+        }
+        _ => unreachable!()
+    };
 }
