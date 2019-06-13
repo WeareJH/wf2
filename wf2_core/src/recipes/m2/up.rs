@@ -56,9 +56,9 @@ pub fn exec(ctx: &Context, detached: bool) -> Vec<Task> {
             nginx_bytes.to_vec(),
         ),
         if detached {
-            dc.cmd_task("up -d", env.content())
+            dc.cmd_task(vec!["up -d".to_string()], env.content())
         } else {
-            dc.cmd_task("up", env.content())
+            dc.cmd_task(vec!["up".to_string()], env.content())
         },
     ]
 }
@@ -96,15 +96,14 @@ fn test_up_exec_detached() {
     let cmd = output.clone();
     let last = cmd.get(8).unwrap();
     match last {
-        Task::Seq(tasks) => {
-            match tasks.get(1).unwrap() {
-                Task::Command {command, ..} => {
-                    assert_eq!(command, "docker-compose -f ./.wf2_default/docker-compose.yml up -d")
-                },
-                _ => unreachable!()
-            }
-        }
-        _ => unreachable!()
+        Task::Seq(tasks) => match tasks.get(1).unwrap() {
+            Task::Command { command, .. } => assert_eq!(
+                command,
+                "docker-compose -f ./.wf2_default/docker-compose.yml up -d"
+            ),
+            _ => unreachable!(),
+        },
+        _ => unreachable!(),
     };
 }
 
@@ -115,14 +114,13 @@ fn test_up_exec_none_detached() {
     let cmd = output.clone();
     let last = cmd.get(8).unwrap();
     match last {
-        Task::Seq(tasks) => {
-            match tasks.get(1).unwrap() {
-                Task::Command {command, ..} => {
-                    assert_eq!(command, "docker-compose -f ./.wf2_default/docker-compose.yml up")
-                },
-                _ => unreachable!()
-            }
-        }
-        _ => unreachable!()
+        Task::Seq(tasks) => match tasks.get(1).unwrap() {
+            Task::Command { command, .. } => assert_eq!(
+                command,
+                "docker-compose -f ./.wf2_default/docker-compose.yml up"
+            ),
+            _ => unreachable!(),
+        },
+        _ => unreachable!(),
     };
 }

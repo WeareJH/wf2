@@ -6,10 +6,10 @@ pub enum Cmd {
     Down,
     Stop,
     Eject,
-    Exec { trailing: String, user: String },
+    Exec { trailing: Vec<String>, user: String },
     Doctor,
     Pull { trailing: Vec<String> },
     DBImport { path: PathBuf },
     DBDump,
-    PassThrough { cmd: String, trailing: String },
+    PassThrough { cmd: String, trailing: Vec<String> },
 }

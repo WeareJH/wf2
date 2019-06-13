@@ -40,12 +40,22 @@ impl<'a, 'b> CLI<'a, 'b> {
                     .display_order(0)
                     .about("Bring up containers")
                     .arg_from_usage("-d --detached 'Run in detached mode'"),
-                SubCommand::with_name("down")
-                    .display_order(1)
-                    .about("Take down containers & delete everything"),
                 SubCommand::with_name("stop")
-                    .display_order(2)
+                    .display_order(1)
                     .about("Take down containers & retain data"),
+                SubCommand::with_name("down")
+                    .display_order(2)
+                    .about("Take down containers & delete everything"),
+                SubCommand::with_name("db-import")
+                    .about("Import a DB file")
+                    .arg_from_usage("<file> 'db file to import'"),
+                SubCommand::with_name("db-dump").about("Dump the current database to dump.sql"),
+                SubCommand::with_name("exec")
+                    .about("Execute commands in the main container")
+                    .args_from_usage(
+                        "-r --root 'Execute commands as root'
+                                  [cmd]... 'Trailing args'",
+                    ),
                 SubCommand::with_name("pull")
                     .display_order(3)
                     .about("Pull files or folders from the main container to the host")

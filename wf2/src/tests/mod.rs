@@ -8,6 +8,54 @@ mod tests {
     use wf2_core::task::{FileOp, Task};
 
     #[test]
+    fn test_up_01() {
+        let args = vec!["prog", "--cwd", "/users/shane", "up"];
+        let expected = "docker-compose -f /users/shane/.wf2_default/docker-compose.yml up";
+        test_up(args, expected);
+    }
+
+    #[test]
+    fn test_up_02() {
+        let args = vec!["prog", "--cwd", "/users/shane", "up", "-d"];
+        let expected = "docker-compose -f /users/shane/.wf2_default/docker-compose.yml up -d";
+        test_up(args, expected);
+    }
+
+    #[test]
+    fn test_db_import_no_pv() {
+        let args = vec!["prog", "db-import", "file.sql"];
+        let expected =
+            "docker exec -i wf2__wf2_default__db mysql -udocker -pdocker docker < file.sql";
+        let cli_output = CLIOutput::from_input(CLIInput {
+            args: args.into_iter().map(String::from).collect(),
+            ..CLIInput::default()
+        });
+        match cli_output.unwrap().tasks.unwrap().get(1).unwrap() {
+            Task::SimpleCommand { command, .. } => {
+                assert_eq!(expected, command);
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    #[test]
+    fn test_db_import_pv() {
+        let args = vec!["prog", "db-import", "file.sql"];
+        let expected = "pv -f file.sql | docker exec -i wf2__wf2_default__db mysql -udocker -pdocker -D docker";
+        let cli_output = CLIOutput::from_input(CLIInput {
+            args: args.into_iter().map(String::from).collect(),
+            pv: Some("/usr/pv".into()), // pretend we have PV
+            ..CLIInput::default()
+        });
+        match cli_output.unwrap().tasks.unwrap().get(1).unwrap() {
+            Task::SimpleCommand { command, .. } => {
+                assert_eq!(expected, command);
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    #[test]
     fn exec_command() {
         let args = vec!["prog", "exec", "ls"]
             .into_iter()
@@ -136,6 +184,45 @@ mod tests {
             },
             ..CLIInput::default()
         });
+    }
+
+    #[test]
+    fn test_dc_01() {
+        let input = vec!["prog", "dc", "logs", "unison"];
+        let expected = "docker-compose -f .wf2_default/docker-compose.yml logs unison";
+        test_dc(input, expected);
+    }
+
+    #[test]
+    fn test_dc_02() {
+        let input = vec!["prog", "dc"];
+        let expected = "docker-compose -f .wf2_default/docker-compose.yml ";
+        test_dc(input, expected);
+    }
+
+    fn test_up(args: Vec<&str>, expected: &str) {
+        let cli_output = CLIOutput::from_input(CLIInput::from_args(args));
+        match cli_output.unwrap().tasks.unwrap().get(8).unwrap() {
+            Task::Seq(tasks) => match tasks.get(1).unwrap() {
+                Task::Command { command, .. } => {
+                    assert_eq!(expected, command);
+                }
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        }
+    }
+
+    fn test_dc(args: Vec<&str>, expected: &str) {
+        let input = CLIInput::from_args(args);
+        let output = CLIOutput::from_input(input);
+        match output.unwrap().tasks.unwrap().get(0) {
+            Some(Task::Seq(tasks)) => match tasks.get(1).unwrap() {
+                Task::Command { command, .. } => debug_assert_eq!(expected, command),
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        }
     }
 
     fn test_npm(tasks: Vec<Task>, expected_cmd: &str, expected_path: &str) {

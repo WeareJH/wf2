@@ -147,9 +147,9 @@ impl CLIOutput {
         //
         let cmd = match matches.subcommand() {
             ("doctor", ..) => Some(Cmd::Doctor),
-            ("up", Some(sub_matches)) => {
-                Some(Cmd::Up { detached: sub_matches.is_present("detached") })
-            },
+            ("up", Some(sub_matches)) => Some(Cmd::Up {
+                detached: sub_matches.is_present("detached"),
+            }),
             ("down", ..) => Some(Cmd::Down),
             ("stop", ..) => Some(Cmd::Stop),
             ("eject", ..) => Some(Cmd::Eject),
@@ -164,6 +164,26 @@ impl CLIOutput {
                 };
                 Some(Cmd::Pull { trailing })
             }
+            ("db-import", Some(sub_matches)) => {
+                // .unwrap() is safe here since Clap will exit before this if it's absent
+                let trailing = sub_matches.value_of("file").map(|x| x.to_string()).unwrap();
+                Some(Cmd::DBImport {
+                    path: PathBuf::from(trailing),
+                })
+            }
+            ("db-dump", ..) => Some(Cmd::DBDump),
+            ("exec", Some(sub_matches)) => {
+                let trailing = get_trailing(sub_matches);
+                let user = if sub_matches.is_present("root") {
+                    "root"
+                } else {
+                    "www-data"
+                };
+                Some(Cmd::Exec {
+                    trailing,
+                    user: user.to_string(),
+                })
+            }
             (cmd, Some(sub_matches)) => {
                 RecipeKinds::select(&ctx.recipe).select_command((cmd, Some(sub_matches)))
             }
@@ -175,4 +195,19 @@ impl CLIOutput {
             None => None,
         }
     }
+}
+
+//
+// Extract sub-command trailing arguments, eg:
+//
+//                  captured
+//             |-----------------|
+//    wf2 exec  ./bin/magento c:f
+//
+fn get_trailing(sub_matches: &ArgMatches) -> Vec<String> {
+    let output = match sub_matches.values_of("cmd") {
+        Some(cmd) => cmd.collect::<Vec<&str>>(),
+        None => vec![],
+    };
+    output.into_iter().map(|x| x.to_string()).collect()
 }
