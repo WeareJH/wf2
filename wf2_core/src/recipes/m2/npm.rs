@@ -7,16 +7,16 @@ use std::path::PathBuf;
 ///
 /// Alias for `docker-composer run node <...cmd>`
 ///
-pub fn exec(ctx: &Context, trailing: String) -> Vec<Task> {
+pub fn exec(ctx: &Context, trailing: Vec<String>) -> Vec<Task> {
     let env = M2Env::from_ctx(ctx);
     let dc = DockerCompose::from_ctx(&ctx);
     let dc_command = format!(
         r#"run --workdir {work_dir} {service} {trailing_args}"#,
         work_dir = path_buf_to_string(&PathBuf::from("/var/www").join(ctx.npm_path.clone())),
         service = "node",
-        trailing_args = trailing
+        trailing_args = trailing.join(" ")
     );
-    vec![dc.cmd_task(dc_command, env.content())]
+    vec![dc.cmd_task(vec![dc_command], env.content())]
 }
 
 #[cfg(test)]
@@ -56,7 +56,7 @@ mod tests {
                 cwd: PathBuf::from("/users"),
                 ..Context::default()
             },
-            "npm i".into(),
+            vec!["npm i".into()],
         );
         let expected_cmd = "docker-compose -f /users/.wf2_default/docker-compose.yml run --workdir /var/www/. node npm i";
         let expected_path = "/users/.wf2_default/docker-compose.yml";
@@ -70,7 +70,7 @@ mod tests {
                 npm_path: "app/design/theme".into(),
                 ..Context::default()
             },
-            "npm i".into(),
+            vec!["npm i".into()],
         );
         let expected_cmd = "docker-compose -f ./.wf2_default/docker-compose.yml run --workdir /var/www/app/design/theme node npm i";
         let expected_path = "./.wf2_default/docker-compose.yml";
