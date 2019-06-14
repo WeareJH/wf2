@@ -16,3 +16,13 @@ action "Upload to release" {
   secrets = ["GITHUB_TOKEN"]
   needs = ["Build Release"]
 }
+
+workflow "Update Homebrew" {
+  on = "release"
+  resolves = ["Action Homebrew"]
+}
+
+action "Action Homebrew" {
+  uses = "./action-homebrew/"
+  secrets = ["HOMEBREW_GITHUB_TOKEN"]
+}
