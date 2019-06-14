@@ -115,7 +115,7 @@ impl M2Recipe {
     /// let input = "wf2 m setup:upgrade";
     /// let expected = r#"docker exec -it -u www-data -e COLUMNS="80" -e LINES="30" wf2__wf2_default__php ./bin/magento setup:upgrade"#;
     /// #
-    /// # let tasks = m2.mage(&Context::default(), input.split_whitespace().skip(2).map(String::from).collect::<Vec<String>>());
+    /// # let tasks = m2.mage(&Context::default(), input.split_whitespace().skip(1).map(String::from).collect::<Vec<String>>());
     /// # match tasks.get(0).unwrap() {
     /// #     Task::SimpleCommand { command, .. } => {
     /// #         assert_eq!(expected, command);
@@ -131,7 +131,7 @@ impl M2Recipe {
             width = ctx.term.width,
             height = ctx.term.height,
             container_name = container_name,
-            trailing_args = trailing.join(" ")
+            trailing_args = trailing.into_iter().skip(1).collect::<Vec<String>>().join(" ")
         );
         vec![Task::simple_command(full_command)]
     }
