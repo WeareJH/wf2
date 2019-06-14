@@ -8,6 +8,13 @@ mod tests {
     use wf2_core::task::{FileOp, Task};
 
     #[test]
+    fn test_m_01() {
+        let args = vec!["prog", "m", "app:config:import"];
+        let expected = "docker exec -it -u www-data -e COLUMNS=\"80\" -e LINES=\"30\" wf2__wf2_default__php ./bin/magento app:config:import";
+        test_m(args, expected);
+    }
+
+    #[test]
     fn test_up_01() {
         let args = vec!["prog", "--cwd", "/users/shane", "up"];
         let expected = "docker-compose -f /users/shane/.wf2_default/docker-compose.yml up";
@@ -198,6 +205,16 @@ mod tests {
         let input = vec!["prog", "dc"];
         let expected = "docker-compose -f .wf2_default/docker-compose.yml ";
         test_dc(input, expected);
+    }
+
+    fn test_m(args: Vec<&str>, expected: &str) {
+        let cli_output = CLIOutput::from_input(CLIInput::from_args(args));
+        match cli_output.unwrap().tasks.unwrap().get(0).unwrap() {
+            Task::SimpleCommand {command, ..} => {
+                assert_eq!(expected, command);
+            },
+            _ => unreachable!()
+        }
     }
 
     fn test_up(args: Vec<&str>, expected: &str) {
