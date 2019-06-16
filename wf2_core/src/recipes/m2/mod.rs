@@ -32,20 +32,31 @@ pub struct M2Recipe;
 
 impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
     fn resolve_cmd(&self, ctx: &Context, cmd: Cmd) -> Option<Vec<Task>> {
+        let env = M2Env::from_ctx(&ctx);
+
+        if env.is_err() {
+            return match env {
+                Err(e) => Some(vec![Task::Notify { message: e }]),
+                Ok(..) => unreachable!(),
+            };
+        }
+
+        let env = env.expect("guarded above");
+
         match cmd {
-            Cmd::Up { detached } => Some(up::exec(&ctx, detached)),
-            Cmd::Eject => Some(eject::exec(&ctx)),
+            Cmd::Up { detached } => Some(up::exec(&ctx, &env, detached)),
+            Cmd::Eject => Some(eject::exec(&ctx, &env)),
             Cmd::Pull { trailing } => Some(pull::exec(&ctx, trailing.clone())),
-            Cmd::Down => Some(self.down(&ctx)),
-            Cmd::Stop => Some(self.stop(&ctx)),
+            Cmd::Down => Some(self.down(&ctx, &env)),
+            Cmd::Stop => Some(self.stop(&ctx, &env)),
             Cmd::Exec { trailing, user } => Some(self.exec(&ctx, trailing, user.clone())),
             Cmd::DBImport { path } => Some(self.db_import(&ctx, path.clone())),
             Cmd::DBDump => Some(self.db_dump(&ctx)),
             Cmd::Doctor => Some(self.doctor(&ctx)),
             Cmd::PassThrough { cmd, trailing } => match &cmd[..] {
-                "dc" => Some(self.dc(&ctx, trailing.clone())),
-                "npm" => Some(npm::exec(&ctx, trailing.clone())),
-                "node" => Some(self.node(&ctx, trailing.clone())),
+                "dc" => Some(self.dc(&ctx, &env, trailing.clone())),
+                "npm" => Some(npm::exec(&ctx, &env, trailing.clone())),
+                "node" => Some(self.node(&ctx, &env, trailing.clone())),
                 "composer" => Some(self.composer(&ctx, trailing.clone())),
                 "m" => Some(self.mage(&ctx, trailing.clone())),
                 _ => None,
@@ -198,16 +209,14 @@ impl M2Recipe {
     ///
     /// Alias for docker-compose down
     ///
-    pub fn down(&self, ctx: &Context) -> Vec<Task> {
-        let env = M2Env::from_ctx(ctx);
+    pub fn down(&self, ctx: &Context, env: &M2Env) -> Vec<Task> {
         vec![DockerCompose::from_ctx(&ctx).cmd_task(vec!["down".to_string()], env.content())]
     }
 
     ///
     /// Alias for docker-compose stop
     ///
-    pub fn stop(&self, ctx: &Context) -> Vec<Task> {
-        let env = M2Env::from_ctx(ctx);
+    pub fn stop(&self, ctx: &Context, env: &M2Env) -> Vec<Task> {
         let dc = DockerCompose::from_ctx(&ctx);
         vec![dc.cmd_task(vec!["stop".to_string()], env.content())]
     }
@@ -394,31 +403,33 @@ impl M2Recipe {
     /// # use wf2_core::recipes::m2::M2Recipe;
     /// # use wf2_core::context::Context;
     /// # use wf2_core::task::Task;
+    /// # use wf2_core::recipes::m2::m2_env::{M2Env, Env};
     /// # let m2 = M2Recipe;
     /// #
     /// let input = "wf2 node yarn add lodash";
     /// let expected = "docker-compose -f ./.wf2_default/docker-compose.yml run node yarn add lodash";
     /// #
+    /// # let ctx = &Context::default();
     /// # let tasks = m2.node(
     /// #     &Context::default(),
-    /// #      input.split_whitespace().skip(1).map(String::from).collect::<Vec<String>>(),
+    /// #     &M2Env::from_ctx(&ctx).unwrap(),
+    /// #     input.split_whitespace().skip(1).map(String::from).collect::<Vec<String>>(),
     /// # );
     /// # match tasks.get(0).unwrap() {
     /// #     Task::Seq(tasks) => {
     /// #        match tasks.get(1).unwrap() {
     /// #            Task::Command { command, .. } => {
     /// #               assert_eq!(expected, command);
-    /// #            },
+    /// #            }
     /// #            _ => {
     /// #                unreachable!()
     /// #            }
     /// #        }
-    /// #     },
+    /// #     }
     /// #     _ => unreachable!(),
     /// # };
     /// ```
-    pub fn node(&self, ctx: &Context, trailing: Vec<String>) -> Vec<Task> {
-        let env = M2Env::from_ctx(ctx);
+    pub fn node(&self, ctx: &Context, env: &M2Env, trailing: Vec<String>) -> Vec<Task> {
         let dc = DockerCompose::from_ctx(&ctx);
         let dc_command = format!(r#"run {}"#, trailing.join(" "));
         vec![dc.cmd_task(vec![dc_command], env.content())]
@@ -428,8 +439,7 @@ impl M2Recipe {
     /// A pass-thru command - where everything after `dc` is passed
     /// as-is to docker-compose, without verifying any arguments.
     ///
-    pub fn dc(&self, ctx: &Context, trailing: Vec<String>) -> Vec<Task> {
-        let env = M2Env::from_ctx(ctx);
+    pub fn dc(&self, ctx: &Context, env: &M2Env, trailing: Vec<String>) -> Vec<Task> {
         let dc = DockerCompose::from_ctx(&ctx);
         let after: Vec<String> = trailing.into_iter().skip(1).collect();
         vec![dc.cmd_task(after, env.content())]

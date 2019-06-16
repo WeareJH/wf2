@@ -210,10 +210,10 @@ mod tests {
     fn test_m(args: Vec<&str>, expected: &str) {
         let cli_output = CLIOutput::from_input(CLIInput::from_args(args));
         match cli_output.unwrap().tasks.unwrap().get(0).unwrap() {
-            Task::SimpleCommand {command, ..} => {
+            Task::SimpleCommand { command, .. } => {
                 assert_eq!(expected, command);
-            },
-            _ => unreachable!()
+            }
+            _ => unreachable!(),
         }
     }
 

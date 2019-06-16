@@ -78,6 +78,9 @@ pub struct Context {
 
     #[serde(default = "default_file_prefix")]
     pub file_prefix: PathBuf,
+
+    #[serde(default)]
+    pub overrides: Option<serde_yaml::Value>,
 }
 
 ///
@@ -109,6 +112,7 @@ impl Default for Context {
             php_version: PHP::SevenTwo,
             config_path: None,
             file_prefix: default_file_prefix(),
+            overrides: None,
         }
     }
 }
@@ -142,6 +146,9 @@ impl Context {
         self.term = other.term;
         self.pv = other.pv;
         self
+    }
+    pub fn file_path(&self, filename: &str) -> PathBuf {
+        self.cwd.join(&self.file_prefix).join(&filename)
     }
 }
 

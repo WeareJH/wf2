@@ -8,12 +8,11 @@ use ansi_term::Colour::Green;
 ///
 /// Bring the project up using given templates
 ///
-pub fn exec(ctx: &Context, detached: bool) -> Vec<Task> {
+pub fn exec(ctx: &Context, env: &M2Env, detached: bool) -> Vec<Task> {
     let unison_bytes = include_bytes!("templates/sync.prf");
     let traefik_bytes = include_bytes!("templates/traefik.toml");
     let nginx_bytes = include_bytes!("templates/site.conf");
     let env_bytes = include_bytes!("templates/.env");
-    let env = M2Env::from_ctx(ctx);
     let dc = DockerCompose::from_ctx(&ctx);
 
     vec![
@@ -41,17 +40,17 @@ pub fn exec(ctx: &Context, detached: bool) -> Vec<Task> {
             create_env(env_bytes, &ctx.default_domain()),
         ),
         Task::file_write(
-            ctx.cwd.join(&ctx.file_prefix).join(UNISON_OUTPUT_FILE),
+            ctx.file_path(UNISON_OUTPUT_FILE),
             "Writes the unison file",
             unison_bytes.to_vec(),
         ),
         Task::file_write(
-            ctx.cwd.join(&ctx.file_prefix).join(TRAEFIK_OUTPUT_FILE),
+            ctx.file_path(TRAEFIK_OUTPUT_FILE),
             "Writes the traefix file",
             traefik_bytes.to_vec(),
         ),
         Task::file_write(
-            ctx.cwd.join(&ctx.file_prefix).join(NGINX_OUTPUT_FILE),
+            ctx.file_path(NGINX_OUTPUT_FILE),
             "Writes the nginx file",
             nginx_bytes.to_vec(),
         ),
@@ -70,7 +69,7 @@ fn test_up_exec() {
         cwd: PathBuf::from("/users/shane"),
         ..Context::default()
     };
-    let output = exec(&ctx, false);
+    let output = exec(&ctx, &M2Env::from_ctx(&ctx).unwrap(), false);
     let file_ops = Task::file_op_paths(output);
     assert_eq!(
         vec![
@@ -92,7 +91,7 @@ fn test_up_exec() {
 #[test]
 fn test_up_exec_detached() {
     let ctx = Context::default();
-    let output = exec(&ctx, true);
+    let output = exec(&ctx, &M2Env::from_ctx(&ctx).unwrap(), true);
     let cmd = output.clone();
     let last = cmd.get(8).unwrap();
     match last {
@@ -110,7 +109,7 @@ fn test_up_exec_detached() {
 #[test]
 fn test_up_exec_none_detached() {
     let ctx = Context::default();
-    let output = exec(&ctx, false);
+    let output = exec(&ctx, &M2Env::from_ctx(&ctx).unwrap(), false);
     let cmd = output.clone();
     let last = cmd.get(8).unwrap();
     match last {

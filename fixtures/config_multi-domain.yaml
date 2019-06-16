@@ -1,0 +1,5 @@
+recipe: M2
+domains: [ acme.m2, ce.acme.m2 ]
+overrides:
+  env:
+    NginxDir: "./here"
