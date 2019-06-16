@@ -15,6 +15,8 @@ impl DockerCompose {
         DockerCompose {
             file: ctx.cwd.join(&ctx.file_prefix).join(DC_OUTPUT_FILE),
             eject_file: ctx.cwd.join(DC_OUTPUT_FILE),
+
+            // TODO: Move this to each recipe
             bytes: include_bytes!("recipes/m2/templates/docker-compose.yml").to_vec(),
         }
     }

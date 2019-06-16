@@ -7,13 +7,12 @@ use crate::{context::Context, env::create_env, task::Task};
 ///
 /// Write all files & replace all variables so it's ready to use
 ///
-pub fn exec(ctx: &Context) -> Vec<Task> {
+pub fn exec(ctx: &Context, env: &M2Env) -> Vec<Task> {
     let unison_bytes = include_bytes!("templates/sync.prf");
     let traefik_bytes = include_bytes!("templates/traefik.toml");
     let nginx_bytes = include_bytes!("templates/site.conf");
     let env_bytes = include_bytes!("templates/.env");
     let dc = DockerCompose::from_ctx(&ctx);
-    let env = M2Env::from_ctx(ctx);
 
     vec![
         Task::file_write(
@@ -47,7 +46,7 @@ fn test_eject_exec() {
         cwd: PathBuf::from("/users/shane"),
         ..Context::default()
     };
-    let output = exec(&ctx);
+    let output = exec(&ctx, &M2Env::from_ctx(&ctx).unwrap());
     let file_ops = Task::file_op_paths(output);
     assert_eq!(
         vec![
