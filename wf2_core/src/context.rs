@@ -133,6 +133,12 @@ impl Context {
             .get(0)
             .map_or(DEFAULT_DOMAIN.into(), |s| s.to_string())
     }
+    pub fn domains(&self) -> String {
+        match self.domains.len() {
+            0 => DEFAULT_DOMAIN.into(),
+            _ => self.domains.join(",")
+        }
+    }
     pub fn get_context_name(cwd: &PathBuf) -> String {
         cwd.file_name()
             .map(|os_str| os_str.to_string_lossy().to_string())

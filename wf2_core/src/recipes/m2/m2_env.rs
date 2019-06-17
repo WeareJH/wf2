@@ -31,21 +31,22 @@ impl Env<M2Env> for M2Env {
     fn from_ctx(ctx: &Context) -> Result<M2Env, String> {
         // resolve the relative path to where the .env file will be written
         let env_file_path = ctx.file_path(ENV_OUTPUT_FILE);
-        let overrides = ctx.overrides.clone();
 
-        // TODO: Use the overrides now
-        let _overrides = match overrides {
+        // allow env overrides in yml format
+        let overrides = match ctx.overrides.clone() {
             Some(overrides) => {
                 Some(serde_yaml::from_value::<M2Overrides>(overrides).map_err(|e| e.to_string())?)
             }
             None => None,
         };
 
+        // convert the PHP value to a usable image
         let php_image = match ctx.php_version {
             PHP::SevenOne => PHP_7_1,
             PHP::SevenTwo => PHP_7_2,
         };
 
+        //
         let mut nginx_dir = ctx.file_path(NGINX_OUTPUT_FILE);
         nginx_dir.pop();
 
@@ -54,7 +55,7 @@ impl Env<M2Env> for M2Env {
             (EnvVar::Pwd, path_buf_to_string(&ctx.cwd)),
             (EnvVar::ContextName, ctx.name.clone()),
             (EnvVar::EnvFile, path_buf_to_string(&env_file_path)),
-            (EnvVar::Domain, ctx.default_domain()),
+            (EnvVar::Domain, ctx.domains()),
             (
                 EnvVar::UnisonFile,
                 path_buf_to_string(&ctx.file_path(UNISON_OUTPUT_FILE)),
@@ -66,11 +67,35 @@ impl Env<M2Env> for M2Env {
             (EnvVar::NginxDir, path_buf_to_string(&nginx_dir)),
         ]
         .into_iter()
-        .map(|(key, val)| (key, val))
         .collect();
 
+        // now merge the map above with any overrides
+        let merged_env: HashMap<EnvVar, String> = match overrides {
+            Some(M2Overrides{env: Some(env_overrides)}) => {
+                // this will merge the original ENV + overrides
+                env.into_iter().chain::<HashMap<EnvVar, String>>(
+                    env_overrides
+                        .into_iter()
+                        .map(|(key, value)| {
+                            match key {
+                                EnvVar::NginxDir => {
+                                    if value.starts_with("/") {
+                                        (key, value)
+                                    } else {
+                                        (key, path_buf_to_string(&ctx.cwd.join(value)))
+                                    }
+                                },
+                                _ => (key, value)
+                            }
+                        })
+                        .collect()
+                ).collect()
+            },
+            _ => env
+        };
+
         Ok(M2Env {
-            content: env,
+            content: merged_env,
             file_path: env_file_path,
         })
     }
@@ -108,6 +133,37 @@ fn test_env_from_ctx() {
     assert_eq!(hm, m2_env.content);
 }
 
+#[test]
+fn test_env_from_ctx_with_overrides() {
+    use crate::context::{DEFAULT_NAME};
+    let overrides = r#"
+    env:
+        NginxDir: "./overrides"
+    "#;
+    let ctx = Context {
+        overrides: Some(serde_yaml::from_str(overrides).unwrap()),
+        domains: vec![String::from("local.m2"), String::from("ce.local.m2")],
+        ..Context::default()
+    };
+    let m2_env = M2Env::from_ctx(&ctx).unwrap();
+    let hm: HashMap<EnvVar, String> = vec![
+        (EnvVar::Pwd, "."),
+        (EnvVar::PhpImage, "wearejh/php:7.2-m2"),
+        (EnvVar::Domain, "local.m2,ce.local.m2"),
+        (EnvVar::ContextName, DEFAULT_NAME),
+        (EnvVar::EnvFile, "./.wf2_default/.docker.env"),
+        (EnvVar::UnisonFile, "./.wf2_default/unison/conf/sync.prf"),
+        (EnvVar::TraefikFile, "./.wf2_default/traefik/traefik.toml"),
+        (EnvVar::NginxDir, "././overrides"),
+    ]
+    .into_iter()
+    .map(|(k, v)| (k, v.into()))
+    .collect();
+
+    println!("{:#?}", m2_env.content());
+    assert_eq!(hm, m2_env.content);
+}
+
 pub fn file_path(cwd: &PathBuf, prefix: &str, path: &str) -> PathBuf {
     cwd.join(prefix).join(path)
 }
@@ -134,7 +190,7 @@ impl From<EnvVar> for String {
             EnvVar::EnvFile => "WF2__M2__ENV_FILE",
             EnvVar::UnisonFile => "WF2__M2__UNISON_FILE",
             EnvVar::TraefikFile => "WF2__M2__TRAEFIK_FILE",
-            EnvVar::NginxDir => "WF2__M2__NGINX_FILE",
+            EnvVar::NginxDir => "WF2__M2__NGINX_DIR",
         };
         output.to_string()
     }
@@ -142,21 +198,21 @@ impl From<EnvVar> for String {
 
 #[derive(Debug, Clone, Deserialize)]
 struct M2Overrides {
-    env: HashMap<EnvVar, String>,
+    env: Option<HashMap<EnvVar, String>>,
 }
 
 #[test]
 fn test_overrides() {
     let yaml = r#"
     env:
-      NginxDir: "./docker/nginx/sites"
+      NginxDir: "./docker/nginx/override/sites"
     "#;
     let output: Result<M2Overrides, _> = serde_yaml::from_str(yaml);
     match output {
         Ok(overrides) => {
             assert_eq!(
-                overrides.env.get(&EnvVar::NginxDir),
-                Some(&String::from("./docker/nginx/sites"))
+                overrides.env.unwrap().get(&EnvVar::NginxDir),
+                Some(&String::from("./docker/nginx/override/sites"))
             );
         }
         Err(e) => println!("{}", e),
