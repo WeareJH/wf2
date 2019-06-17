@@ -89,6 +89,7 @@ impl<'a, 'b> CLI<'a, 'b> {
                 let without: Vec<String> = input
                     .into_iter()
                     .filter(|arg| &arg[..] != "--help")
+                    .filter(|arg| &arg[..] != "-h")
                     .collect();
                 self.get_ctx(without)
             }
