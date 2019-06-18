@@ -131,6 +131,8 @@ impl CLIOutput {
 
         let name = Context::get_context_name(&cwd);
 
+        let debug = if matches.is_present("debug") { true } else { false };
+
         ContextOverrides {
             cwd,
             php_version,
@@ -138,6 +140,7 @@ impl CLIOutput {
             name,
             term: input.term,
             pv: input.pv,
+            debug,
         }
     }
 
