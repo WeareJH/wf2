@@ -37,3 +37,5 @@ ignore = Name {.*,*}.sample
 ignore = Name {.*,*}.md
 ignore = Name {.*,*}.txt
 ignore = Name {.*,*}.tmp
+ignore = Name {.*,*}.sql
+ignore = Name {.*,*}.sql.gz
