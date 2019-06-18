@@ -1,7 +1,9 @@
 use crate::{cmd::Cmd, context::Context, recipes::m2::M2Recipe, task::Task};
 use clap::{App, ArgMatches};
+use crate::recipes::m2_contrib::{M2ContribRecipe};
 
 pub mod m2;
+pub mod m2_contrib;
 
 ///
 /// A way to determine with Recipe is being used.
@@ -27,12 +29,14 @@ pub mod m2;
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
 pub enum RecipeKinds {
     M2,
+    M2Contrib
 }
 
 impl RecipeKinds {
     pub fn select(kind: &RecipeKinds) -> Box<dyn Recipe> {
         match *kind {
-            RecipeKinds::M2 => Box::new(M2Recipe),
+            RecipeKinds::M2 => Box::new(M2Recipe::new()),
+            RecipeKinds::M2Contrib => Box::new(M2ContribRecipe::new()),
         }
     }
 }
@@ -46,4 +50,9 @@ pub trait Recipe<'a, 'b> {
         vec![]
     }
     fn select_command(&self, input: (&str, Option<&ArgMatches<'a>>)) -> Option<Cmd>;
+}
+
+#[derive(Clone)]
+pub struct RecipeTemplate {
+    pub bytes: Vec<u8>
 }

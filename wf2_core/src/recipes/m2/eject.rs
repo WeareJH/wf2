@@ -2,38 +2,35 @@ use crate::docker_compose::DockerCompose;
 use crate::recipes::m2::m2_env::{
     Env, M2Env, NGINX_OUTPUT_FILE, TRAEFIK_OUTPUT_FILE, UNISON_OUTPUT_FILE,
 };
+use crate::recipes::m2::M2Templates;
 use crate::{context::Context, env::create_env, task::Task};
 
 ///
 /// Write all files & replace all variables so it's ready to use
 ///
-pub fn exec(ctx: &Context, env: &M2Env) -> Vec<Task> {
-    let unison_bytes = include_bytes!("templates/sync.prf");
-    let traefik_bytes = include_bytes!("templates/traefik.toml");
-    let nginx_bytes = include_bytes!("templates/site.conf");
-    let env_bytes = include_bytes!("templates/.env");
+pub fn exec(ctx: &Context, env: &M2Env, templates: M2Templates) -> Vec<Task> {
     let dc = DockerCompose::from_ctx(&ctx);
 
     vec![
         Task::file_write(
             env.file_path(),
             "Writes the .env file to disk",
-            create_env(env_bytes, &ctx.default_domain()),
+            create_env(&templates.env.bytes, &ctx.default_domain()),
         ),
         Task::file_write(
             ctx.cwd.join(&ctx.file_prefix).join(UNISON_OUTPUT_FILE),
             "Writes the unison file",
-            unison_bytes.to_vec(),
+            templates.unison.bytes,
         ),
         Task::file_write(
             ctx.cwd.join(&ctx.file_prefix).join(TRAEFIK_OUTPUT_FILE),
             "Writes the traefix file",
-            traefik_bytes.to_vec(),
+            templates.traefik.bytes,
         ),
         Task::file_write(
             ctx.cwd.join(&ctx.file_prefix).join(NGINX_OUTPUT_FILE),
             "Writes the nginx file",
-            nginx_bytes.to_vec(),
+            templates.nginx.bytes,
         ),
         dc.eject(env.content()),
     ]
@@ -46,7 +43,7 @@ fn test_eject_exec() {
         cwd: PathBuf::from("/users/shane"),
         ..Context::default()
     };
-    let output = exec(&ctx, &M2Env::from_ctx(&ctx).unwrap());
+    let output = exec(&ctx, &M2Env::from_ctx(&ctx).unwrap(), M2Templates::default());
     let file_ops = Task::file_op_paths(output);
     assert_eq!(
         vec![
