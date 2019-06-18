@@ -81,6 +81,9 @@ pub struct Context {
 
     #[serde(default)]
     pub overrides: Option<serde_yaml::Value>,
+
+    #[serde(default = "default_debug")]
+    pub debug: bool,
 }
 
 ///
@@ -94,6 +97,7 @@ pub struct ContextOverrides {
     pub name: String,
     pub pv: Option<String>,
     pub term: Term,
+    pub debug: bool,
 }
 
 pub const DEFAULT_NAME: &str = "wf2_default";
@@ -113,6 +117,7 @@ impl Default for Context {
             config_path: None,
             file_prefix: default_file_prefix(),
             overrides: None,
+            debug: default_debug()
         }
     }
 }
@@ -151,6 +156,7 @@ impl Context {
         self.name = other.name;
         self.term = other.term;
         self.pv = other.pv;
+        self.debug = other.debug;
         self
     }
     pub fn file_path(&self, filename: &str) -> PathBuf {
@@ -181,6 +187,9 @@ fn default_term() -> Term {
         height: 30,
         width: 80,
     }
+}
+fn default_debug() -> bool {
+    false
 }
 
 #[test]

@@ -6,6 +6,7 @@ use crate::task::Task;
 use crate::util::path_buf_to_string;
 use clap::{App, ArgMatches};
 use m2_env::{Env, M2Env};
+use php_container::{PhpContainer};
 use std::path::PathBuf;
 
 pub mod eject;
@@ -13,6 +14,7 @@ pub mod m2_env;
 pub mod npm;
 pub mod pull;
 pub mod up;
+pub mod php_container;
 
 ///
 /// PHP 7.1 + 7.2 Environments for use with Magento 2.
@@ -136,7 +138,7 @@ impl M2Recipe {
     /// ```
     ///
     pub fn mage(&self, ctx: &Context, trailing: Vec<String>) -> Vec<Task> {
-        let container_name = format!("wf2__{}__php", ctx.name);
+        let container_name = PhpContainer::from_ctx(&ctx).name;
         let full_command = format!(
             r#"docker exec -it -u www-data -e COLUMNS="{width}" -e LINES="{height}" {container_name} ./bin/magento {trailing_args}"#,
             width = ctx.term.width,
@@ -194,7 +196,7 @@ impl M2Recipe {
     /// ```
     ///
     pub fn exec(&self, ctx: &Context, trailing: Vec<String>, user: String) -> Vec<Task> {
-        let container_name = format!("wf2__{}__php", ctx.name);
+        let container_name = PhpContainer::from_ctx(&ctx).name;
         let exec_command = format!(
             r#"docker exec -it -u {user} -e COLUMNS="{width}" -e LINES="{height}" {container_name} {trailing_args}"#,
             user = user,
@@ -384,7 +386,7 @@ impl M2Recipe {
     /// # };
     /// ```
     pub fn composer(&self, ctx: &Context, trailing: Vec<String>) -> Vec<Task> {
-        let container_name = format!("wf2__{}__php", ctx.name);
+        let container_name = PhpContainer::from_ctx(&ctx).name;
         let exec_command = format!(
             r#"docker exec -it -u www-data {container_name} {trailing_args}"#,
             container_name = container_name,

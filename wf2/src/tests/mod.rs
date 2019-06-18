@@ -15,6 +15,13 @@ mod tests {
     }
 
     #[test]
+    fn test_m_01_debug() {
+        let args = vec!["prog", "--debug", "m", "app:config:import"];
+        let expected = "docker exec -it -u www-data -e COLUMNS=\"80\" -e LINES=\"30\" wf2__wf2_default__php_debug ./bin/magento app:config:import";
+        test_m(args, expected);
+    }
+
+    #[test]
     fn test_up_01() {
         let args = vec!["prog", "--cwd", "/users/shane", "up"];
         let expected = "docker-compose -f /users/shane/.wf2_default/docker-compose.yml up";

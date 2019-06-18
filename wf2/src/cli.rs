@@ -34,6 +34,9 @@ impl<'a, 'b> CLI<'a, 'b> {
                 Arg::with_name("dryrun").long("dryrun").help(
                     "Output descriptions of the sequence of tasks, without actually executing them",
                 ),
+                Arg::with_name("debug")
+                    .help("Route all PHP requests to the container with XDEBUG")
+                    .long("debug"),
             ])
             .subcommands(vec![
                 SubCommand::with_name("up")

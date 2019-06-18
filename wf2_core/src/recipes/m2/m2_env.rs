@@ -4,15 +4,12 @@ use crate::php::PHP;
 use crate::util::path_buf_to_string;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use super::php_container::PhpContainer;
 
 pub const ENV_OUTPUT_FILE: &str = ".docker.env";
 pub const TRAEFIK_OUTPUT_FILE: &str = "traefik/traefik.toml";
 pub const NGINX_OUTPUT_FILE: &str = "nginx/sites/site.conf";
 pub const UNISON_OUTPUT_FILE: &str = "unison/conf/sync.prf";
-
-// TODO: Move these to the PHP module
-pub const PHP_7_1: &str = "wearejh/php:7.1-m2";
-pub const PHP_7_2: &str = "wearejh/php:7.2-m2";
 
 pub const DB_PASS: &str = "docker";
 pub const DB_USER: &str = "docker";
@@ -41,17 +38,14 @@ impl Env<M2Env> for M2Env {
         };
 
         // convert the PHP value to a usable image
-        let php_image = match ctx.php_version {
-            PHP::SevenOne => PHP_7_1,
-            PHP::SevenTwo => PHP_7_2,
-        };
+        let php_container = PhpContainer::from_ctx(&ctx);
 
         //
         let mut nginx_dir = ctx.file_path(NGINX_OUTPUT_FILE);
         nginx_dir.pop();
 
         let env: HashMap<EnvVar, String> = vec![
-            (EnvVar::PhpImage, php_image.to_string()),
+            (EnvVar::PhpImage, php_container.image.to_string()),
             (EnvVar::Pwd, path_buf_to_string(&ctx.cwd)),
             (EnvVar::ContextName, ctx.name.clone()),
             (EnvVar::EnvFile, path_buf_to_string(&env_file_path)),
