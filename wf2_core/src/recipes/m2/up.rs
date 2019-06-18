@@ -2,17 +2,14 @@ use crate::env::Env;
 use crate::recipes::m2::m2_env::{
     M2Env, NGINX_OUTPUT_FILE, TRAEFIK_OUTPUT_FILE, UNISON_OUTPUT_FILE,
 };
+use crate::recipes::m2::M2Templates;
 use crate::{context::Context, docker_compose::DockerCompose, env::create_env, task::Task};
 use ansi_term::Colour::Green;
 
 ///
 /// Bring the project up using given templates
 ///
-pub fn exec(ctx: &Context, env: &M2Env, detached: bool) -> Vec<Task> {
-    let unison_bytes = include_bytes!("templates/sync.prf");
-    let traefik_bytes = include_bytes!("templates/traefik.toml");
-    let nginx_bytes = include_bytes!("templates/site.conf");
-    let env_bytes = include_bytes!("templates/.env");
+pub fn exec(ctx: &Context, env: &M2Env, detached: bool, templates: M2Templates) -> Vec<Task> {
     let dc = DockerCompose::from_ctx(&ctx);
 
     vec![
@@ -37,22 +34,22 @@ pub fn exec(ctx: &Context, env: &M2Env, detached: bool) -> Vec<Task> {
         Task::file_write(
             env.file_path(),
             "Writes the .env file to disk",
-            create_env(env_bytes, &ctx.default_domain()),
+            create_env(&templates.env.bytes, &ctx.default_domain()),
         ),
         Task::file_write(
             ctx.file_path(UNISON_OUTPUT_FILE),
             "Writes the unison file",
-            unison_bytes.to_vec(),
+            templates.unison.bytes,
         ),
         Task::file_write(
             ctx.file_path(TRAEFIK_OUTPUT_FILE),
             "Writes the traefix file",
-            traefik_bytes.to_vec(),
+            templates.traefik.bytes,
         ),
         Task::file_write(
             ctx.file_path(NGINX_OUTPUT_FILE),
             "Writes the nginx file",
-            nginx_bytes.to_vec(),
+            templates.nginx.bytes,
         ),
         if detached {
             dc.cmd_task(vec!["up -d".to_string()], env.content())
@@ -69,7 +66,7 @@ fn test_up_exec() {
         cwd: PathBuf::from("/users/shane"),
         ..Context::default()
     };
-    let output = exec(&ctx, &M2Env::from_ctx(&ctx).unwrap(), false);
+    let output = exec(&ctx, &M2Env::from_ctx(&ctx).unwrap(), false, M2Templates::default());
     let file_ops = Task::file_op_paths(output);
     assert_eq!(
         vec![
@@ -91,7 +88,7 @@ fn test_up_exec() {
 #[test]
 fn test_up_exec_detached() {
     let ctx = Context::default();
-    let output = exec(&ctx, &M2Env::from_ctx(&ctx).unwrap(), true);
+    let output = exec(&ctx, &M2Env::from_ctx(&ctx).unwrap(), true, M2Templates::default());
     let cmd = output.clone();
     let last = cmd.get(8).unwrap();
     match last {
@@ -109,7 +106,7 @@ fn test_up_exec_detached() {
 #[test]
 fn test_up_exec_none_detached() {
     let ctx = Context::default();
-    let output = exec(&ctx, &M2Env::from_ctx(&ctx).unwrap(), false);
+    let output = exec(&ctx, &M2Env::from_ctx(&ctx).unwrap(), false, M2Templates::default());
     let cmd = output.clone();
     let last = cmd.get(8).unwrap();
     match last {

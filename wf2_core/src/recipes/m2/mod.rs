@@ -1,7 +1,7 @@
 use crate::cmd::Cmd;
 use crate::context::Context;
 use crate::docker_compose::DockerCompose;
-use crate::recipes::Recipe;
+use crate::recipes::{Recipe, RecipeTemplate};
 use crate::task::Task;
 use crate::util::path_buf_to_string;
 use clap::{App, ArgMatches};
@@ -30,7 +30,39 @@ pub mod php_container;
 /// - redis
 /// - blackfire
 ///
-pub struct M2Recipe;
+pub struct M2Recipe {
+    pub templates: M2Templates
+}
+
+///
+/// Templates struct encapsulates all the different templates used by the recipe
+///
+#[derive(Clone)]
+pub struct M2Templates {
+    pub unison: RecipeTemplate,
+    pub traefik: RecipeTemplate,
+    pub nginx: RecipeTemplate,
+    pub env: RecipeTemplate,
+}
+
+impl Default for M2Templates {
+    fn default() -> M2Templates {
+        M2Templates {
+            unison: RecipeTemplate {
+                bytes: include_bytes!("templates/sync.prf").to_vec(),
+            },
+            traefik: RecipeTemplate {
+                bytes: include_bytes!("templates/traefik.toml").to_vec(),
+            },
+            nginx: RecipeTemplate {
+                bytes: include_bytes!("templates/site.conf").to_vec(),
+            },
+            env: RecipeTemplate {
+                bytes: include_bytes!("templates/.env").to_vec(),
+            }
+        }
+    }
+}
 
 impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
     fn resolve_cmd(&self, ctx: &Context, cmd: Cmd) -> Option<Vec<Task>> {
@@ -46,8 +78,8 @@ impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
         let env = env.expect("guarded above");
 
         match cmd {
-            Cmd::Up { detached } => Some(up::exec(&ctx, &env, detached)),
-            Cmd::Eject => Some(eject::exec(&ctx, &env)),
+            Cmd::Up { detached } => Some(up::exec(&ctx, &env, detached, self.templates.clone())),
+            Cmd::Eject => Some(eject::exec(&ctx, &env, self.templates.clone())),
             Cmd::Pull { trailing } => Some(pull::exec(&ctx, trailing.clone())),
             Cmd::Down => Some(self.down(&ctx, &env)),
             Cmd::Stop => Some(self.stop(&ctx, &env)),
@@ -114,6 +146,17 @@ impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
 }
 
 impl M2Recipe {
+
+    pub fn new() -> M2Recipe {
+        M2Recipe {
+            templates: M2Templates::default()
+        }
+    }
+
+    pub fn with_templates(&mut self, templates: M2Templates) -> &mut M2Recipe {
+        self.templates = templates;
+        self
+    }
     ///
     /// Alias for `./bin/magento` with correct user
     ///
@@ -123,7 +166,7 @@ impl M2Recipe {
     /// # use wf2_core::recipes::m2::M2Recipe;
     /// # use wf2_core::context::Context;
     /// # use wf2_core::task::Task;
-    /// # let m2 = M2Recipe;
+    /// # let m2 = M2Recipe::new();
     /// #
     /// let input = "wf2 m setup:upgrade";
     /// let expected = r#"docker exec -it -u www-data -e COLUMNS="80" -e LINES="30" wf2__wf2_default__php ./bin/magento setup:upgrade"#;
@@ -161,7 +204,7 @@ impl M2Recipe {
     /// # use wf2_core::recipes::m2::M2Recipe;
     /// # use wf2_core::context::Context;
     /// # use wf2_core::task::Task;
-    /// # let m2 = M2Recipe;
+    /// # let m2 = M2Recipe::new();
     /// #
     /// let input = "wf2 exec -- ls -lh";
     /// let expected = r#"docker exec -it -u www-data -e COLUMNS="80" -e LINES="30" wf2__wf2_default__php ls -lh"#;
@@ -181,7 +224,7 @@ impl M2Recipe {
     /// # use wf2_core::recipes::m2::M2Recipe;
     /// # use wf2_core::context::Context;
     /// # use wf2_core::task::Task;
-    /// # let m2 = M2Recipe;
+    /// # let m2 = M2Recipe::new();
     /// #
     /// let input = "wf2 exec -r -- rm -rf vendor";
     /// let expected = r#"docker exec -it -u root -e COLUMNS="80" -e LINES="30" wf2__wf2_default__php rm -rf vendor"#;
@@ -250,7 +293,7 @@ impl M2Recipe {
     /// # use wf2_core::context::Context;
     /// # use wf2_core::task::Task;
     /// # use std::path::PathBuf;
-    /// # let m2 = M2Recipe;
+    /// # let m2 = M2Recipe::new();
     /// #
     /// let input  = "wf2 db-import ~/Downloads/dump.sql";
     /// let output = "docker exec -i wf2__wf2_default__db mysql -udocker -pdocker docker < ~/Downloads/dump.sql";
@@ -272,7 +315,7 @@ impl M2Recipe {
     /// # use wf2_core::context::Context;
     /// # use wf2_core::task::Task;
     /// # use std::path::PathBuf;
-    /// # let m2 = M2Recipe;
+    /// # let m2 = M2Recipe::new();
     /// #
     /// let input = "wf2 db-import ~/Downloads/dump.sql";
     /// let output = "pv -f ~/Downloads/dump.sql | docker exec -i wf2__wf2_default__db mysql -udocker -pdocker -D docker";
@@ -329,7 +372,7 @@ impl M2Recipe {
     /// # use wf2_core::recipes::m2::M2Recipe;
     /// # use wf2_core::context::Context;
     /// # use wf2_core::task::Task;
-    /// # let m2 = M2Recipe;
+    /// # let m2 = M2Recipe::new();
     /// #
     /// let input = "wf2 db-dump";
     /// let expected = "docker exec -i wf2__wf2_default__db mysqldump -udocker -pdocker docker > dump.sql";
@@ -369,7 +412,7 @@ impl M2Recipe {
     /// # use wf2_core::recipes::m2::M2Recipe;
     /// # use wf2_core::context::Context;
     /// # use wf2_core::task::Task;
-    /// # let m2 = M2Recipe;
+    /// # let m2 = M2Recipe::new();
     /// #
     /// let input = "wf2 composer install -vvv";
     /// let expected = "docker exec -it -u www-data wf2__wf2_default__php composer install -vvv";
@@ -406,7 +449,7 @@ impl M2Recipe {
     /// # use wf2_core::context::Context;
     /// # use wf2_core::task::Task;
     /// # use wf2_core::recipes::m2::m2_env::{M2Env, Env};
-    /// # let m2 = M2Recipe;
+    /// # let m2 = M2Recipe::new();
     /// #
     /// let input = "wf2 node yarn add lodash";
     /// let expected = "docker-compose -f ./.wf2_default/docker-compose.yml run node yarn add lodash";
