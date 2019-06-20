@@ -157,7 +157,7 @@ impl CLIOutput {
             ("stop", ..) => Some(Cmd::Stop),
             ("eject", ..) => Some(Cmd::Eject),
             ("pull", Some(sub_matches)) => {
-                let trailing = match sub_matches.values_of("cmd") {
+                let trailing = match sub_matches.values_of("paths") {
                     Some(cmd) => cmd
                         .collect::<Vec<&str>>()
                         .into_iter()
