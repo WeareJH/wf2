@@ -8,6 +8,26 @@ mod tests {
     use wf2_core::task::{FileOp, Task};
 
     #[test]
+    fn test_pull_01() {
+        let args = vec!["prog", "pull", "file1", "dir1"];
+        let expected_1 = "docker cp wf2__wf2_default__php:/var/www/file1 .";
+        let expected_2 = "docker cp wf2__wf2_default__php:/var/www/dir1 .";
+        let cli_output = CLIOutput::from_input(CLIInput::from_args(args));
+
+        let cmd: Vec<String> = cli_output
+            .unwrap()
+            .tasks
+            .unwrap()
+            .iter()
+            .filter_map(|t| match t {
+                Task::SimpleCommand { command, .. } => Some(command.to_string()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(vec![expected_1, expected_2], cmd);
+    }
+
+    #[test]
     fn test_m_01() {
         let args = vec!["prog", "m", "app:config:import"];
         let expected = "docker exec -it -u www-data -e COLUMNS=\"80\" -e LINES=\"30\" wf2__wf2_default__php ./bin/magento app:config:import";
@@ -96,15 +116,19 @@ mod tests {
             args: args.into_iter().map(String::from).collect(),
             ..CLIInput::default()
         });
-        let unison_bytes = include_bytes!("../../../wf2_core/src/recipes/m2_contrib/templates/sync.prf");
+        let unison_bytes =
+            include_bytes!("../../../wf2_core/src/recipes/m2_contrib/templates/sync.prf");
 
         let tasks = cli_output.unwrap().tasks.unwrap();
         let unison_task = tasks.get(5).unwrap();
         match unison_task {
-            Task::File{ kind: FileOp::Write { content }, ..} => {
+            Task::File {
+                kind: FileOp::Write { content },
+                ..
+            } => {
                 assert_eq!(unison_bytes.to_vec(), *content);
-            },
-            _ => unreachable!()
+            }
+            _ => unreachable!(),
         }
     }
 
@@ -231,6 +255,16 @@ mod tests {
         let input = vec!["prog", "dc"];
         let expected = "docker-compose -f .wf2_default/docker-compose.yml ";
         test_dc(input, expected);
+    }
+
+    fn test_pull(args: Vec<&str>, expected: &str) {
+        let cli_output = CLIOutput::from_input(CLIInput::from_args(args));
+        match cli_output.unwrap().tasks.unwrap().get(0).unwrap() {
+            Task::SimpleCommand { command, .. } => {
+                assert_eq!(expected, command);
+            }
+            _ => unreachable!(),
+        }
     }
 
     fn test_m(args: Vec<&str>, expected: &str) {
