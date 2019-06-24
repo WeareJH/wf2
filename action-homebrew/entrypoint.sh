@@ -11,7 +11,7 @@ git config --global user.email "wf2@wearejh.com"
 
 #download binary
 echo "Downloading Binary file from $binaryUrl"
-curl -s -o /binary $binaryUrl
+wget -O /binary $binaryUrl
 
 #store hash
 hash=$(shasum -a 256 /binary | awk '{print $1}')
