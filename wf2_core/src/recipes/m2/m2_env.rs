@@ -1,7 +1,6 @@
 use super::php_container::PhpContainer;
 use crate::context::Context;
 pub use crate::env::Env;
-use crate::php::PHP;
 use crate::util::path_buf_to_string;
 use std::collections::HashMap;
 use std::path::PathBuf;
