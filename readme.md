@@ -46,12 +46,16 @@ this means you *do not* need PHP or Composer installed on your machine.
 </details>
 
 
-## Features
+## Features (assuming you are using `M2` recipe)
+
 ```
+wf2 0.9.0
+
 USAGE:
     wf2 [FLAGS] [OPTIONS] [SUBCOMMAND]
 
 FLAGS:
+        --debug      Route all PHP requests to the container with XDEBUG
         --dryrun     Output descriptions of the sequence of tasks, without actually executing them
     -h, --help       Prints help information
     -V, --version    Prints version information
@@ -60,20 +64,24 @@ FLAGS:
 OPTIONS:
         --config <config>    path to a wf2.yml config file
         --cwd <cwd>          Sets the CWD for all docker commands
-        --php <php>          choose 7.1 or 7.2 [possible values: 7.1, 7.2]
+        --php <php>          path to a wf2.yml config file [possible values: 7.1, 7.2]
 
 SUBCOMMANDS:
+    up           Bring up containers
+    stop         Take down containers & retain data
+    down         Take down containers & delete everything
+    pull         Pull files or folders from the main container to the host
+    doctor       Try to fix common issues with a recipe
+    eject        Dump all files into the local directory for manual running
     db-dump      Dump the current database to dump.sql
     db-import    Import a DB file
-    doctor       Try to fix common issues with a recipe
-    down         Take down containers & delete everything
-    eject        Dump all files into the local directory for manual running
-    exec         Execute commands in the PHP container
+    exec         Execute commands in the main container
     help         Prints this message or the help of the given subcommand(s)
-    m            Execute commands in the PHP container
-    pull         Pull files or folders from the PHP container to the host
-    stop         Take down containers & retain data
-    up           Bring up containers
-    composer     Passes thru, eg: `wf2 composer install -vvv`      
-    npm          Passes thru, eg: `wf2 npm i` 
+
+PASS THRU COMMANDS:
+    composer    [M2] Run composer commands with the correct user
+    npm         [M2] Run npm commands
+    dc          [M2] Run docker-compose commands
+    node        [M2] Run commands in the node container
+    m           [M2] Execute ./bin/magento commands inside the PHP container
 ```
