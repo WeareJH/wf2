@@ -6,15 +6,15 @@ use crate::task::Task;
 use crate::util::path_buf_to_string;
 use clap::{App, ArgMatches};
 use m2_env::{Env, M2Env};
-use php_container::{PhpContainer};
+use php_container::PhpContainer;
 use std::path::PathBuf;
 
 pub mod eject;
 pub mod m2_env;
 pub mod npm;
+pub mod php_container;
 pub mod pull;
 pub mod up;
-pub mod php_container;
 
 ///
 /// PHP 7.1 + 7.2 Environments for use with Magento 2.
@@ -31,7 +31,7 @@ pub mod php_container;
 /// - blackfire
 ///
 pub struct M2Recipe {
-    pub templates: M2Templates
+    pub templates: M2Templates,
 }
 
 ///
@@ -59,7 +59,7 @@ impl Default for M2Templates {
             },
             env: RecipeTemplate {
                 bytes: include_bytes!("templates/.env").to_vec(),
-            }
+            },
         }
     }
 }
@@ -146,10 +146,9 @@ impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
 }
 
 impl M2Recipe {
-
     pub fn new() -> M2Recipe {
         M2Recipe {
-            templates: M2Templates::default()
+            templates: M2Templates::default(),
         }
     }
 

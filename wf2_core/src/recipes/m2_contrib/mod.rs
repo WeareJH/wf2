@@ -1,5 +1,5 @@
+use crate::recipes::RecipeTemplate;
 use crate::{recipes::m2::M2Recipe, recipes::m2::M2Templates};
-use crate::{recipes::RecipeTemplate};
 
 pub struct M2ContribRecipe;
 
@@ -14,7 +14,7 @@ impl M2ContribRecipe {
 
         let mut templates = M2Templates::default();
         templates.unison = RecipeTemplate {
-            bytes: include_bytes!("templates/sync.prf").to_vec()
+            bytes: include_bytes!("templates/sync.prf").to_vec(),
         };
 
         {

@@ -43,7 +43,11 @@ fn test_eject_exec() {
         cwd: PathBuf::from("/users/shane"),
         ..Context::default()
     };
-    let output = exec(&ctx, &M2Env::from_ctx(&ctx).unwrap(), M2Templates::default());
+    let output = exec(
+        &ctx,
+        &M2Env::from_ctx(&ctx).unwrap(),
+        M2Templates::default(),
+    );
     let file_ops = Task::file_op_paths(output);
     assert_eq!(
         vec![

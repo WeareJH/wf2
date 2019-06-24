@@ -117,7 +117,7 @@ impl Default for Context {
             config_path: None,
             file_prefix: default_file_prefix(),
             overrides: None,
-            debug: default_debug()
+            debug: default_debug(),
         }
     }
 }
@@ -141,7 +141,7 @@ impl Context {
     pub fn domains(&self) -> String {
         match self.domains.len() {
             0 => DEFAULT_DOMAIN.into(),
-            _ => self.domains.join(",")
+            _ => self.domains.join(","),
         }
     }
     pub fn get_context_name(cwd: &PathBuf) -> String {

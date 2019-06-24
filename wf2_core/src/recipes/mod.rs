@@ -1,6 +1,6 @@
+use crate::recipes::m2_contrib::M2ContribRecipe;
 use crate::{cmd::Cmd, context::Context, recipes::m2::M2Recipe, task::Task};
 use clap::{App, ArgMatches};
-use crate::recipes::m2_contrib::{M2ContribRecipe};
 
 pub mod m2;
 pub mod m2_contrib;
@@ -29,7 +29,7 @@ pub mod m2_contrib;
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
 pub enum RecipeKinds {
     M2,
-    M2Contrib
+    M2Contrib,
 }
 
 impl RecipeKinds {
@@ -54,5 +54,5 @@ pub trait Recipe<'a, 'b> {
 
 #[derive(Clone)]
 pub struct RecipeTemplate {
-    pub bytes: Vec<u8>
+    pub bytes: Vec<u8>,
 }

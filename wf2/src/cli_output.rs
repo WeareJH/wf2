@@ -131,7 +131,11 @@ impl CLIOutput {
 
         let name = Context::get_context_name(&cwd);
 
-        let debug = if matches.is_present("debug") { true } else { false };
+        let debug = if matches.is_present("debug") {
+            true
+        } else {
+            false
+        };
 
         ContextOverrides {
             cwd,

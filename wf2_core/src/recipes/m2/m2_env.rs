@@ -1,10 +1,10 @@
+use super::php_container::PhpContainer;
 use crate::context::Context;
 pub use crate::env::Env;
 use crate::php::PHP;
 use crate::util::path_buf_to_string;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use super::php_container::PhpContainer;
 
 pub const ENV_OUTPUT_FILE: &str = ".docker.env";
 pub const TRAEFIK_OUTPUT_FILE: &str = "traefik/traefik.toml";
@@ -65,27 +65,29 @@ impl Env<M2Env> for M2Env {
 
         // now merge the map above with any overrides
         let merged_env: HashMap<EnvVar, String> = match overrides {
-            Some(M2Overrides{env: Some(env_overrides)}) => {
+            Some(M2Overrides {
+                env: Some(env_overrides),
+            }) => {
                 // this will merge the original ENV + overrides
-                env.into_iter().chain::<HashMap<EnvVar, String>>(
-                    env_overrides
-                        .into_iter()
-                        .map(|(key, value)| {
-                            match key {
+                env.into_iter()
+                    .chain::<HashMap<EnvVar, String>>(
+                        env_overrides
+                            .into_iter()
+                            .map(|(key, value)| match key {
                                 EnvVar::NginxDir => {
                                     if value.starts_with("/") {
                                         (key, value)
                                     } else {
                                         (key, path_buf_to_string(&ctx.cwd.join(value)))
                                     }
-                                },
-                                _ => (key, value)
-                            }
-                        })
-                        .collect()
-                ).collect()
-            },
-            _ => env
+                                }
+                                _ => (key, value),
+                            })
+                            .collect(),
+                    )
+                    .collect()
+            }
+            _ => env,
         };
 
         Ok(M2Env {
@@ -129,7 +131,7 @@ fn test_env_from_ctx() {
 
 #[test]
 fn test_env_from_ctx_with_overrides() {
-    use crate::context::{DEFAULT_NAME};
+    use crate::context::DEFAULT_NAME;
     let overrides = r#"
     env:
         NginxDir: "./overrides"

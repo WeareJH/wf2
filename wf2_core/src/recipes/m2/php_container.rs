@@ -1,4 +1,4 @@
-use crate::context::{Context};
+use crate::context::Context;
 use crate::php::PHP;
 
 pub struct PhpContainer {
@@ -11,7 +11,6 @@ pub const PHP_7_2: &str = "wearejh/php:7.2-m2";
 
 impl PhpContainer {
     pub fn from_ctx(ctx: &Context) -> PhpContainer {
-
         let name = if ctx.debug {
             format!("wf2__{}__php_debug", ctx.name)
         } else {

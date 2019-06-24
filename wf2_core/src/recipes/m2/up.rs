@@ -66,7 +66,12 @@ fn test_up_exec() {
         cwd: PathBuf::from("/users/shane"),
         ..Context::default()
     };
-    let output = exec(&ctx, &M2Env::from_ctx(&ctx).unwrap(), false, M2Templates::default());
+    let output = exec(
+        &ctx,
+        &M2Env::from_ctx(&ctx).unwrap(),
+        false,
+        M2Templates::default(),
+    );
     let file_ops = Task::file_op_paths(output);
     assert_eq!(
         vec![
@@ -88,7 +93,12 @@ fn test_up_exec() {
 #[test]
 fn test_up_exec_detached() {
     let ctx = Context::default();
-    let output = exec(&ctx, &M2Env::from_ctx(&ctx).unwrap(), true, M2Templates::default());
+    let output = exec(
+        &ctx,
+        &M2Env::from_ctx(&ctx).unwrap(),
+        true,
+        M2Templates::default(),
+    );
     let cmd = output.clone();
     let last = cmd.get(8).unwrap();
     match last {
@@ -106,7 +116,12 @@ fn test_up_exec_detached() {
 #[test]
 fn test_up_exec_none_detached() {
     let ctx = Context::default();
-    let output = exec(&ctx, &M2Env::from_ctx(&ctx).unwrap(), false, M2Templates::default());
+    let output = exec(
+        &ctx,
+        &M2Env::from_ctx(&ctx).unwrap(),
+        false,
+        M2Templates::default(),
+    );
     let cmd = output.clone();
     let last = cmd.get(8).unwrap();
     match last {
