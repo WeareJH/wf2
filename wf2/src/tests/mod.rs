@@ -44,14 +44,14 @@ mod tests {
     #[test]
     fn test_up_01() {
         let args = vec!["prog", "--cwd", "/users/shane", "up"];
-        let expected = "docker-compose -f /users/shane/.wf2_default/docker-compose.yml up";
+        let expected = "docker-compose -f /users/shane/.wf2_m2_shane/docker-compose.yml up";
         test_up(args, expected);
     }
 
     #[test]
     fn test_up_02() {
         let args = vec!["prog", "--cwd", "/users/shane", "up", "-d"];
-        let expected = "docker-compose -f /users/shane/.wf2_default/docker-compose.yml up -d";
+        let expected = "docker-compose -f /users/shane/.wf2_m2_shane/docker-compose.yml up -d";
         test_up(args, expected);
     }
 
@@ -165,6 +165,8 @@ mod tests {
             "prog",
             "--config",
             "../fixtures/config_01.yaml",
+            "--cwd",
+            "/users/shane/acme",
             "npm",
             "run",
             "watch",
@@ -176,8 +178,8 @@ mod tests {
             ..CLIInput::default()
         })
         .unwrap();
-        let expected_cmd = "docker-compose -f /users/.wf2_default/docker-compose.yml run --workdir /var/www/app/code/frontend/Acme/design node npm run watch -vvv";
-        let expected_path = "/users/.wf2_default/docker-compose.yml";
+        let expected_cmd = "docker-compose -f /users/shane/acme/.wf2_m2_acme/docker-compose.yml run --workdir /var/www/app/code/frontend/Acme/design node npm run watch -vvv";
+        let expected_path = "/users/shane/acme/.wf2_m2_acme/docker-compose.yml";
         test_npm(cli_output.tasks.unwrap(), expected_cmd, expected_path);
     }
 
@@ -186,12 +188,12 @@ mod tests {
         let args = vec!["prog", "npm", "run", "watch", "-vvv"];
         let cli_output = CLIOutput::from_input(CLIInput {
             args: args.into_iter().map(String::from).collect(),
-            cwd: PathBuf::from("/users"),
+            cwd: PathBuf::from("/users/acme"),
             ..CLIInput::default()
         })
         .unwrap();
-        let expected_cmd = "docker-compose -f /users/.wf2_default/docker-compose.yml run --workdir /var/www/. node npm run watch -vvv";
-        let expected_path = "/users/.wf2_default/docker-compose.yml";
+        let expected_cmd = "docker-compose -f /users/acme/.wf2_m2_acme/docker-compose.yml run --workdir /var/www/. node npm run watch -vvv";
+        let expected_path = "/users/acme/.wf2_m2_acme/docker-compose.yml";
         test_npm(cli_output.tasks.unwrap(), expected_cmd, expected_path);
     }
 
@@ -245,15 +247,15 @@ mod tests {
 
     #[test]
     fn test_dc_01() {
-        let input = vec!["prog", "dc", "logs", "unison"];
-        let expected = "docker-compose -f .wf2_default/docker-compose.yml logs unison";
+        let input = vec!["prog", "--cwd", "/users/acme", "dc", "logs", "unison"];
+        let expected = "docker-compose -f /users/acme/.wf2_m2_acme/docker-compose.yml logs unison";
         test_dc(input, expected);
     }
 
     #[test]
     fn test_dc_02() {
-        let input = vec!["prog", "dc"];
-        let expected = "docker-compose -f .wf2_default/docker-compose.yml ";
+        let input = vec!["prog", "--cwd", "/users/acme", "dc"];
+        let expected = "docker-compose -f /users/acme/.wf2_m2_acme/docker-compose.yml ";
         test_dc(input, expected);
     }
 
@@ -285,7 +287,7 @@ mod tests {
         let output = CLIOutput::from_input(input);
         match output.unwrap().tasks.unwrap().get(0) {
             Some(Task::Seq(tasks)) => match tasks.get(1).unwrap() {
-                Task::Command { command, .. } => debug_assert_eq!(expected, command),
+                Task::Command { command, .. } => debug_assert_eq!(command, expected),
                 _ => unreachable!(),
             },
             _ => unreachable!(),

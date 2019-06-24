@@ -1,6 +1,7 @@
 use crate::recipes::m2_contrib::M2ContribRecipe;
 use crate::{cmd::Cmd, context::Context, recipes::m2::M2Recipe, task::Task};
 use clap::{App, ArgMatches};
+use std::fmt;
 
 pub mod m2;
 pub mod m2_contrib;
@@ -37,6 +38,15 @@ impl RecipeKinds {
         match *kind {
             RecipeKinds::M2 => Box::new(M2Recipe::new()),
             RecipeKinds::M2Contrib => Box::new(M2ContribRecipe::new()),
+        }
+    }
+}
+
+impl fmt::Display for RecipeKinds {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        match self {
+            RecipeKinds::M2 => write!(f, "m2"),
+            RecipeKinds::M2Contrib => write!(f, "m2contrib"),
         }
     }
 }

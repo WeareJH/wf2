@@ -157,6 +157,11 @@ impl Context {
         self.term = other.term;
         self.pv = other.pv;
         self.debug = other.debug;
+        self.file_prefix = PathBuf::from(&self.cwd).join(format!(
+            ".wf2_{recipe}_{name}",
+            recipe = self.recipe,
+            name = self.name
+        ));
         self
     }
     pub fn file_path(&self, filename: &str) -> PathBuf {
