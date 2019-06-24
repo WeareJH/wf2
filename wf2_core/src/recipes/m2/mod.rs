@@ -1,16 +1,21 @@
-use crate::cmd::Cmd;
-use crate::context::Context;
-use crate::docker_compose::DockerCompose;
-use crate::recipes::Recipe;
-use crate::task::Task;
-use crate::util::path_buf_to_string;
+use crate::{
+    cmd::Cmd,
+    context::Context,
+    docker_compose::DockerCompose,
+    recipes::{Recipe, RecipeTemplate},
+    task::Task,
+    util::path_buf_to_string,
+};
+use clap::{App, ArgMatches};
 use m2_env::{Env, M2Env};
+use pass_thru::M2PassThru;
+use php_container::PhpContainer;
 use std::path::PathBuf;
 
 pub mod eject;
 pub mod m2_env;
-pub mod npm;
-pub mod pull;
+pub mod pass_thru;
+pub mod php_container;
 pub mod up;
 
 ///
@@ -27,62 +32,111 @@ pub mod up;
 /// - redis
 /// - blackfire
 ///
-pub struct M2Recipe;
+pub struct M2Recipe {
+    pub templates: M2Templates,
+}
 
-impl Recipe for M2Recipe {
+///
+/// Templates struct encapsulates all the different templates used by the recipe
+///
+#[derive(Clone)]
+pub struct M2Templates {
+    pub unison: RecipeTemplate,
+    pub traefik: RecipeTemplate,
+    pub nginx: RecipeTemplate,
+    pub env: RecipeTemplate,
+}
+
+impl Default for M2Templates {
+    fn default() -> M2Templates {
+        M2Templates {
+            unison: RecipeTemplate {
+                bytes: include_bytes!("templates/sync.prf").to_vec(),
+            },
+            traefik: RecipeTemplate {
+                bytes: include_bytes!("templates/traefik.toml").to_vec(),
+            },
+            nginx: RecipeTemplate {
+                bytes: include_bytes!("templates/site.conf").to_vec(),
+            },
+            env: RecipeTemplate {
+                bytes: include_bytes!("templates/.env").to_vec(),
+            },
+        }
+    }
+}
+
+impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
     fn resolve_cmd(&self, ctx: &Context, cmd: Cmd) -> Option<Vec<Task>> {
-        match cmd {
-            Cmd::Up => Some(up::exec(&ctx)),
-            Cmd::Eject => Some(eject::exec(&ctx)),
-            Cmd::Npm { trailing, .. } => Some(npm::exec(&ctx, trailing.clone())),
-            Cmd::Pull { trailing } => Some(pull::exec(&ctx, trailing.clone())),
+        let env = M2Env::from_ctx(&ctx);
 
-            Cmd::Down => Some(self.down(&ctx)),
-            Cmd::Stop => Some(self.stop(&ctx)),
-            Cmd::Exec { trailing, user } => Some(self.exec(&ctx, trailing.clone(), user.clone())),
-            Cmd::Mage { trailing } => Some(self.mage(&ctx, trailing.clone())),
+        if env.is_err() {
+            return match env {
+                Err(e) => Some(vec![Task::Notify { message: e }]),
+                Ok(..) => unreachable!(),
+            };
+        }
+
+        let env = env.expect("guarded above");
+
+        match cmd {
+            Cmd::Up { detached } => Some(up::exec(&ctx, &env, detached, self.templates.clone())),
+            Cmd::Eject => Some(eject::exec(&ctx, &env, self.templates.clone())),
+            Cmd::Pull { trailing } => Some(self.pull(&ctx, trailing.clone())),
+            Cmd::Down => Some(self.down(&ctx, &env)),
+            Cmd::Stop => Some(self.stop(&ctx, &env)),
+            Cmd::Exec { trailing, user } => Some(self.exec(&ctx, trailing, user.clone())),
             Cmd::DBImport { path } => Some(self.db_import(&ctx, path.clone())),
             Cmd::DBDump => Some(self.db_dump(&ctx)),
             Cmd::Doctor => Some(self.doctor(&ctx)),
-            Cmd::Composer { trailing } => Some(self.composer(&ctx, trailing.clone())),
+            Cmd::PassThrough { cmd, trailing } => {
+                M2PassThru::resolve_cmd(&ctx, &env, cmd, trailing)
+            }
+        }
+    }
+    fn subcommands(&self) -> Vec<App<'a, 'b>> {
+        vec![]
+    }
+    fn pass_thru_commands(&self) -> Vec<(String, String)> {
+        pass_thru::commands()
+    }
+    fn select_command(&self, input: (&str, Option<&ArgMatches<'a>>)) -> Option<Cmd> {
+        match input {
+            // Fall-through case. `cmd` will be the first param here,
+            // so we just need to concat that + any other trailing
+            //
+            // eg -> `wf2 logs unison -vv`
+            //      \
+            //       \
+            //      `docker-composer logs unison -vv`
+            //
+            (cmd, Some(sub_matches)) => {
+                let mut args = vec![cmd];
+                let ext_args: Vec<&str> = match sub_matches.values_of("") {
+                    Some(trailing) => trailing.collect(),
+                    None => vec![],
+                };
+                args.extend(ext_args);
+                Some(Cmd::PassThrough {
+                    cmd: cmd.to_string(),
+                    trailing: args.into_iter().map(|x| x.to_string()).collect(),
+                })
+            }
+            _ => None,
         }
     }
 }
 
 impl M2Recipe {
-    ///
-    /// Alias for `./bin/magento` with correct user
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use wf2_core::recipes::m2::M2Recipe;
-    /// # use wf2_core::context::Context;
-    /// # use wf2_core::task::Task;
-    /// # let m2 = M2Recipe;
-    /// #
-    /// let input = "wf2 m setup:upgrade";
-    /// let expected = r#"docker exec -it -u www-data -e COLUMNS="80" -e LINES="30" wf2__wf2_default__php ./bin/magento setup:upgrade"#;
-    /// #
-    /// # let tasks = m2.mage(&Context::default(), input.split_whitespace().skip(2).collect::<Vec<&str>>().join(" "));
-    /// # match tasks.get(0).unwrap() {
-    /// #     Task::SimpleCommand { command, .. } => {
-    /// #         assert_eq!(expected, command);
-    /// #     }
-    /// #     _ => unreachable!(),
-    /// # };
-    /// ```
-    ///
-    pub fn mage(&self, ctx: &Context, trailing: impl Into<String>) -> Vec<Task> {
-        let container_name = format!("wf2__{}__php", ctx.name);
-        let full_command = format!(
-            r#"docker exec -it -u www-data -e COLUMNS="{width}" -e LINES="{height}" {container_name} ./bin/magento {trailing_args}"#,
-            width = ctx.term.width,
-            height = ctx.term.height,
-            container_name = container_name,
-            trailing_args = trailing.into()
-        );
-        vec![Task::simple_command(full_command)]
+    pub fn new() -> M2Recipe {
+        M2Recipe {
+            templates: M2Templates::default(),
+        }
+    }
+
+    pub fn with_templates(&mut self, templates: M2Templates) -> &mut M2Recipe {
+        self.templates = templates;
+        self
     }
 
     ///
@@ -91,55 +145,15 @@ impl M2Recipe {
     /// Note: if the command you're running requires flags like `-h`, then you
     /// need to place `--` directly after `exec` (see below)
     ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use wf2_core::recipes::m2::M2Recipe;
-    /// # use wf2_core::context::Context;
-    /// # use wf2_core::task::Task;
-    /// # let m2 = M2Recipe;
-    /// #
-    /// let input = "wf2 exec -- ls -lh";
-    /// let expected = r#"docker exec -it -u www-data -e COLUMNS="80" -e LINES="30" wf2__wf2_default__php ls -lh"#;
-    /// #
-    /// # let tasks = m2.exec(&Context::default(), input.split_whitespace().skip(3).collect::<Vec<&str>>().join(" "), String::from("www-data"));
-    /// # match tasks.get(0).unwrap() {
-    /// #     Task::SimpleCommand { command, .. } => {
-    /// #         assert_eq!(expected, command);
-    /// #     }
-    /// #     _ => unreachable!(),
-    /// # };
-    /// ```
-    ///
-    /// ## With `-r` (root)
-    ///
-    /// ```
-    /// # use wf2_core::recipes::m2::M2Recipe;
-    /// # use wf2_core::context::Context;
-    /// # use wf2_core::task::Task;
-    /// # let m2 = M2Recipe;
-    /// #
-    /// let input = "wf2 exec -r -- rm -rf vendor";
-    /// let expected = r#"docker exec -it -u root -e COLUMNS="80" -e LINES="30" wf2__wf2_default__php rm -rf vendor"#;
-    /// #
-    /// # let tasks = m2.exec(&Context::default(), input.split_whitespace().skip(4).collect::<Vec<&str>>().join(" "), String::from("root"));
-    /// # match tasks.get(0).unwrap() {
-    /// #     Task::SimpleCommand { command, .. } => {
-    /// #         assert_eq!(expected, command);
-    /// #     }
-    /// #     _ => unreachable!(),
-    /// # };
-    /// ```
-    ///
-    pub fn exec(&self, ctx: &Context, trailing: String, user: String) -> Vec<Task> {
-        let container_name = format!("wf2__{}__php", ctx.name);
+    pub fn exec(&self, ctx: &Context, trailing: Vec<String>, user: String) -> Vec<Task> {
+        let container_name = PhpContainer::from_ctx(&ctx).name;
         let exec_command = format!(
             r#"docker exec -it -u {user} -e COLUMNS="{width}" -e LINES="{height}" {container_name} {trailing_args}"#,
             user = user,
             width = ctx.term.width,
             height = ctx.term.height,
             container_name = container_name,
-            trailing_args = trailing
+            trailing_args = trailing.join(" ")
         );
         vec![Task::simple_command(exec_command)]
     }
@@ -147,18 +161,16 @@ impl M2Recipe {
     ///
     /// Alias for docker-compose down
     ///
-    pub fn down(&self, ctx: &Context) -> Vec<Task> {
-        let env = M2Env::from_ctx(ctx);
-        vec![DockerCompose::from_ctx(&ctx).cmd_task("down", env.content())]
+    pub fn down(&self, ctx: &Context, env: &M2Env) -> Vec<Task> {
+        vec![DockerCompose::from_ctx(&ctx).cmd_task(vec!["down".to_string()], env.content())]
     }
 
     ///
     /// Alias for docker-compose stop
     ///
-    pub fn stop(&self, ctx: &Context) -> Vec<Task> {
-        let env = M2Env::from_ctx(ctx);
+    pub fn stop(&self, ctx: &Context, env: &M2Env) -> Vec<Task> {
         let dc = DockerCompose::from_ctx(&ctx);
-        vec![dc.cmd_task("stop", env.content())]
+        vec![dc.cmd_task(vec!["stop".to_string()], env.content())]
     }
 
     ///
@@ -179,56 +191,6 @@ impl M2Recipe {
     ///
     /// If you have the `pv` package installed, it will be used to provide progress information.
     ///
-    /// # Examples
-    ///
-    /// ## Without PV installed
-    ///
-    /// ```
-    /// # use wf2_core::recipes::m2::M2Recipe;
-    /// # use wf2_core::context::Context;
-    /// # use wf2_core::task::Task;
-    /// # use std::path::PathBuf;
-    /// # let m2 = M2Recipe;
-    /// #
-    /// let input  = "wf2 db-import ~/Downloads/dump.sql";
-    /// let output = "docker exec -i wf2__wf2_default__db mysql -udocker -pdocker docker < ~/Downloads/dump.sql";
-    /// #
-    /// # let tasks = m2.db_import(&Context::default(), input.split_whitespace().last().unwrap());
-    /// # match tasks.get(1).unwrap() {
-    /// #     Task::SimpleCommand { command, .. } => {
-    /// #         assert_eq!(output, command);
-    /// #     }
-    /// #     _ => unreachable!(),
-    /// # };
-    /// ```
-    ///
-    /// ## With PV installed
-    ///
-    /// This example shows what will happen if `pv` is installed
-    /// ```
-    /// # use wf2_core::recipes::m2::M2Recipe;
-    /// # use wf2_core::context::Context;
-    /// # use wf2_core::task::Task;
-    /// # use std::path::PathBuf;
-    /// # let m2 = M2Recipe;
-    /// #
-    /// let input = "wf2 db-import ~/Downloads/dump.sql";
-    /// let output = "pv -f ~/Downloads/dump.sql | docker exec -i wf2__wf2_default__db mysql -udocker -pdocker -D docker";
-    /// #
-    /// # let context_with_pv = Context {
-    /// #    pv: Some("/usr/pv".into()),
-    /// #    ..Context::default()
-    /// # };
-    /// #
-    /// # let tasks = m2.db_import(&context_with_pv, input.split_whitespace().last().unwrap());
-    /// # match tasks.get(1).unwrap() {
-    /// #     Task::SimpleCommand { command, .. } => {
-    /// #         assert_eq!(output, command);
-    /// #     }
-    /// #     _ => unreachable!(),
-    /// # };
-    ///
-    /// ```
     pub fn db_import(&self, ctx: &Context, path: impl Into<PathBuf>) -> Vec<Task> {
         use m2_env::{DB_NAME, DB_PASS, DB_USER};
         let path = path.into();
@@ -261,25 +223,6 @@ impl M2Recipe {
     /// Dumps the Database to `dump.sql` in the project root. The filename
     /// is not configurable.
     ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use wf2_core::recipes::m2::M2Recipe;
-    /// # use wf2_core::context::Context;
-    /// # use wf2_core::task::Task;
-    /// # let m2 = M2Recipe;
-    /// #
-    /// let input = "wf2 db-dump";
-    /// let expected = "docker exec -i wf2__wf2_default__db mysqldump -udocker -pdocker docker > dump.sql";
-    /// #
-    /// # let tasks = m2.db_dump(&Context::default());
-    /// # match tasks.get(0).unwrap() {
-    /// #     Task::SimpleCommand { command, .. } => {
-    /// #         assert_eq!(expected, command);
-    /// #     }
-    /// #     _ => unreachable!(),
-    /// # };
-    /// ```
     pub fn db_dump(&self, ctx: &Context) -> Vec<Task> {
         use m2_env::{DB_NAME, DB_PASS, DB_USER};
         let container_name = format!("wf2__{}__db", ctx.name);
@@ -297,39 +240,25 @@ impl M2Recipe {
     }
 
     ///
-    /// A pass-thru command - where everything after `composer` is passed
-    /// as-is, without verifying any arguments. This is to allow things
-    /// like `wf2 composer --help` to work as exected (show composer help)
+    /// Pull files out of the docker container
     ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use wf2_core::recipes::m2::M2Recipe;
-    /// # use wf2_core::context::Context;
-    /// # use wf2_core::task::Task;
-    /// # let m2 = M2Recipe;
-    /// #
-    /// let input = "wf2 composer install -vvv";
-    /// let expected = "docker exec -it -u www-data wf2__wf2_default__php composer install -vvv";
-    /// #
-    /// # let tasks = m2.composer(
-    /// #     &Context::default(),
-    /// #      input.split_whitespace().skip(1).collect::<Vec<&str>>().join(" "),
-    /// # );
-    /// # match tasks.get(0).unwrap() {
-    /// #     Task::SimpleCommand { command, .. } => {
-    /// #         assert_eq!(expected, command);
-    /// #     }
-    /// #     _ => unreachable!(),
-    /// # };
-    /// ```
-    pub fn composer(&self, ctx: &Context, trailing: impl Into<String>) -> Vec<Task> {
+    pub fn pull(&self, ctx: &Context, trailing: Vec<String>) -> Vec<Task> {
         let container_name = format!("wf2__{}__php", ctx.name);
-        let exec_command = format!(
-            r#"docker exec -it -u www-data {container_name} {trailing_args}"#,
-            container_name = container_name,
-            trailing_args = trailing.into()
-        );
-        vec![Task::simple_command(exec_command)]
+        let prefix = PathBuf::from("/var/www");
+
+        let create_command = |file: String| {
+            format!(
+                r#"docker cp {container_name}:{file} ."#,
+                container_name = container_name,
+                file = path_buf_to_string(&prefix.join(file))
+            )
+        };
+
+        trailing
+            .iter()
+            .map(|file| Task::SimpleCommand {
+                command: create_command(file.clone()),
+            })
+            .collect()
     }
 }

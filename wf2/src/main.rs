@@ -1,31 +1,26 @@
 #[macro_use]
 extern crate clap;
 
-use clap::App;
 use futures::{future::lazy, future::Future};
-use std::env::current_dir;
 use wf2_core::context::RunMode;
 use wf2_core::WF2;
 
-use crate::cli_input::{CLIInput, DEFAULT_CONFIG_FILE};
+use crate::cli_input::CLIInput;
+use crate::cli_output::CLIOutput;
 
+mod cli;
 mod cli_input;
+mod cli_output;
 mod error;
+mod tests;
 
 fn main() {
-    //
-    // Load the CLI configuration & get matches
-    //
-    let yaml = load_yaml!("cli.yml");
-    let mut app = App::from_yaml(yaml).version(crate_version!());
-    let matches = app.clone().get_matches();
+    // create output, from the cli environment (input)
+    let cli_output = CLIOutput::from_input(CLIInput::new());
 
-    let config_file_arg = matches.value_of("config").unwrap_or(DEFAULT_CONFIG_FILE);
-    let cli_input = CLIInput::new_from_file(&matches, config_file_arg, current_dir().expect("cwd"));
-
-    // if anything has errored, do not proceed
-    if cli_input.is_err() {
-        match cli_input {
+    // exit early on errors
+    if cli_output.is_err() {
+        match cli_output {
             Err(ref e) => {
                 eprintln!("{}", e);
                 return;
@@ -34,21 +29,20 @@ fn main() {
         }
     }
 
-    // unwrap the input now as the error would be handled above
-    let cli_input = cli_input.expect("guarded above");
+    let cli_output = cli_output.expect("guarded above");
 
     // Certain recipes may not support certain commands,
     // so we check for None here and just display the Help
-    if cli_input.tasks.is_none() {
-        app.print_help().unwrap();
+    if cli_output.tasks.is_none() {
+        eprintln!("No tasks were found - please run 'wf2 --help' for more info");
         return;
     }
 
     //
     // if --dryrun was given, just print the commands and return
     //
-    if cli_input.ctx.run_mode == RunMode::DryRun {
-        cli_input.tasks.map(|ts| {
+    if cli_output.ctx.run_mode == RunMode::DryRun {
+        cli_output.tasks.map(|ts| {
             ts.iter()
                 .enumerate()
                 .for_each(|(index, t)| println!("[{}]: {}", index, t))
@@ -59,7 +53,7 @@ fn main() {
     // This is where the tasks are executed
     tokio::run(lazy(move || {
         // This .unwrap() is safe here since we bailed on None earlier
-        let tasks = cli_input.tasks.unwrap();
+        let tasks = cli_output.tasks.unwrap();
 
         // using the Context, Recipe & Task List, generate a
         // future that runs each task in sequence

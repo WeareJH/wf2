@@ -6,8 +6,8 @@ use std::path::PathBuf;
 use std::str;
 use users::{get_current_gid, get_current_uid};
 
-pub trait Env {
-    fn from_ctx(ctx: &Context) -> Self;
+pub trait Env<T: Sized> {
+    fn from_ctx(ctx: &Context) -> Result<T, String>;
     fn content(&self) -> HashMap<String, String>;
     fn file_path(&self) -> PathBuf;
 }

@@ -1,8 +1,4 @@
-use crate::{
-    context::Context,
-    task::Task,
-    util::{path_buf_to_string, replace_env},
-};
+use crate::{context::Context, task::Task, util::replace_env};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -19,18 +15,20 @@ impl DockerCompose {
         DockerCompose {
             file: ctx.cwd.join(&ctx.file_prefix).join(DC_OUTPUT_FILE),
             eject_file: ctx.cwd.join(DC_OUTPUT_FILE),
+
+            // TODO: Move this to each recipe
             bytes: include_bytes!("recipes/m2/templates/docker-compose.yml").to_vec(),
         }
     }
     pub fn cmd_string(&self, trailing: impl Into<String>) -> String {
         format!(
             "docker-compose -f {file} {trailing}",
-            file = path_buf_to_string(&self.file),
+            file = &self.file.display(),
             trailing = trailing.into()
         )
     }
-    pub fn cmd_task(&self, trailing: impl Into<String>, env: HashMap<String, String>) -> Task {
-        let cmd = self.cmd_string(trailing);
+    pub fn cmd_task(&self, trailing: Vec<String>, env: HashMap<String, String>) -> Task {
+        let cmd = self.cmd_string(trailing.join(" "));
         let cmd_task = Task::command(cmd, env);
         let write_task = self.write();
         Task::Seq(vec![write_task, cmd_task])

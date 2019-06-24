@@ -2,16 +2,14 @@ use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub enum Cmd {
-    Up,
+    Up { detached: bool },
     Down,
     Stop,
     Eject,
-    Exec { trailing: String, user: String },
+    Exec { trailing: Vec<String>, user: String },
     Doctor,
     Pull { trailing: Vec<String> },
     DBImport { path: PathBuf },
     DBDump,
-    Npm { trailing: String, user: String },
-    Mage { trailing: String },
-    Composer { trailing: String },
+    PassThrough { cmd: String, trailing: Vec<String> },
 }

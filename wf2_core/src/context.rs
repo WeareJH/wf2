@@ -78,11 +78,18 @@ pub struct Context {
 
     #[serde(default = "default_file_prefix")]
     pub file_prefix: PathBuf,
+
+    #[serde(default)]
+    pub overrides: Option<serde_yaml::Value>,
+
+    #[serde(default = "default_debug")]
+    pub debug: bool,
 }
 
 ///
 /// A subset of fields from above that should be safe to override
 ///
+#[derive(Debug)]
 pub struct ContextOverrides {
     pub run_mode: RunMode,
     pub php_version: PHP,
@@ -90,6 +97,7 @@ pub struct ContextOverrides {
     pub name: String,
     pub pv: Option<String>,
     pub term: Term,
+    pub debug: bool,
 }
 
 pub const DEFAULT_NAME: &str = "wf2_default";
@@ -108,12 +116,15 @@ impl Default for Context {
             php_version: PHP::SevenTwo,
             config_path: None,
             file_prefix: default_file_prefix(),
+            overrides: None,
+            debug: default_debug(),
         }
     }
 }
 
 impl Context {
-    pub fn new_from_file(path: &str) -> Result<Context, FromFileError> {
+    pub fn new_from_file(path: impl Into<String>) -> Result<Context, FromFileError> {
+        let path = &path.into();
         Context::from_file(path).and_then(|mut ctx: Context| {
             ctx.config_path = Some(PathBuf::from(path));
             Ok(ctx)
@@ -127,6 +138,12 @@ impl Context {
             .get(0)
             .map_or(DEFAULT_DOMAIN.into(), |s| s.to_string())
     }
+    pub fn domains(&self) -> String {
+        match self.domains.len() {
+            0 => DEFAULT_DOMAIN.into(),
+            _ => self.domains.join(","),
+        }
+    }
     pub fn get_context_name(cwd: &PathBuf) -> String {
         cwd.file_name()
             .map(|os_str| os_str.to_string_lossy().to_string())
@@ -137,7 +154,18 @@ impl Context {
         self.php_version = other.php_version;
         self.cwd = other.cwd;
         self.name = other.name;
+        self.term = other.term;
+        self.pv = other.pv;
+        self.debug = other.debug;
+        self.file_prefix = PathBuf::from(&self.cwd).join(format!(
+            ".wf2_{recipe}_{name}",
+            recipe = self.recipe,
+            name = self.name
+        ));
         self
+    }
+    pub fn file_path(&self, filename: &str) -> PathBuf {
+        self.cwd.join(&self.file_prefix).join(&filename)
     }
 }
 
@@ -165,6 +193,9 @@ fn default_term() -> Term {
         width: 80,
     }
 }
+fn default_debug() -> bool {
+    false
+}
 
 #[test]
 fn test_context_from_yaml() {
@@ -173,23 +204,6 @@ fn test_context_from_yaml() {
         Ok(ctx) => println!("context={:#?}", ctx),
         Err(e) => eprintln!("e={:?}", e),
     };
-}
-
-#[test]
-fn test_merge_two_contexts() {
-    let ctx_from_file = Context::from_file("../fixtures/config_01.yaml");
-
-    let ctx_from_matches = Context {
-        run_mode: RunMode::Exec,
-        cwd: PathBuf::from("/users/shane"),
-        php_version: PHP::SevenOne,
-        ..Context::default()
-    };
-
-    //    match r {
-    //        Ok(ctx) => println!("context={:#?}", ctx),
-    //        Err(e) => eprintln!("e={:?}", e),
-    //    };
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -202,4 +216,13 @@ pub enum RunMode {
 pub struct Term {
     pub height: u16,
     pub width: u16,
+}
+
+impl Default for Term {
+    fn default() -> Self {
+        Term {
+            height: 30,
+            width: 80,
+        }
+    }
 }
