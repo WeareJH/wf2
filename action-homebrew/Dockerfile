@@ -9,7 +9,7 @@ LABEL "maintainer"="Diego Cabrejas <diego@wearejh.com>"
 
 RUN apk add --no-cache git
 RUN apk add --no-cache openssh
-RUN apk add --no-cache curl
+RUN apk add --no-cache wget
 RUN apk add --no-cache perl-utils
 
 ADD entrypoint.sh /entrypoint.sh
