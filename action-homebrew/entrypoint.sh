@@ -1,4 +1,5 @@
 #!/bin/sh
+set -euxo pipefail
 
 #declare variables
 binaryUrl="https://github.com/WeareJH/wf2/releases/latest/download/wf2"
@@ -31,17 +32,18 @@ echo "Latest tag is : $tagName"
 #clone homebrew tools repository
 echo "Cloning homebrew-tools repo..."
 rm -rf homebrew-tools && git clone --quiet https://$githubToken@github.com/WeareJH/homebrew-tools.git
-cd homebrew-tools
+cd homebrew-tools && git pull origin master
 
 #update hash and version number
 echo "Updating hash and tag name..."
 sed -i "s/sha256.*/sha256 '$hash'/g" wf2.rb
 sed -i "s/version.*/version '$tagName'/g" wf2.rb
+sed -i "s#url.*#url 'https://github.com/WeareJH/wf2/releases/download/$tagName/wf2'#g" wf2.rb
 
 #commit and force push to homebrew repo
 echo "Adding commit and pushing..."
 git add wf2.rb
-git commit -m "update hash to $hash"
+git commit -m "update to version $tagName"
 git push --force
 
 echo "Done!"
