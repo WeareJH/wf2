@@ -3,7 +3,6 @@ mod tests {
     use crate::cli_input::CLIInput;
     use crate::cli_output::CLIOutput;
     use crate::tests::commands;
-    use wf2_core::task::Task;
 
     #[test]
     fn test_down_01() {

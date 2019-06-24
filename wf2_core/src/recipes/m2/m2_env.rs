@@ -1,9 +1,7 @@
 use super::php_container::PhpContainer;
-use crate::context::Context;
 pub use crate::env::Env;
-use crate::util::path_buf_to_string;
-use std::collections::HashMap;
-use std::path::PathBuf;
+use crate::{context::Context, util::path_buf_to_string};
+use std::{collections::HashMap, path::PathBuf};
 
 pub const ENV_OUTPUT_FILE: &str = ".docker.env";
 pub const TRAEFIK_OUTPUT_FILE: &str = "traefik/traefik.toml";

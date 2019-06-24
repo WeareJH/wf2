@@ -1,5 +1,4 @@
-use crate::context::Context;
-use crate::php::PHP;
+use crate::{context::Context, php::PHP};
 
 pub struct PhpContainer {
     pub name: String,

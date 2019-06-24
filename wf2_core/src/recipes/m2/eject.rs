@@ -1,9 +1,11 @@
-use crate::docker_compose::DockerCompose;
-use crate::recipes::m2::m2_env::{
-    Env, M2Env, NGINX_OUTPUT_FILE, TRAEFIK_OUTPUT_FILE, UNISON_OUTPUT_FILE,
+use crate::{
+    context::Context,
+    docker_compose::DockerCompose,
+    env::create_env,
+    recipes::m2::m2_env::{Env, M2Env, NGINX_OUTPUT_FILE, TRAEFIK_OUTPUT_FILE, UNISON_OUTPUT_FILE},
+    recipes::m2::M2Templates,
+    task::Task,
 };
-use crate::recipes::m2::M2Templates;
-use crate::{context::Context, env::create_env, task::Task};
 
 ///
 /// Write all files & replace all variables so it's ready to use

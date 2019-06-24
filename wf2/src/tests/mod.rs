@@ -1,4 +1,3 @@
-use crate::cli_output::CLIOutput;
 use std::collections::HashMap;
 use wf2_core::task::Task;
 
