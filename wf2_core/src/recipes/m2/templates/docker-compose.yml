@@ -135,7 +135,7 @@ services:
   rabbitmq:
     image: rabbitmq:3.7-management-alpine
     env_file:
-      - ${WF2_ENV_FILE}
+      - ${WF2__M2__ENV_FILE}
     ports:
       - "15672:15672"
       - "5672:5672"
