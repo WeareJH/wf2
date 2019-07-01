@@ -1,6 +1,6 @@
 [package]
 name = "wf2_core"
-version = "0.7.0"
+version = "0.8.0"
 authors = ["Shane Osbourne <shane.osbourne8@gmail.com>"]
 edition = "2018"
 description = "The engine for WF2"
