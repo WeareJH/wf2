@@ -10,7 +10,7 @@ use clap::{App, ArgMatches};
 use m2_env::{Env, M2Env};
 use pass_thru::M2PassThru;
 use php_container::PhpContainer;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub mod eject;
 pub mod m2_env;
@@ -243,22 +243,74 @@ impl M2Recipe {
     /// Pull files out of the docker container
     ///
     pub fn pull(&self, ctx: &Context, trailing: Vec<String>) -> Vec<Task> {
-        let container_name = format!("wf2__{}__php", ctx.name);
+        let container_name = PhpContainer::from_ctx(&ctx).name;
         let prefix = PathBuf::from("/var/www");
 
-        let create_command = |file: String| {
+        let cp_command = |file: String| {
             format!(
-                r#"docker cp {container_name}:{file} ."#,
+                r#"docker cp {container_name}:{file} {target}"#,
+                container_name = container_name,
+                file = path_buf_to_string(&prefix.join(&file)),
+                target = path_buf_to_string(
+                    &ctx.cwd
+                        .join(&file)
+                        .parent()
+                        .expect("unwrap on parent")
+                        .to_path_buf()
+                )
+            )
+        };
+
+        let exists_command = |file: String| {
+            format!(
+                r#"docker exec {container_name} test -e {file}"#,
                 container_name = container_name,
                 file = path_buf_to_string(&prefix.join(file))
             )
         };
 
-        trailing
+        // First check all sources exist
+        let checks = trailing
             .iter()
-            .map(|file| Task::SimpleCommand {
-                command: create_command(file.clone()),
-            })
+            .map(|file| Task::simple_command(exists_command(file.clone())));
+
+        // Now create the target directories (like mkdir -p)
+        let dir_clean_or_create = trailing.iter().fold(vec![], |mut acc, file| {
+            let new_path = ctx.cwd.join(file.clone());
+            let component_len = PathBuf::from(file.clone()).components().count();
+
+            let extends = match (
+                Path::exists(&new_path),
+                Path::is_dir(&new_path),
+                component_len,
+            ) {
+                (true, true, ..) => vec![
+                    Task::dir_remove(&new_path, "Directory Removal"),
+                    Task::notify(format!("- {}", file)),
+                    Task::dir_create(&new_path, "Directory creation"),
+                ],
+                (_exists, _is_dir, 1) => vec![],
+                (_exists, _is_dir, ..) => vec![Task::dir_create(
+                    &new_path.parent().expect("yep"),
+                    "Directory creation",
+                )],
+            };
+
+            acc.extend(extends);
+            acc
+        });
+
+        // Now the copy commands, the ones that actually delegate out to docker
+        let cp_commands = trailing.iter().map(|file| {
+            Task::Seq(vec![
+                Task::simple_command(cp_command(file.clone())),
+                Task::notify(format!("+ {}", file)),
+            ])
+        });
+
+        checks
+            .chain(dir_clean_or_create)
+            .chain(cp_commands)
             .collect()
     }
 }

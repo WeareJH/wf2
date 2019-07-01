@@ -36,6 +36,8 @@ pub enum Task {
 pub enum FileOp {
     Write { content: Vec<u8> },
     Exists,
+    DirCreate,
+    DirRemove,
 }
 
 #[derive(Debug, Clone)]
@@ -90,6 +92,20 @@ impl Task {
             message: message.into(),
         }
     }
+    pub fn dir_create(path: impl Into<PathBuf>, description: impl Into<String>) -> Task {
+        Task::File {
+            description: description.into(),
+            kind: FileOp::DirCreate,
+            path: path.into(),
+        }
+    }
+    pub fn dir_remove(path: impl Into<PathBuf>, description: impl Into<String>) -> Task {
+        Task::File {
+            description: description.into(),
+            kind: FileOp::DirRemove,
+            path: path.into(),
+        }
+    }
     ///
     /// Helper for filtering tasks for only those
     /// that operate on files
@@ -130,6 +146,16 @@ impl fmt::Display for Task {
                 path,
                 ..
             } => write!(f, "File exists check: {:?}", path),
+            Task::File {
+                kind: FileOp::DirCreate,
+                path,
+                ..
+            } => write!(f, "Directory creation (delete if exists): {:?}", path),
+            Task::File {
+                kind: FileOp::DirRemove,
+                path,
+                ..
+            } => write!(f, "Remove a File or Directory: {:?}", path),
             Task::Command { command, env } => write!(f, "Command: {:?}\nEnv: {:#?}", command, env),
             Task::SimpleCommand { command, .. } => write!(f, "Command: {:?}", command),
             Task::Notify { message } => write!(f, "Notify: {:?}", message),
@@ -192,19 +218,48 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                 })
             }
         }
+        Task::File {
+            kind: FileOp::DirCreate,
+            path,
+            ..
+        } => std::fs::create_dir_all(&path)
+            .and_then(|()| Ok(id))
+            .map_err(|e| TaskError {
+                index: id,
+                message: format!("{}", e),
+            }),
+        Task::File {
+            kind: FileOp::DirRemove,
+            path,
+            ..
+        } => fs::remove_dir_all(&path)
+            .and_then(|()| Ok(id))
+            .map_err(|e| TaskError {
+                index: id,
+                message: format!("{}", e),
+            }),
         Task::SimpleCommand { command } => {
             let mut child_process = Command::new("sh");
             child_process.arg("-c").arg(command);
             child_process.stdin(Stdio::inherit());
             child_process.stdout(Stdio::inherit());
-            child_process
-                .spawn()
-                .and_then(|mut c| c.wait())
-                .map(|_| id)
-                .map_err(|e| TaskError {
+
+            match child_process.status() {
+                Ok(s) => {
+                    if s.success() {
+                        Ok(id)
+                    } else {
+                        Err(TaskError {
+                            index: id,
+                            message: format!("None-zero exit code"),
+                        })
+                    }
+                }
+                Err(e) => Err(TaskError {
                     index: id,
                     message: format!("Could not run simple command, e={}", e),
-                })
+                }),
+            }
         }
         Task::Command { command, env } => {
             let mut child_process = Command::new("sh");

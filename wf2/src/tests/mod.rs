@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use wf2_core::task::Task;
 
 mod composer_cmd;
@@ -34,13 +33,33 @@ pub fn commands(tasks: Vec<Task>) -> Vec<String> {
     })
 }
 
-#[test]
-fn test_commands() {
-    let tasks = vec![
-        Task::simple_command("ls -l"),
-        Task::command("ls -lh", HashMap::new()),
-        Task::Seq(vec![Task::simple_command("echo level 2")]),
-    ];
-    let cmds = commands(tasks);
-    assert_eq!(vec!["ls -l", "ls -lh", "echo level 2"], cmds);
+pub fn file_ops(tasks: Vec<Task>) -> Vec<Task> {
+    tasks.iter().fold(vec![], |mut acc, t| match t {
+        t @ Task::File { .. } => {
+            acc.push(t.clone());
+            acc
+        }
+        Task::Seq(tasks) => {
+            let other = file_ops(tasks.clone());
+            acc.extend(other);
+            acc
+        }
+        _ => acc,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+    #[test]
+    fn test_commands() {
+        let tasks = vec![
+            Task::simple_command("ls -l"),
+            Task::command("ls -lh", HashMap::new()),
+            Task::Seq(vec![Task::simple_command("echo level 2")]),
+        ];
+        let cmds = commands(tasks);
+        assert_eq!(vec!["ls -l", "ls -lh", "echo level 2"], cmds);
+    }
 }
