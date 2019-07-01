@@ -61,4 +61,9 @@ impl CLIInput {
             ..CLIInput::default()
         }
     }
+
+    pub fn with_cwd(mut self, cwd: impl Into<PathBuf>) -> CLIInput {
+        self.cwd = cwd.into();
+        self
+    }
 }
