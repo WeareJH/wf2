@@ -9,6 +9,7 @@ pub enum Cmd {
     Exec { trailing: Vec<String>, user: String },
     Doctor,
     Pull { trailing: Vec<String> },
+    Push { trailing: Vec<String> },
     DBImport { path: PathBuf },
     DBDump,
     PassThrough { cmd: String, trailing: Vec<String> },

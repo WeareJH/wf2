@@ -52,7 +52,6 @@ mod tests {
     fn test_pull_file() {
         let args = vec!["prog", "pull", "fixtures/wf2_overrides/site.conf"];
         let cwd = current_dir().expect("works");
-        let next_cwd = cwd.join("fixtures/wf2_overrides/site.conf");
         let parent = cwd.join("fixtures/wf2_overrides");
         let cp_cmd = format!(
             "docker cp wf2__wf2__php:/var/www/fixtures/wf2_overrides/site.conf {}",

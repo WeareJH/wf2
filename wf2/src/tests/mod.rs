@@ -12,6 +12,7 @@ mod m2_contrib_recipe_cmd;
 mod m_cmd;
 mod npm_cmd;
 mod pull_cmd;
+mod push_cmd;
 mod up_cmd;
 
 ///

@@ -83,6 +83,7 @@ impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
             Cmd::Up { detached } => Some(up::exec(&ctx, &env, detached, self.templates.clone())),
             Cmd::Eject => Some(eject::exec(&ctx, &env, self.templates.clone())),
             Cmd::Pull { trailing } => Some(self.pull(&ctx, trailing.clone())),
+            Cmd::Push { trailing } => Some(self.push(&ctx, trailing.clone())),
             Cmd::Down => Some(self.down(&ctx, &env)),
             Cmd::Stop => Some(self.stop(&ctx, &env)),
             Cmd::Exec { trailing, user } => Some(self.exec(&ctx, trailing, user.clone())),
@@ -237,6 +238,81 @@ impl M2Recipe {
             Task::simple_command(db_dump_command),
             Task::notify("Written to file dump.sql"),
         ]
+    }
+
+    pub fn push(&self, ctx: &Context, trailing: Vec<String>) -> Vec<Task> {
+        let remote_prefix = PathBuf::from("/var/www");
+        let container_name = PhpContainer::from_ctx(&ctx).name;
+
+        let exists_locally = |file: String| {
+            let new_path = ctx.cwd.join(file.clone());
+            Task::file_exists(new_path, "File exists check before 'push'")
+        };
+
+        let delete_in_container = |file: String| {
+            let host_path = ctx.cwd.join(file.clone());
+            let remote_path = remote_prefix.join(file.clone());
+            let rm_cmd = format!(
+                "docker exec {container_name} rm -rf {remote_path}",
+                container_name = container_name,
+                remote_path = path_buf_to_string(&remote_path)
+            );
+            Task::simple_command(rm_cmd)
+        };
+
+        let recreate = |file: String| {
+            let component_len = PathBuf::from(file.clone()).components().count();
+
+            if component_len == 1 {
+                return None;
+            };
+
+            match remote_prefix.join(file.clone()).parent() {
+                Some(remote_path) => {
+                    let rm_cmd = format!(
+                        "docker exec -u www-data {container_name} mkdir -p {remote_path}",
+                        container_name = container_name,
+                        remote_path = path_buf_to_string(&remote_path.to_path_buf())
+                    );
+                    Some(Task::simple_command(rm_cmd))
+                }
+                None => None,
+            }
+        };
+
+        let copy_to_remote = |file: String| {
+            let remote_path = remote_prefix.join(file.clone());
+            let remote_path = remote_path.parent();
+            let host_path = ctx.cwd.join(file.clone());
+            let cmd = format!(
+                "docker cp {host_path} {container_name}:{remote_path}",
+                container_name = container_name,
+                host_path = path_buf_to_string(&host_path),
+                remote_path = path_buf_to_string(&remote_path.expect("parent").to_path_buf())
+            );
+            Task::simple_command(cmd)
+        };
+
+        let checks = trailing.iter().map(|f| exists_locally(f.clone()));
+        let deletes = trailing.iter().fold(vec![], |mut acc, f| {
+            let cmd = delete_in_container(f.clone());
+            acc.push(cmd);
+            acc.push(Task::notify(format!("- (remote) {}", f)));
+            acc
+        });
+        let recreates = trailing.iter().filter_map(|f| recreate(f.clone()));
+        let copy_to_remotes = trailing.iter().fold(vec![], |mut acc, f| {
+            let cmd = copy_to_remote(f.clone());
+            acc.push(cmd);
+            acc.push(Task::notify(format!("+ (remote) {}", f)));
+            acc
+        });
+
+        checks
+            .chain(deletes)
+            .chain(recreates)
+            .chain(copy_to_remotes)
+            .collect()
     }
 
     ///

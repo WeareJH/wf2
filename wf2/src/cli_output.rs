@@ -171,6 +171,17 @@ impl CLIOutput {
                 };
                 Some(Cmd::Pull { trailing })
             }
+            ("push", Some(sub_matches)) => {
+                let trailing = match sub_matches.values_of("paths") {
+                    Some(cmd) => cmd
+                        .collect::<Vec<&str>>()
+                        .into_iter()
+                        .map(|s| s.to_string())
+                        .collect(),
+                    None => vec![],
+                };
+                Some(Cmd::Push { trailing })
+            }
             ("db-import", Some(sub_matches)) => {
                 // .unwrap() is safe here since Clap will exit before this if it's absent
                 let trailing = sub_matches.value_of("file").map(|x| x.to_string()).unwrap();

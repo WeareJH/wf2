@@ -69,11 +69,11 @@ impl Task {
             path,
         }
     }
-    pub fn file_exists(path: PathBuf, description: impl Into<String>) -> Task {
+    pub fn file_exists(path: impl Into<PathBuf>, description: impl Into<String>) -> Task {
         Task::File {
             description: description.into(),
             kind: FileOp::Exists,
-            path,
+            path: path.into(),
         }
     }
     pub fn command(command: impl Into<String>, env: HashMap<String, String>) -> Task {
