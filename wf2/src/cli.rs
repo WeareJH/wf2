@@ -65,7 +65,7 @@ impl<'a, 'b> CLI<'a, 'b> {
                     .arg_from_usage("<paths>... 'files or paths to pull'"),
                 SubCommand::with_name("push")
                     .display_order(4)
-                    .about("Push files or folders host into the main container")
+                    .about("Push files or folders into the main container")
                     .arg_from_usage("<paths>... 'files or paths to push'"),
                 SubCommand::with_name("doctor")
                     .display_order(5)
