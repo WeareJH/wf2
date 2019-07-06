@@ -244,30 +244,37 @@ impl M2Recipe {
         let remote_prefix = PathBuf::from("/var/www");
         let container_name = PhpContainer::from_ctx(&ctx).name;
 
-        let exists_locally = |file: String| {
-            let new_path = ctx.cwd.join(file.clone());
+        // first make sure we're looking at files that exist
+        // on the host
+        let exists_checks = trailing.iter().map(|path| {
+            let new_path = ctx.cwd.join(&path);
             Task::file_exists(new_path, "File exists check before 'push'")
-        };
+        });
 
-        let delete_in_container = |file: String| {
-            let host_path = ctx.cwd.join(file.clone());
-            let remote_path = remote_prefix.join(file.clone());
+        // rm -rf the files in the container
+        let deletes = trailing.iter().fold(vec![], |mut acc, path| {
+            let remote_path = remote_prefix.join(&path);
             let rm_cmd = format!(
                 "docker exec {container_name} rm -rf {remote_path}",
                 container_name = container_name,
                 remote_path = path_buf_to_string(&remote_path)
             );
-            Task::simple_command(rm_cmd)
-        };
+            acc.extend(vec![
+                Task::simple_command(rm_cmd),
+                Task::notify(format!("- (remote) {}", path)),
+            ]);
+            acc
+        });
 
-        let recreate = |file: String| {
-            let component_len = PathBuf::from(file.clone()).components().count();
+        // recreate the parent folders in the container
+        let recreates = trailing.iter().filter_map(|path| {
+            let component_len = PathBuf::from(&path).components().count();
 
             if component_len == 1 {
                 return None;
             };
 
-            match remote_prefix.join(file.clone()).parent() {
+            match remote_prefix.join(&path).parent() {
                 Some(remote_path) => {
                     let rm_cmd = format!(
                         "docker exec -u www-data {container_name} mkdir -p {remote_path}",
@@ -278,37 +285,27 @@ impl M2Recipe {
                 }
                 None => None,
             }
-        };
+        });
 
-        let copy_to_remote = |file: String| {
-            let remote_path = remote_prefix.join(file.clone());
+        // now perform the copy
+        let copy_to_remotes = trailing.iter().fold(vec![], |mut acc, path| {
+            let remote_path = remote_prefix.join(&path);
             let remote_path = remote_path.parent();
-            let host_path = ctx.cwd.join(file.clone());
+            let host_path = ctx.cwd.join(&path);
             let cmd = format!(
                 "docker cp {host_path} {container_name}:{remote_path}",
                 container_name = container_name,
                 host_path = path_buf_to_string(&host_path),
                 remote_path = path_buf_to_string(&remote_path.expect("parent").to_path_buf())
             );
-            Task::simple_command(cmd)
-        };
-
-        let checks = trailing.iter().map(|f| exists_locally(f.clone()));
-        let deletes = trailing.iter().fold(vec![], |mut acc, f| {
-            let cmd = delete_in_container(f.clone());
-            acc.push(cmd);
-            acc.push(Task::notify(format!("- (remote) {}", f)));
-            acc
-        });
-        let recreates = trailing.iter().filter_map(|f| recreate(f.clone()));
-        let copy_to_remotes = trailing.iter().fold(vec![], |mut acc, f| {
-            let cmd = copy_to_remote(f.clone());
-            acc.push(cmd);
-            acc.push(Task::notify(format!("+ (remote) {}", f)));
+            acc.extend(vec![
+                Task::simple_command(cmd),
+                Task::notify(format!("+ (remote) {}", &path)),
+            ]);
             acc
         });
 
-        checks
+        exists_checks
             .chain(deletes)
             .chain(recreates)
             .chain(copy_to_remotes)
@@ -322,14 +319,14 @@ impl M2Recipe {
         let container_name = PhpContainer::from_ctx(&ctx).name;
         let prefix = PathBuf::from("/var/www");
 
-        let cp_command = |file: String| {
+        let cp_command = |file: &String| {
             format!(
                 r#"docker cp {container_name}:{file} {target}"#,
                 container_name = container_name,
-                file = path_buf_to_string(&prefix.join(&file)),
+                file = path_buf_to_string(&prefix.join(file)),
                 target = path_buf_to_string(
                     &ctx.cwd
-                        .join(&file)
+                        .join(file)
                         .parent()
                         .expect("unwrap on parent")
                         .to_path_buf()
@@ -337,7 +334,7 @@ impl M2Recipe {
             )
         };
 
-        let exists_command = |file: String| {
+        let exists_command = |file: &String| {
             format!(
                 r#"docker exec {container_name} test -e {file}"#,
                 container_name = container_name,
@@ -348,12 +345,12 @@ impl M2Recipe {
         // First check all sources exist
         let checks = trailing
             .iter()
-            .map(|file| Task::simple_command(exists_command(file.clone())));
+            .map(|file| Task::simple_command(exists_command(file)));
 
         // Now create the target directories (like mkdir -p)
         let dir_clean_or_create = trailing.iter().fold(vec![], |mut acc, file| {
-            let new_path = ctx.cwd.join(file.clone());
-            let component_len = PathBuf::from(file.clone()).components().count();
+            let new_path = ctx.cwd.join(&file);
+            let component_len = PathBuf::from(&file).components().count();
 
             let extends = match (
                 Path::exists(&new_path),
@@ -379,7 +376,7 @@ impl M2Recipe {
         // Now the copy commands, the ones that actually delegate out to docker
         let cp_commands = trailing.iter().map(|file| {
             Task::Seq(vec![
-                Task::simple_command(cp_command(file.clone())),
+                Task::simple_command(cp_command(&file)),
                 Task::notify(format!("+ {}", file)),
             ])
         });
