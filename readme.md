@@ -2,8 +2,8 @@
 
 
 ## Install
-`wf2` is distributed as a single binary with everything packaged inside - 
-this means you *do not* need PHP or Composer installed on your machine. 
+`wf2` is distributed as a single binary with everything packaged inside -
+this means you *do not* need PHP or Composer installed on your machine.
 
 ### Homebrew
 `brew install wearejh/tools/wf2`
@@ -16,7 +16,7 @@ this means you *do not* need PHP or Composer installed on your machine.
 3. Now either add an alias to your `~/.zshrc` (or bash profile)
 
     `echo 'alias wf2="~/Downloads/wf2"' >> ~/.zshrc`
-    
+
    or, move the program to somewhere in your existing path - see instructions below if you wish to do this:
 
 <details><summary>Instructions for adding to your path</summary>
@@ -49,7 +49,7 @@ this means you *do not* need PHP or Composer installed on your machine.
 ## Features (assuming you are using `M2` recipe)
 
 ```
-wf2 0.9.0
+wf2 0.11.1
 
 USAGE:
     wf2 [FLAGS] [OPTIONS] [SUBCOMMAND]
@@ -71,6 +71,7 @@ SUBCOMMANDS:
     stop         Take down containers & retain data
     down         Take down containers & delete everything
     pull         Pull files or folders from the main container to the host
+    push         Push files or folders into the main container
     doctor       Try to fix common issues with a recipe
     eject        Dump all files into the local directory for manual running
     db-dump      Dump the current database to dump.sql
