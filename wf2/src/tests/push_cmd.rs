@@ -4,6 +4,7 @@ mod tests {
     use crate::cli_output::CLIOutput;
     use crate::tests::commands;
     use std::path::PathBuf;
+    use wf2_core::task::Task;
 
     #[test]
     fn test_push_dir() {
@@ -28,10 +29,33 @@ mod tests {
         test_push(args, cwd, expected_commands);
     }
 
+    #[test]
+    fn test_push_invalid_files() {
+        let args = vec!["prog", "push", "app/"];
+        test_push_invalid(args);
+        let args = vec!["prog", "push", "app/code"];
+        test_push_invalid(args);
+        let args = vec!["prog", "push", "app/code/Acme/Lib/File"];
+        test_push_invalid(args);
+        let args = vec!["prog", "push", "vendor/magento", "app/code"];
+        test_push_invalid(args);
+    }
+
     fn test_push(args: Vec<&str>, cwd: impl Into<PathBuf>, expected_commands: Vec<&str>) {
         let input = CLIInput::from_args(args).with_cwd(cwd);
         let cli_output = CLIOutput::from_input(input);
         let tasks = cli_output.expect("test").tasks.unwrap().clone();
         assert_eq!(commands(tasks.clone()), expected_commands);
+    }
+
+    fn test_push_invalid(args: Vec<&str>) {
+        let cwd = "/users/acme";
+        let input = CLIInput::from_args(args).with_cwd(cwd);
+        let cli_output = CLIOutput::from_input(input);
+        let tasks = cli_output.expect("test").tasks.unwrap().clone();
+        match tasks.get(0) {
+            Some(Task::NotifyError { message }) => {}
+            _ => unreachable!(),
+        }
     }
 }
