@@ -29,6 +29,9 @@ pub enum Task {
     Notify {
         message: String,
     },
+    NotifyError {
+        message: String,
+    },
     Seq(Vec<Task>),
 }
 
@@ -89,6 +92,11 @@ impl Task {
     }
     pub fn notify(message: impl Into<String>) -> Task {
         Task::Notify {
+            message: message.into(),
+        }
+    }
+    pub fn notify_error(message: impl Into<String>) -> Task {
+        Task::NotifyError {
             message: message.into(),
         }
     }
@@ -159,6 +167,7 @@ impl fmt::Display for Task {
             Task::Command { command, env } => write!(f, "Command: {:?}\nEnv: {:#?}", command, env),
             Task::SimpleCommand { command, .. } => write!(f, "Command: {:?}", command),
             Task::Notify { message } => write!(f, "Notify: {:?}", message),
+            Task::NotifyError { message } => write!(f, "Notify Error: see above for error message"),
             Task::Seq(tasks) => write!(
                 f,
                 "Task Sequence: \n{}",
@@ -281,6 +290,7 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
             println!("{}", message);
             Ok(id)
         }
+        Task::NotifyError { message } => Err(TaskError { index: id, message }),
         Task::Seq(tasks) => {
             let task_sequence = WF2::sequence(tasks.clone());
             let output = task_sequence.wait();

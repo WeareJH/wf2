@@ -67,8 +67,6 @@ fn main() {
             .map(|_| ())
             .map_err(move |(task, task_error)| {
                 eprintln!("{}", task_error);
-                eprintln!("\nThis error occurred in the following task:\n");
-                eprintln!("    [Task] {}", task);
                 eprintln!(
                     "\nSummary: {} complete, 1 errored, {} didn't start",
                     task_error.index,

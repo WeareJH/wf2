@@ -244,6 +244,14 @@ impl M2Recipe {
         let remote_prefix = PathBuf::from("/var/www");
         let container_name = PhpContainer::from_ctx(&ctx).name;
 
+        // if any paths begin with contain "app/", create a notify error for each
+        // this will prevent subsequent actions from happening if even 1 of the
+        // given paths are invalid
+        let invalid_push_paths = trailing
+            .iter()
+            .filter(|path| path.starts_with("app/"))
+            .map(|_| Task::notify_error("invalid paths provided. Don't try to push anything into `app/` - files there are already synced"));
+
         // first make sure we're looking at files that exist
         // on the host
         let exists_checks = trailing.iter().map(|path| {
@@ -305,7 +313,9 @@ impl M2Recipe {
             acc
         });
 
-        exists_checks
+        invalid_push_paths
+            .into_iter()
+            .chain(exists_checks)
             .chain(deletes)
             .chain(recreates)
             .chain(copy_to_remotes)
