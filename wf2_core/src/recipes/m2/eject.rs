@@ -1,9 +1,11 @@
 use crate::{
     context::Context,
     docker_compose::DockerCompose,
-    env::create_env,
-    recipes::m2::m2_env::{Env, M2Env, NGINX_OUTPUT_FILE, TRAEFIK_OUTPUT_FILE, UNISON_OUTPUT_FILE},
-    recipes::m2::M2Templates,
+    recipes::{
+        m2::m2_env::{Env, M2Env, NGINX_OUTPUT_FILE, TRAEFIK_OUTPUT_FILE, UNISON_OUTPUT_FILE},
+        m2::m2_runtime_env::create_runtime_env,
+        m2::M2Templates,
+    },
     task::Task,
 };
 
@@ -17,7 +19,7 @@ pub fn exec(ctx: &Context, env: &M2Env, templates: M2Templates) -> Vec<Task> {
         Task::file_write(
             env.file_path(),
             "Writes the .env file to disk",
-            create_env(&templates.env.bytes, &ctx.default_domain()),
+            create_runtime_env(&ctx, &ctx.env, &ctx.default_domain()),
         ),
         Task::file_write(
             ctx.cwd.join(&ctx.file_prefix).join(UNISON_OUTPUT_FILE),

@@ -3,6 +3,7 @@ use std::env::current_dir;
 use std::path::PathBuf;
 use std::process::{Command, Output};
 use terminal_size::{terminal_size, Height, Width};
+use users::{get_current_gid, get_current_uid};
 use wf2_core::context::Term;
 
 pub const DEFAULT_CONFIG_FILE: &str = "wf2.yml";
@@ -18,6 +19,8 @@ pub struct CLIInput {
     pub cwd: PathBuf,
     pub pv: Option<String>,
     pub term: Term,
+    pub uid: u32,
+    pub gid: u32,
 }
 
 impl CLIInput {
@@ -27,6 +30,8 @@ impl CLIInput {
             cwd: current_dir().expect("cwd"),
             pv: CLIInput::has_pv(),
             term: CLIInput::term(),
+            uid: get_current_uid(),
+            gid: get_current_gid(),
         }
     }
     pub fn has_pv() -> Option<String> {

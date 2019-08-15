@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 
 pub mod eject;
 pub mod m2_env;
+pub mod m2_runtime_env;
 pub mod pass_thru;
 pub mod php_container;
 pub mod up;

@@ -3,4 +3,5 @@
 members = [
     "wf2",
     "wf2_core",
+    "env_proc",
 ]

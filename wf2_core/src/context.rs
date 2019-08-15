@@ -76,6 +76,9 @@ pub struct Context {
     #[serde(default)]
     pub config_path: Option<PathBuf>,
 
+    #[serde(default)]
+    pub env: Option<serde_yaml::Value>,
+
     #[serde(default = "default_file_prefix")]
     pub file_prefix: PathBuf,
 
@@ -84,6 +87,12 @@ pub struct Context {
 
     #[serde(default = "default_debug")]
     pub debug: bool,
+
+    #[serde(default = "default_id")]
+    pub uid: u32,
+
+    #[serde(default = "default_id")]
+    pub gid: u32,
 }
 
 ///
@@ -118,6 +127,9 @@ impl Default for Context {
             file_prefix: default_file_prefix(),
             overrides: None,
             debug: default_debug(),
+            uid: 0,
+            gid: 0,
+            env: None,
         }
     }
 }
@@ -195,6 +207,9 @@ fn default_term() -> Term {
 }
 fn default_debug() -> bool {
     false
+}
+fn default_id() -> u32 {
+    0
 }
 
 #[test]

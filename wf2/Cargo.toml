@@ -20,4 +20,5 @@ serde = "1.0.92"
 serde_derive = "1.0.92"
 serde_yaml = "0.8.9"
 ansi_term = "0.11.0"
+users = "0.9.1"
 
