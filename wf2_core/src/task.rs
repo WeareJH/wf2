@@ -167,7 +167,7 @@ impl fmt::Display for Task {
             Task::Command { command, env } => write!(f, "Command: {:?}\nEnv: {:#?}", command, env),
             Task::SimpleCommand { command, .. } => write!(f, "Command: {:?}", command),
             Task::Notify { message } => write!(f, "Notify: {:?}", message),
-            Task::NotifyError { message } => write!(f, "Notify Error: see above for error message"),
+            Task::NotifyError { .. } => write!(f, "Notify Error: see above for error message"),
             Task::Seq(tasks) => write!(
                 f,
                 "Task Sequence: \n{}",

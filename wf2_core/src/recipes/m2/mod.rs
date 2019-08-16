@@ -45,7 +45,6 @@ pub struct M2Templates {
     pub unison: RecipeTemplate,
     pub traefik: RecipeTemplate,
     pub nginx: RecipeTemplate,
-    pub env: RecipeTemplate,
 }
 
 impl Default for M2Templates {
@@ -59,9 +58,6 @@ impl Default for M2Templates {
             },
             nginx: RecipeTemplate {
                 bytes: include_bytes!("templates/site.conf").to_vec(),
-            },
-            env: RecipeTemplate {
-                bytes: include_bytes!("templates/.env").to_vec(),
             },
         }
     }

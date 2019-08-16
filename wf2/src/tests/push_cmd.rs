@@ -54,7 +54,7 @@ mod tests {
         let cli_output = CLIOutput::from_input(input);
         let tasks = cli_output.expect("test").tasks.unwrap().clone();
         match tasks.get(0) {
-            Some(Task::NotifyError { message }) => {}
+            Some(Task::NotifyError { .. }) => {}
             _ => unreachable!(),
         }
     }

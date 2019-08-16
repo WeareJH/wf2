@@ -119,11 +119,10 @@ pub fn env_vars(item: TokenStream) -> TokenStream {
     });
 
     let to_string_impl = valid.iter().map(|env_item| {
-        let hm = syn::Ident::new("hm", Span::call_site());
         let env_name = syn::Ident::new("EnvVarKeys", Span::call_site());
         let name = syn::Ident::new(&env_item.key.to_pascal_case(), Span::call_site());
-        let value = env_item.value.to_string();
-        quote! { #env_name::#name => String::from(#value) }
+        let key_name = syn::LitStr::new(&env_item.key, Span::call_site());
+        quote! { #env_name::#name => String::from(#key_name) }
     });
 
     let output_tokens = quote! {

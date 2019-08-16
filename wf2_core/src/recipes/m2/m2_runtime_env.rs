@@ -1,14 +1,13 @@
 use crate::context::Context;
 use env_proc::env_vars;
-use snailquote::{escape, unescape};
+use snailquote::escape;
 use std::collections::HashMap;
-use std::hash::Hash;
 
-///
-/// Type-safe environment variables that are given to
-/// all containers. These can all be overridden by config
-/// within wf2.yaml
-///
+//
+// Type-safe environment variables that are given to
+// all containers. These can all be overridden by config
+// within wf2.yaml
+//
 env_vars! {
 
     HOST_UID="501"
@@ -50,9 +49,9 @@ env_vars! {
     BLACKFIRE_SERVER_TOKEN=""
 }
 
-///
-/// Use the base template & append custom bits
-///
+//
+// Use the base template & append custom bits
+//
 pub fn create_runtime_env(
     ctx: &Context,
     input: &Option<serde_yaml::Value>,
@@ -61,7 +60,7 @@ pub fn create_runtime_env(
     match input.clone() {
         Some(input_from_ctx) => {
             let from_ctx: Result<M2EnvVars, _> = serde_yaml::from_value(input_from_ctx);
-            let mut initial = HmEnv::default();
+            let initial = HmEnv::default();
             let mut merged = match from_ctx {
                 Ok(from_ctx) => initial.merge(from_ctx.0),
                 Err(e) => {
@@ -78,19 +77,18 @@ pub fn create_runtime_env(
 
             print(merged)
         }
-        None => vec![],
+        None => print(HmEnv::default().0),
     }
 }
 
-///
-/// Hashmap -> bytes for writing to disk
-///
+//
+// Hashmap -> bytes for writing to disk
+//
 fn print(store: HashMap<EnvVarKeys, String>) -> Vec<u8> {
     let mut buffer = Vec::with_capacity(1024);
     for (key, value) in &store {
         buffer.extend_from_slice(key.to_string().as_bytes());
         buffer.push(b'=');
-        // The value may contain space and need to be quoted
         let v = escape(value.as_str()).into_owned();
         buffer.extend_from_slice(v.as_bytes());
         buffer.push(b'\n');
@@ -103,14 +101,25 @@ fn print(store: HashMap<EnvVarKeys, String>) -> Vec<u8> {
 pub struct M2EnvVars(HmEnv);
 
 #[test]
-fn test_env_hash() {
+fn test_env_hash_with_overrides() {
     let yaml = r#"
     MYSQL_ROOT_PASSWORD: "shane"
     MYSQL_DATABASE: "shane"
     MYSQL_USER: "shane"
     MYSQL_PASSWORD: "shane"
     "#;
-    let o: Result<HmEnv, _> = serde_yaml::from_str(yaml);
     let v: serde_yaml::Value = serde_yaml::from_str(yaml).expect("test");
-    let rt = create_runtime_env(&Context::default(), &Some(v), "local.m2");
+    let env = create_runtime_env(&Context::default(), &Some(v), "local.m2");
+    let as_str = std::str::from_utf8(&env).expect("test");
+    assert!(as_str.contains("PHP_IDE_CONFIG=serverName=local.m2"));
+    assert!(as_str.contains(r#"MAGE_ROOT_DIR=/var/www"#));
+}
+
+#[test]
+fn test_env_hash_without_overrides() {
+    let yaml = None;
+    let env = create_runtime_env(&Context::default(), &yaml, "local.m2");
+    let as_str = std::str::from_utf8(&env).expect("test");
+    assert!(as_str.contains("PHP_IDE_CONFIG=serverName=local.m2"));
+    assert!(as_str.contains(r#"MAGE_ROOT_DIR=/var/www"#));
 }
