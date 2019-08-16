@@ -8,6 +8,7 @@ use crate::{
 };
 use clap::{App, ArgMatches};
 use m2_env::{Env, M2Env};
+use m2_runtime_env::create_runtime_env;
 use pass_thru::M2PassThru;
 use php_container::PhpContainer;
 use std::path::{Path, PathBuf};
@@ -66,19 +67,34 @@ impl Default for M2Templates {
 impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
     fn resolve_cmd(&self, ctx: &Context, cmd: Cmd) -> Option<Vec<Task>> {
         let env = M2Env::from_ctx(&ctx);
+        let runtime_env = create_runtime_env(&ctx, &ctx.env, &ctx.default_domain());
+
+        if runtime_env.is_err() {
+            return match runtime_env {
+                Err(e) => Some(vec![Task::NotifyError { message: e }]),
+                Ok(..) => unreachable!(),
+            };
+        }
 
         if env.is_err() {
             return match env {
-                Err(e) => Some(vec![Task::Notify { message: e }]),
+                Err(e) => Some(vec![Task::NotifyError { message: e }]),
                 Ok(..) => unreachable!(),
             };
         }
 
         let env = env.expect("guarded above");
+        let runtime_env = runtime_env.expect("guarded above");
 
         match cmd {
-            Cmd::Up { detached } => Some(up::exec(&ctx, &env, detached, self.templates.clone())),
-            Cmd::Eject => Some(eject::exec(&ctx, &env, self.templates.clone())),
+            Cmd::Up { detached } => Some(up::exec(
+                &ctx,
+                runtime_env,
+                &env,
+                detached,
+                self.templates.clone(),
+            )),
+            Cmd::Eject => Some(eject::exec(&ctx, runtime_env, &env, self.templates.clone())),
             Cmd::Pull { trailing } => Some(self.pull(&ctx, trailing.clone())),
             Cmd::Push { trailing } => Some(self.push(&ctx, trailing.clone())),
             Cmd::Down => Some(self.down(&ctx, &env)),

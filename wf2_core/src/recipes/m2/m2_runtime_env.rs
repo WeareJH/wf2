@@ -56,28 +56,24 @@ pub fn create_runtime_env(
     ctx: &Context,
     input: &Option<serde_yaml::Value>,
     domain: &str,
-) -> Vec<u8> {
+) -> Result<Vec<u8>, String> {
     match input.clone() {
         Some(input_from_ctx) => {
-            let from_ctx: Result<M2EnvVars, _> = serde_yaml::from_value(input_from_ctx);
+            let from_ctx: M2EnvVars =
+                serde_yaml::from_value(input_from_ctx).map_err(|e| e.to_string())?;
+
             let initial = HmEnv::default();
-            let mut merged = match from_ctx {
-                Ok(from_ctx) => initial.merge(from_ctx.0),
-                Err(e) => {
-                    eprintln!("env: {}", e);
-                    initial
-                }
-            }
-            .0;
+
+            let mut merged = initial.merge(from_ctx.0).0;
 
             merged.insert(EnvVarKeys::HostUid, ctx.uid.to_string());
             merged.insert(EnvVarKeys::HostGid, ctx.gid.to_string());
             merged.insert(EnvVarKeys::MageHost, format!("https://{}", domain));
             merged.insert(EnvVarKeys::PhpIdeConfig, format!("serverName={}", domain));
 
-            print(merged)
+            Ok(print(merged))
         }
-        None => print(HmEnv::default().0),
+        None => Ok(print(HmEnv::default().0)),
     }
 }
 
@@ -109,7 +105,7 @@ fn test_env_hash_with_overrides() {
     MYSQL_PASSWORD: "shane"
     "#;
     let v: serde_yaml::Value = serde_yaml::from_str(yaml).expect("test");
-    let env = create_runtime_env(&Context::default(), &Some(v), "local.m2");
+    let env = create_runtime_env(&Context::default(), &Some(v), "local.m2").expect("test");
     let as_str = std::str::from_utf8(&env).expect("test");
     assert!(as_str.contains("PHP_IDE_CONFIG=serverName=local.m2"));
     assert!(as_str.contains(r#"MAGE_ROOT_DIR=/var/www"#));
@@ -118,7 +114,7 @@ fn test_env_hash_with_overrides() {
 #[test]
 fn test_env_hash_without_overrides() {
     let yaml = None;
-    let env = create_runtime_env(&Context::default(), &yaml, "local.m2");
+    let env = create_runtime_env(&Context::default(), &yaml, "local.m2").expect("test");
     let as_str = std::str::from_utf8(&env).expect("test");
     assert!(as_str.contains("PHP_IDE_CONFIG=serverName=local.m2"));
     assert!(as_str.contains(r#"MAGE_ROOT_DIR=/var/www"#));

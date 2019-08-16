@@ -3,7 +3,6 @@ use crate::{
     docker_compose::DockerCompose,
     recipes::{
         m2::m2_env::{Env, M2Env, NGINX_OUTPUT_FILE, TRAEFIK_OUTPUT_FILE, UNISON_OUTPUT_FILE},
-        m2::m2_runtime_env::create_runtime_env,
         m2::M2Templates,
     },
     task::Task,
@@ -12,15 +11,11 @@ use crate::{
 ///
 /// Write all files & replace all variables so it's ready to use
 ///
-pub fn exec(ctx: &Context, env: &M2Env, templates: M2Templates) -> Vec<Task> {
+pub fn exec(ctx: &Context, runtime_env: Vec<u8>, env: &M2Env, templates: M2Templates) -> Vec<Task> {
     let dc = DockerCompose::from_ctx(&ctx);
 
     vec![
-        Task::file_write(
-            env.file_path(),
-            "Writes the .env file to disk",
-            create_runtime_env(&ctx, &ctx.env, &ctx.default_domain()),
-        ),
+        Task::file_write(env.file_path(), "Writes the .env file to disk", runtime_env),
         Task::file_write(
             ctx.cwd.join(&ctx.file_prefix).join(UNISON_OUTPUT_FILE),
             "Writes the unison file",
@@ -49,6 +44,7 @@ fn test_eject_exec() {
     };
     let output = exec(
         &ctx,
+        vec![],
         &M2Env::from_ctx(&ctx).unwrap(),
         M2Templates::default(),
     );
