@@ -57,24 +57,21 @@ pub fn create_runtime_env(
     input: &Option<serde_yaml::Value>,
     domain: &str,
 ) -> Result<Vec<u8>, String> {
-    match input.clone() {
+    let mut merged = match input.clone() {
         Some(input_from_ctx) => {
             let from_ctx: M2EnvVars =
                 serde_yaml::from_value(input_from_ctx).map_err(|e| e.to_string())?;
-
-            let initial = HmEnv::default();
-
-            let mut merged = initial.merge(from_ctx.0).0;
-
-            merged.insert(EnvVarKeys::HostUid, ctx.uid.to_string());
-            merged.insert(EnvVarKeys::HostGid, ctx.gid.to_string());
-            merged.insert(EnvVarKeys::MageHost, format!("https://{}", domain));
-            merged.insert(EnvVarKeys::PhpIdeConfig, format!("serverName={}", domain));
-
-            Ok(print(merged))
+            HmEnv::default().merge(from_ctx.0).0
         }
-        None => Ok(print(HmEnv::default().0)),
-    }
+        None => HmEnv::default().0,
+    };
+
+    merged.insert(EnvVarKeys::HostUid, ctx.uid.to_string());
+    merged.insert(EnvVarKeys::HostGid, ctx.gid.to_string());
+    merged.insert(EnvVarKeys::MageHost, format!("https://{}", domain));
+    merged.insert(EnvVarKeys::PhpIdeConfig, format!("serverName={}", domain));
+
+    Ok(print(merged))
 }
 
 //
