@@ -107,6 +107,8 @@ pub struct ContextOverrides {
     pub pv: Option<String>,
     pub term: Term,
     pub debug: bool,
+    pub uid: u32,
+    pub gid: u32,
 }
 
 pub const DEFAULT_NAME: &str = "wf2_default";
@@ -169,6 +171,8 @@ impl Context {
         self.term = other.term;
         self.pv = other.pv;
         self.debug = other.debug;
+        self.uid = other.uid;
+        self.gid = other.gid;
         self.file_prefix = PathBuf::from(&self.cwd).join(format!(
             ".wf2_{recipe}_{name}",
             recipe = self.recipe,
