@@ -1,6 +1,6 @@
 [package]
 name = "wf2"
-version = "0.11.2"
+version = "0.12.0"
 authors = ["Shane Osbourne <shane.osbourne8@gmail.com>"]
 edition = "2018"
 description = "PHP docker environments"
@@ -9,7 +9,7 @@ license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-wf2_core = { path = "../wf2_core", version = "0.10.0" }
+wf2_core = { path = "../wf2_core", version = "0.11.0" }
 tokio = "0.1.20"
 futures = "0.1.27"
 clap = { version = "2.33.0", features = ["yaml"] }
@@ -20,4 +20,5 @@ serde = "1.0.92"
 serde_derive = "1.0.92"
 serde_yaml = "0.8.9"
 ansi_term = "0.11.0"
+users = "0.9.1"
 

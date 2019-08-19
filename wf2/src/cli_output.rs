@@ -145,6 +145,8 @@ impl CLIOutput {
             term: input.term,
             pv: input.pv,
             debug,
+            uid: input.uid,
+            gid: input.gid,
         }
     }
 

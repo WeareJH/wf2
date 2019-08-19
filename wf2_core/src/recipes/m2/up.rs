@@ -1,7 +1,6 @@
 use crate::{
     context::Context,
     docker_compose::DockerCompose,
-    env::create_env,
     env::Env,
     recipes::m2::m2_env::{M2Env, NGINX_OUTPUT_FILE, TRAEFIK_OUTPUT_FILE, UNISON_OUTPUT_FILE},
     recipes::m2::M2Templates,
@@ -12,7 +11,13 @@ use ansi_term::Colour::Green;
 ///
 /// Bring the project up using given templates
 ///
-pub fn exec(ctx: &Context, env: &M2Env, detached: bool, templates: M2Templates) -> Vec<Task> {
+pub fn exec(
+    ctx: &Context,
+    runtime_env: Vec<u8>,
+    env: &M2Env,
+    detached: bool,
+    templates: M2Templates,
+) -> Vec<Task> {
     let dc = DockerCompose::from_ctx(&ctx);
 
     vec![
@@ -34,11 +39,7 @@ pub fn exec(ctx: &Context, env: &M2Env, detached: bool, templates: M2Templates) 
             "Ensure that composer.lock exists",
         ),
         Task::file_exists(ctx.cwd.join("auth.json"), "Ensure that auth.json exists"),
-        Task::file_write(
-            env.file_path(),
-            "Writes the .env file to disk",
-            create_env(&templates.env.bytes, &ctx.default_domain()),
-        ),
+        Task::file_write(env.file_path(), "Writes the .env file to disk", runtime_env),
         Task::file_write(
             ctx.file_path(UNISON_OUTPUT_FILE),
             "Writes the unison file",
@@ -71,6 +72,7 @@ fn test_up_exec() {
     };
     let output = exec(
         &ctx,
+        vec![],
         &M2Env::from_ctx(&ctx).unwrap(),
         false,
         M2Templates::default(),
@@ -98,6 +100,7 @@ fn test_up_exec_detached() {
     let ctx = Context::default();
     let output = exec(
         &ctx,
+        vec![],
         &M2Env::from_ctx(&ctx).unwrap(),
         true,
         M2Templates::default(),
@@ -121,6 +124,7 @@ fn test_up_exec_none_detached() {
     let ctx = Context::default();
     let output = exec(
         &ctx,
+        vec![],
         &M2Env::from_ctx(&ctx).unwrap(),
         false,
         M2Templates::default(),

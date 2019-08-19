@@ -65,7 +65,7 @@ fn main() {
         //
         task_sequence
             .map(|_| ())
-            .map_err(move |(task, task_error)| {
+            .map_err(move |(_task, task_error)| {
                 eprintln!("{}", task_error);
                 eprintln!(
                     "\nSummary: {} complete, 1 errored, {} didn't start",
