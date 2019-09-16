@@ -69,7 +69,7 @@ pub fn get_services(vars: &M2Vars, ctx: &Context) -> Vec<DcService> {
 }
 
 fn traefik(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService {
-    DcService::new(&ctx.name, name, image)
+    DcService::new(ctx.name.clone(), name, image)
         .set_volumes(vec![
             format!("/var/run/docker.sock:/var/run/docker.sock"),
             format!(
@@ -84,7 +84,7 @@ fn traefik(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService {
 }
 
 fn unison(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService {
-    DcService::new(&ctx.name, name, image)
+    DcService::new(ctx.name.clone(), name, image)
         .set_volumes(vec![
             format!("{}:/volumes/host", vars.content[&M2Var::Pwd]),
             format!("{}:/volumes/internal", M2Volumes::APP),
@@ -100,7 +100,7 @@ fn unison(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService {
 }
 
 fn varnish(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService {
-    DcService::new(&ctx.name, name, image)
+    DcService::new(ctx.name.clone(), name, image)
         .set_depends_on(vec![M2Services::NGINX])
         .set_labels(vec![format!(
             "traefik.frontend.rule=Host:{}",
@@ -110,7 +110,7 @@ fn varnish(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService {
 }
 
 fn nginx(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService {
-    DcService::new(&ctx.name, name, image)
+    DcService::new(ctx.name.clone(), name, image)
         .set_depends_on(vec![M2Services::PHP])
         .set_volumes(vec![
             format!("{}:{}", M2Volumes::APP, M2Services::ROOT),
@@ -122,7 +122,7 @@ fn nginx(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService {
 }
 
 fn php(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService {
-    DcService::new(&ctx.name, name, image)
+    DcService::new(ctx.name.clone(), name, image)
         .set_volumes(vec![
             format!("{}:{}", M2Volumes::APP, M2Services::ROOT),
             format!(
@@ -147,7 +147,7 @@ fn php_debug(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService
 }
 
 fn node(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService {
-    DcService::new(&ctx.name, name, image)
+    DcService::new(ctx.name.clone(), name, image)
         .set_working_dir(M2Services::ROOT)
         .set_init(true)
         .set_volumes(vec![format!("{}:{}", M2Volumes::APP, M2Services::ROOT)])
@@ -157,7 +157,7 @@ fn node(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService {
 }
 
 fn db(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService {
-    DcService::new(&ctx.name, name, image)
+    DcService::new(ctx.name.clone(), name, image)
         .set_volumes(vec![format!("{}:/var/lib/mysql", M2Volumes::DB)])
         .set_ports(vec!["3306:3306"])
         .set_restart("unless-stopped")
@@ -167,14 +167,14 @@ fn db(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService {
 }
 
 fn redis(name: &str, image: &str, _vars: &M2Vars, ctx: &Context) -> DcService {
-    DcService::new(&ctx.name, name, image)
+    DcService::new(ctx.name.clone(), name, image)
         .set_ports(vec!["6379:6379"])
         .set_labels(vec![M2Services::TRAEFIK_LABEL.to_string()])
         .build()
 }
 
 fn rabbitmq(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService {
-    DcService::new(&ctx.name, name, image)
+    DcService::new(ctx.name.clone(), name, image)
         .set_env_file(vec![format!("{}", vars.content[&M2Var::EnvFile])])
         .set_ports(vec!["15672:15672", "5672:5672"])
         .set_labels(vec![M2Services::TRAEFIK_LABEL.to_string()])
@@ -182,7 +182,7 @@ fn rabbitmq(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService 
 }
 
 fn mail(name: &str, image: &str, _vars: &M2Vars, ctx: &Context) -> DcService {
-    DcService::new(&ctx.name, name, image)
+    DcService::new(ctx.name.clone(), name, image)
         .set_ports(vec!["1025"])
         .set_labels(vec![
             "traefik.frontend.rule=Host:mail.jh",
@@ -192,7 +192,7 @@ fn mail(name: &str, image: &str, _vars: &M2Vars, ctx: &Context) -> DcService {
 }
 
 fn blackfire(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService {
-    DcService::new(&ctx.name, name, image)
+    DcService::new(ctx.name.clone(), name, image)
         .set_env_file(vec![format!("{}", vars.content[&M2Var::EnvFile])])
         .set_labels(vec![M2Services::TRAEFIK_LABEL.to_string()])
         .build()
