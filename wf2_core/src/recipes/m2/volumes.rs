@@ -12,8 +12,8 @@ impl M2Volumes {
 pub fn get_volumes(ctx: &Context) -> Vec<DcVolume> {
     let name = ctx.name.clone();
     vec![
-        DcVolume::new(&name, M2Volumes::DB),
-        DcVolume::new(&name, M2Volumes::APP),
-        DcVolume::new(&name, M2Volumes::COMPOSER_CACHE),
+        DcVolume::new(name, M2Volumes::DB),
+        DcVolume::new(name, M2Volumes::APP),
+        DcVolume::new(name, M2Volumes::COMPOSER_CACHE),
     ]
 }
