@@ -49,7 +49,7 @@ this means you *do not* need PHP or Composer installed on your machine.
 ## Features (assuming you are using `M2` recipe)
 
 ```
-wf2 0.11.1
+wf2 0.14.0
 
 USAGE:
     wf2 [FLAGS] [OPTIONS] [SUBCOMMAND]
@@ -67,17 +67,18 @@ OPTIONS:
         --php <php>          path to a wf2.yml config file [possible values: 7.1, 7.2]
 
 SUBCOMMANDS:
-    up           Bring up containers
-    stop         Take down containers & retain data
-    down         Take down containers & delete everything
-    pull         Pull files or folders from the main container to the host
-    push         Push files or folders into the main container
-    doctor       Try to fix common issues with a recipe
-    eject        Dump all files into the local directory for manual running
-    db-dump      Dump the current database to dump.sql
-    db-import    Import a DB file
-    exec         Execute commands in the main container
-    help         Prints this message or the help of the given subcommand(s)
+    up               Bring up containers
+    stop             Take down containers & retain data
+    down             Take down containers & delete everything
+    pull             Pull files or folders from the main container to the host
+    push             Push files or folders into the main container
+    doctor           Try to fix common issues with a recipe
+    eject            Dump all files into the local directory for manual running
+    update-images    Update images used in the current recipe
+    db-dump          Dump the current database to dump.sql
+    db-import        Import a DB file
+    exec             Execute commands in the main container
+    help             Prints this message or the help of the given subcommand(s)
 
 PASS THRU COMMANDS:
     composer    [M2] Run composer commands with the correct user
