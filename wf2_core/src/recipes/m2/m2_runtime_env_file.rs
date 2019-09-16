@@ -1,7 +1,33 @@
 use crate::context::Context;
+use crate::file::File;
 use env_proc::env_vars;
 use snailquote::escape;
 use std::collections::HashMap;
+use std::path::PathBuf;
+
+pub const ENV_OUTPUT_FILE: &str = ".docker.env";
+
+pub struct M2RuntimeEnvFile {
+    pub file_path: PathBuf,
+    pub bytes: Vec<u8>,
+}
+
+impl File<M2RuntimeEnvFile> for M2RuntimeEnvFile {
+    fn from_ctx(ctx: &Context) -> Result<M2RuntimeEnvFile, String> {
+        let env_file_path = ctx.file_path(ENV_OUTPUT_FILE);
+        let bytes = create_runtime_env(&ctx, &ctx.env, &ctx.default_domain())?;
+        Ok(M2RuntimeEnvFile {
+            file_path: env_file_path,
+            bytes,
+        })
+    }
+    fn file_path(&self) -> PathBuf {
+        self.file_path.clone()
+    }
+    fn bytes(&self) -> Vec<u8> {
+        self.bytes.to_vec()
+    }
+}
 
 //
 // Type-safe environment variables that are given to

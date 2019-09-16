@@ -1,8 +1,8 @@
-use crate::{context::Context, task::Task, util::replace_env};
+use crate::{context::Context, task::Task};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-pub struct DockerCompose {
+pub struct DcTasks {
     pub file: PathBuf,
     pub eject_file: PathBuf,
     pub bytes: Vec<u8>,
@@ -10,14 +10,12 @@ pub struct DockerCompose {
 
 pub const DC_OUTPUT_FILE: &str = "docker-compose.yml";
 
-impl DockerCompose {
-    pub fn from_ctx(ctx: &Context) -> DockerCompose {
-        DockerCompose {
+impl DcTasks {
+    pub fn from_ctx(ctx: &Context, dc_bytes: Vec<u8>) -> DcTasks {
+        DcTasks {
             file: ctx.cwd.join(&ctx.file_prefix).join(DC_OUTPUT_FILE),
             eject_file: ctx.cwd.join(DC_OUTPUT_FILE),
-
-            // TODO: Move this to each recipe
-            bytes: include_bytes!("recipes/m2/templates/docker-compose.yml").to_vec(),
+            bytes: dc_bytes,
         }
     }
     pub fn cmd_string(&self, trailing: impl Into<String>) -> String {
@@ -27,9 +25,9 @@ impl DockerCompose {
             trailing = trailing.into()
         )
     }
-    pub fn cmd_task(&self, trailing: Vec<String>, env: HashMap<String, String>) -> Task {
+    pub fn cmd_task(&self, trailing: Vec<String>) -> Task {
         let cmd = self.cmd_string(trailing.join(" "));
-        let cmd_task = Task::command(cmd, env);
+        let cmd_task = Task::simple_command(cmd);
         let write_task = self.write();
         Task::Seq(vec![write_task, cmd_task])
     }
@@ -40,11 +38,11 @@ impl DockerCompose {
             self.bytes.to_vec(),
         )
     }
-    pub fn eject(&self, env: HashMap<String, String>) -> Task {
+    pub fn eject(&self) -> Task {
         Task::file_write(
             self.eject_file.clone(),
             "Writes the docker-compose file",
-            replace_env(env, &self.bytes),
+            self.bytes.to_vec(),
         )
     }
 }

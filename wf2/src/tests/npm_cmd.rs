@@ -57,7 +57,7 @@ mod tests {
                     _ => unreachable!(),
                 };
                 match tasks.get(1) {
-                    Some(Task::Command { command, .. }) => {
+                    Some(Task::SimpleCommand { command, .. }) => {
                         assert_eq!(expected_cmd, command);
                     }
                     _ => unreachable!(),

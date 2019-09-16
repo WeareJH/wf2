@@ -10,7 +10,7 @@ use std::{
     process::{Command, Stdio},
 };
 
-pub type FutureSig = Box<Future<Item = usize, Error = TaskError> + Send>;
+pub type FutureSig = Box<dyn Future<Item = usize, Error = TaskError> + Send>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Task {

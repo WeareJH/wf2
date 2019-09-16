@@ -1,10 +1,14 @@
 use crate::{
     context::Context,
-    docker_compose::DockerCompose,
-    env::Env,
-    recipes::m2::m2_env::{M2Env, NGINX_OUTPUT_FILE, TRAEFIK_OUTPUT_FILE, UNISON_OUTPUT_FILE},
-    recipes::m2::M2Templates,
+    docker_compose::DcTasks,
+    file::File,
+    recipes::{
+        m2::m2_runtime_env_file::M2RuntimeEnvFile,
+        m2::m2_vars::{M2Vars, NGINX_OUTPUT_FILE, TRAEFIK_OUTPUT_FILE, UNISON_OUTPUT_FILE},
+        m2::M2Templates,
+    },
     task::Task,
+    vars::Vars,
 };
 use ansi_term::Colour::Green;
 
@@ -13,13 +17,12 @@ use ansi_term::Colour::Green;
 ///
 pub fn exec(
     ctx: &Context,
-    runtime_env: Vec<u8>,
-    env: &M2Env,
+    runtime_env: &M2RuntimeEnvFile,
+    vars: &M2Vars,
     detached: bool,
     templates: M2Templates,
+    dc: DcTasks,
 ) -> Vec<Task> {
-    let dc = DockerCompose::from_ctx(&ctx);
-
     vec![
         Task::notify(format!(
             "{header}: using {current}",
@@ -39,7 +42,11 @@ pub fn exec(
             "Ensure that composer.lock exists",
         ),
         Task::file_exists(ctx.cwd.join("auth.json"), "Ensure that auth.json exists"),
-        Task::file_write(env.file_path(), "Writes the .env file to disk", runtime_env),
+        Task::file_write(
+            runtime_env.file_path(),
+            "Writes the .env file to disk",
+            runtime_env.bytes(),
+        ),
         Task::file_write(
             ctx.file_path(UNISON_OUTPUT_FILE),
             "Writes the unison file",
@@ -56,89 +63,130 @@ pub fn exec(
             templates.nginx.bytes,
         ),
         if detached {
-            dc.cmd_task(vec!["up -d".to_string()], env.content())
+            dc.cmd_task(vec!["up -d".to_string()])
         } else {
-            dc.cmd_task(vec!["up".to_string()], env.content())
+            dc.cmd_task(vec!["up".to_string()])
         },
     ]
 }
 
-#[test]
-fn test_up_exec() {
-    use std::path::PathBuf;
-    let ctx = Context {
-        cwd: PathBuf::from("/users/shane"),
-        ..Context::default()
-    };
-    let output = exec(
-        &ctx,
-        vec![],
-        &M2Env::from_ctx(&ctx).unwrap(),
-        false,
-        M2Templates::default(),
-    );
-    let file_ops = Task::file_op_paths(output);
-    assert_eq!(
-        vec![
-            "/users/shane/composer.json",
-            "/users/shane/composer.lock",
-            "/users/shane/auth.json",
-            "/users/shane/.wf2_default/.docker.env",
-            "/users/shane/.wf2_default/unison/conf/sync.prf",
-            "/users/shane/.wf2_default/traefik/traefik.toml",
-            "/users/shane/.wf2_default/nginx/sites/site.conf"
-        ]
-        .into_iter()
-        .map(|s| PathBuf::from(s))
-        .collect::<Vec<PathBuf>>(),
-        file_ops
-    );
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::dc::Dc;
+    use crate::recipes::m2::services::get_services;
+    use crate::recipes::m2::volumes::get_volumes;
 
-#[test]
-fn test_up_exec_detached() {
-    let ctx = Context::default();
-    let output = exec(
-        &ctx,
-        vec![],
-        &M2Env::from_ctx(&ctx).unwrap(),
-        true,
-        M2Templates::default(),
-    );
-    let cmd = output.clone();
-    let last = cmd.get(8).unwrap();
-    match last {
-        Task::Seq(tasks) => match tasks.get(1).unwrap() {
-            Task::Command { command, .. } => assert_eq!(
-                command,
-                "docker-compose -f ./.wf2_default/docker-compose.yml up -d"
-            ),
-            _ => unreachable!(),
-        },
-        _ => unreachable!(),
-    };
-}
+    #[test]
+    fn test_up_exec() {
+        use std::path::PathBuf;
+        let ctx = Context {
+            cwd: PathBuf::from("/users/shane"),
+            ..Context::default()
+        };
+        let vars = M2Vars::from_ctx(&ctx).expect("test");
+        let dc_file = Dc::new()
+            .set_volumes(&get_volumes(&ctx))
+            .set_services(&get_services(&vars, &ctx))
+            .build();
 
-#[test]
-fn test_up_exec_none_detached() {
-    let ctx = Context::default();
-    let output = exec(
-        &ctx,
-        vec![],
-        &M2Env::from_ctx(&ctx).unwrap(),
-        false,
-        M2Templates::default(),
-    );
-    let cmd = output.clone();
-    let last = cmd.get(8).unwrap();
-    match last {
-        Task::Seq(tasks) => match tasks.get(1).unwrap() {
-            Task::Command { command, .. } => assert_eq!(
-                command,
-                "docker-compose -f ./.wf2_default/docker-compose.yml up"
-            ),
+        let db_bytes = serde_yaml::to_vec(&dc_file).expect("oops!");
+        let dc = DcTasks::from_ctx(&ctx, db_bytes);
+        let runtime_env = M2RuntimeEnvFile::from_ctx(&ctx).expect("test");
+
+        let output = exec(
+            &ctx,
+            &runtime_env,
+            &M2Vars::from_ctx(&ctx).unwrap(),
+            false,
+            M2Templates::default(),
+            dc,
+        );
+        let file_ops = Task::file_op_paths(output);
+        assert_eq!(
+            vec![
+                "/users/shane/composer.json",
+                "/users/shane/composer.lock",
+                "/users/shane/auth.json",
+                "/users/shane/.wf2_default/.docker.env",
+                "/users/shane/.wf2_default/unison/conf/sync.prf",
+                "/users/shane/.wf2_default/traefik/traefik.toml",
+                "/users/shane/.wf2_default/nginx/sites/site.conf"
+            ]
+            .into_iter()
+            .map(|s| PathBuf::from(s))
+            .collect::<Vec<PathBuf>>(),
+            file_ops
+        );
+    }
+
+    #[test]
+    fn test_up_exec_detached() {
+        let ctx = Context::default();
+        let m2_env = M2Vars::from_ctx(&ctx).expect("test");
+        let dc_file = Dc::new()
+            .set_volumes(&get_volumes(&ctx))
+            .set_services(&get_services(&m2_env, &ctx))
+            .build();
+
+        let db_bytes = serde_yaml::to_vec(&dc_file).expect("oops!");
+        let dc = DcTasks::from_ctx(&ctx, db_bytes);
+        let runtime_env = M2RuntimeEnvFile::from_ctx(&ctx).expect("test");
+        let output = exec(
+            &ctx,
+            &runtime_env,
+            &M2Vars::from_ctx(&ctx).unwrap(),
+            true,
+            M2Templates::default(),
+            dc,
+        );
+        let cmd = output.clone();
+        let last = cmd.get(8).unwrap();
+        match last {
+            Task::Seq(tasks) => match tasks.get(1).unwrap() {
+                Task::SimpleCommand { command, .. } => assert_eq!(
+                    command,
+                    "docker-compose -f ./.wf2_default/docker-compose.yml up -d"
+                ),
+                _ => unreachable!(),
+            },
             _ => unreachable!(),
-        },
-        _ => unreachable!(),
-    };
+        };
+    }
+
+    #[test]
+    fn test_up_exec_none_detached() {
+        let ctx = Context::default();
+        let m2_env = M2Vars::from_ctx(&ctx).expect("test");
+
+        let dc_file = Dc::new()
+            .set_volumes(&get_volumes(&ctx))
+            .set_services(&get_services(&m2_env, &ctx))
+            .build();
+
+        let db_bytes = serde_yaml::to_vec(&dc_file).expect("oops!");
+        let dc = DcTasks::from_ctx(&ctx, db_bytes);
+        let runtime_env = M2RuntimeEnvFile::from_ctx(&ctx).expect("test");
+        let output = exec(
+            &ctx,
+            &runtime_env,
+            &M2Vars::from_ctx(&ctx).unwrap(),
+            false,
+            M2Templates::default(),
+            dc,
+        );
+
+        let cmd = output.clone();
+        let last = cmd.get(8).unwrap();
+        match last {
+            Task::Seq(tasks) => match tasks.get(1).unwrap() {
+                Task::SimpleCommand { command, .. } => assert_eq!(
+                    command,
+                    "docker-compose -f ./.wf2_default/docker-compose.yml up"
+                ),
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        };
+    }
 }

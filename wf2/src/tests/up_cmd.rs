@@ -22,7 +22,7 @@ mod tests {
         let cli_output = CLIOutput::from_input(CLIInput::from_args(args));
         match cli_output.unwrap().tasks.unwrap().get(8).unwrap() {
             Task::Seq(tasks) => match tasks.get(1).unwrap() {
-                Task::Command { command, .. } => {
+                Task::SimpleCommand { command, .. } => {
                     assert_eq!(expected, command);
                 }
                 _ => unreachable!(),

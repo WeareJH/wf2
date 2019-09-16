@@ -1,8 +1,8 @@
 use crate::{
     context::Context,
-    docker_compose::DockerCompose,
+    docker_compose::DcTasks,
     recipes::m2::{
-        m2_env::{Env, M2Env},
+        m2_vars::{M2Vars, Vars},
         php_container::PhpContainer,
     },
     task::Task,
@@ -44,14 +44,15 @@ impl M2PassThru {
     }
     pub fn resolve_cmd(
         ctx: &Context,
-        env: &M2Env,
+        env: &M2Vars,
         cmd: String,
         trailing: Vec<String>,
+        dc: DcTasks,
     ) -> Option<Vec<Task>> {
         match cmd {
-            ref x if *x == M2PassThru::Dc => Some(M2PassThru::dc(&ctx, &env, trailing)),
-            ref x if *x == M2PassThru::Npm => Some(M2PassThru::npm(&ctx, &env, trailing)),
-            ref x if *x == M2PassThru::Node => Some(M2PassThru::node(&ctx, &env, trailing)),
+            ref x if *x == M2PassThru::Dc => Some(M2PassThru::dc(&ctx, &env, trailing, dc)),
+            ref x if *x == M2PassThru::Npm => Some(M2PassThru::npm(&ctx, &env, trailing, dc)),
+            ref x if *x == M2PassThru::Node => Some(M2PassThru::node(&ctx, &env, trailing, dc)),
             ref x if *x == M2PassThru::Composer => Some(M2PassThru::composer(&ctx, trailing)),
             ref x if *x == M2PassThru::M => Some(M2PassThru::mage(&ctx, trailing)),
             _ => None,
@@ -62,16 +63,14 @@ impl M2PassThru {
     /// A pass-thru command - where everything after `dc` is passed
     /// as-is to docker-compose, without verifying any arguments.
     ///
-    pub fn dc(ctx: &Context, env: &M2Env, trailing: Vec<String>) -> Vec<Task> {
-        let dc = DockerCompose::from_ctx(&ctx);
+    pub fn dc(_ctx: &Context, env: &M2Vars, trailing: Vec<String>, dc: DcTasks) -> Vec<Task> {
         let after: Vec<String> = trailing.into_iter().skip(1).collect();
-        vec![dc.cmd_task(after, env.content())]
+        vec![dc.cmd_task(after)]
     }
 
-    pub fn node(ctx: &Context, env: &M2Env, trailing: Vec<String>) -> Vec<Task> {
-        let dc = DockerCompose::from_ctx(&ctx);
+    pub fn node(_ctx: &Context, env: &M2Vars, trailing: Vec<String>, dc: DcTasks) -> Vec<Task> {
         let dc_command = format!(r#"run {}"#, trailing.join(" "));
-        vec![dc.cmd_task(vec![dc_command], env.content())]
+        vec![dc.cmd_task(vec![dc_command])]
     }
 
     pub fn composer(ctx: &Context, trailing: Vec<String>) -> Vec<Task> {
@@ -96,15 +95,14 @@ impl M2PassThru {
         vec![Task::simple_command(full_command)]
     }
 
-    pub fn npm(ctx: &Context, env: &M2Env, trailing: Vec<String>) -> Vec<Task> {
-        let dc = DockerCompose::from_ctx(&ctx);
+    pub fn npm(ctx: &Context, env: &M2Vars, trailing: Vec<String>, dc: DcTasks) -> Vec<Task> {
         let dc_command = format!(
             r#"run --workdir {work_dir} {service} {trailing_args}"#,
             work_dir = path_buf_to_string(&PathBuf::from("/var/www").join(ctx.npm_path.clone())),
             service = "node",
             trailing_args = trailing.join(" ")
         );
-        vec![dc.cmd_task(vec![dc_command], env.content())]
+        vec![dc.cmd_task(vec![dc_command])]
     }
 }
 

@@ -13,4 +13,6 @@ pub enum Cmd {
     DBImport { path: PathBuf },
     DBDump,
     PassThrough { cmd: String, trailing: Vec<String> },
+    ListImages,
+    UpdateImages { trailing: Vec<String> },
 }

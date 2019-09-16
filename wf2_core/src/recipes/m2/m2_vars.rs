@@ -1,9 +1,9 @@
 use super::php_container::PhpContainer;
-pub use crate::env::Env;
+use crate::recipes::m2::m2_runtime_env_file::ENV_OUTPUT_FILE;
+pub use crate::vars::Vars;
 use crate::{context::Context, util::path_buf_to_string};
 use std::{collections::HashMap, path::PathBuf};
 
-pub const ENV_OUTPUT_FILE: &str = ".docker.env";
 pub const TRAEFIK_OUTPUT_FILE: &str = "traefik/traefik.toml";
 pub const NGINX_OUTPUT_FILE: &str = "nginx/sites/site.conf";
 pub const UNISON_OUTPUT_FILE: &str = "unison/conf/sync.prf";
@@ -13,16 +13,16 @@ pub const DB_USER: &str = "docker";
 pub const DB_NAME: &str = "docker";
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct M2Env {
-    pub content: HashMap<EnvVar, String>,
+pub struct M2Vars {
+    pub content: HashMap<M2Var, String>,
     pub file_path: PathBuf,
 }
 
 ///
 /// Implement the methods to make it work with WF2
 ///
-impl Env<M2Env> for M2Env {
-    fn from_ctx(ctx: &Context) -> Result<M2Env, String> {
+impl Vars<M2Vars> for M2Vars {
+    fn from_ctx(ctx: &Context) -> Result<M2Vars, String> {
         // resolve the relative path to where the .env file will be written
         let env_file_path = ctx.file_path(ENV_OUTPUT_FILE);
 
@@ -41,37 +41,37 @@ impl Env<M2Env> for M2Env {
         let mut nginx_dir = ctx.file_path(NGINX_OUTPUT_FILE);
         nginx_dir.pop();
 
-        let env: HashMap<EnvVar, String> = vec![
-            (EnvVar::PhpImage, php_container.image.to_string()),
-            (EnvVar::Pwd, path_buf_to_string(&ctx.cwd)),
-            (EnvVar::ContextName, ctx.name.clone()),
-            (EnvVar::EnvFile, path_buf_to_string(&env_file_path)),
-            (EnvVar::Domain, ctx.domains()),
+        let env: HashMap<M2Var, String> = vec![
+            (M2Var::PhpImage, php_container.image.to_string()),
+            (M2Var::Pwd, path_buf_to_string(&ctx.cwd)),
+            (M2Var::ContextName, ctx.name.clone()),
+            (M2Var::EnvFile, path_buf_to_string(&env_file_path)),
+            (M2Var::Domain, ctx.domains()),
             (
-                EnvVar::UnisonFile,
+                M2Var::UnisonFile,
                 path_buf_to_string(&ctx.file_path(UNISON_OUTPUT_FILE)),
             ),
             (
-                EnvVar::TraefikFile,
+                M2Var::TraefikFile,
                 path_buf_to_string(&ctx.file_path(TRAEFIK_OUTPUT_FILE)),
             ),
-            (EnvVar::NginxDir, path_buf_to_string(&nginx_dir)),
+            (M2Var::NginxDir, path_buf_to_string(&nginx_dir)),
         ]
         .into_iter()
         .collect();
 
         // now merge the map above with any overrides
-        let merged_env: HashMap<EnvVar, String> = match overrides {
+        let merged_env: HashMap<M2Var, String> = match overrides {
             Some(M2Overrides {
                 env: Some(env_overrides),
             }) => {
                 // this will merge the original ENV + overrides
                 env.into_iter()
-                    .chain::<HashMap<EnvVar, String>>(
+                    .chain::<HashMap<M2Var, String>>(
                         env_overrides
                             .into_iter()
                             .map(|(key, value)| match key {
-                                EnvVar::NginxDir => {
+                                M2Var::NginxDir => {
                                     if value.starts_with("/") {
                                         (key, value)
                                     } else {
@@ -87,43 +87,32 @@ impl Env<M2Env> for M2Env {
             _ => env,
         };
 
-        Ok(M2Env {
+        Ok(M2Vars {
             content: merged_env,
             file_path: env_file_path,
         })
-    }
-    fn content(&self) -> HashMap<String, String> {
-        self.content
-            .clone()
-            .into_iter()
-            .map(|(key, val)| (key.into(), val))
-            .collect()
-    }
-    fn file_path(&self) -> PathBuf {
-        self.file_path.clone()
     }
 }
 
 #[test]
 fn test_env_from_ctx() {
     use crate::context::{DEFAULT_DOMAIN, DEFAULT_NAME};
-    let m2_env = M2Env::from_ctx(&Context::default()).unwrap();
-    let hm: HashMap<EnvVar, String> = vec![
-        (EnvVar::Pwd, "."),
-        (EnvVar::PhpImage, "wearejh/php:7.2-m2"),
-        (EnvVar::Domain, DEFAULT_DOMAIN),
-        (EnvVar::ContextName, DEFAULT_NAME),
-        (EnvVar::EnvFile, "./.wf2_default/.docker.env"),
-        (EnvVar::UnisonFile, "./.wf2_default/unison/conf/sync.prf"),
-        (EnvVar::TraefikFile, "./.wf2_default/traefik/traefik.toml"),
-        (EnvVar::NginxDir, "./.wf2_default/nginx/sites"),
+    let vars = M2Vars::from_ctx(&Context::default()).unwrap();
+    let hm: HashMap<M2Var, String> = vec![
+        (M2Var::Pwd, "."),
+        (M2Var::PhpImage, "wearejh/php:7.2-m2"),
+        (M2Var::Domain, DEFAULT_DOMAIN),
+        (M2Var::ContextName, DEFAULT_NAME),
+        (M2Var::EnvFile, "./.wf2_default/.docker.env"),
+        (M2Var::UnisonFile, "./.wf2_default/unison/conf/sync.prf"),
+        (M2Var::TraefikFile, "./.wf2_default/traefik/traefik.toml"),
+        (M2Var::NginxDir, "./.wf2_default/nginx/sites"),
     ]
     .into_iter()
     .map(|(k, v)| (k, v.into()))
     .collect();
 
-    println!("{:#?}", m2_env.content());
-    assert_eq!(hm, m2_env.content);
+    assert_eq!(hm, vars.content);
 }
 
 #[test]
@@ -138,31 +127,26 @@ fn test_env_from_ctx_with_overrides() {
         domains: vec![String::from("local.m2"), String::from("ce.local.m2")],
         ..Context::default()
     };
-    let m2_env = M2Env::from_ctx(&ctx).unwrap();
-    let hm: HashMap<EnvVar, String> = vec![
-        (EnvVar::Pwd, "."),
-        (EnvVar::PhpImage, "wearejh/php:7.2-m2"),
-        (EnvVar::Domain, "local.m2,ce.local.m2"),
-        (EnvVar::ContextName, DEFAULT_NAME),
-        (EnvVar::EnvFile, "./.wf2_default/.docker.env"),
-        (EnvVar::UnisonFile, "./.wf2_default/unison/conf/sync.prf"),
-        (EnvVar::TraefikFile, "./.wf2_default/traefik/traefik.toml"),
-        (EnvVar::NginxDir, "././overrides"),
+    let vars = M2Vars::from_ctx(&ctx).unwrap();
+    let hm: HashMap<M2Var, String> = vec![
+        (M2Var::Pwd, "."),
+        (M2Var::PhpImage, "wearejh/php:7.2-m2"),
+        (M2Var::Domain, "local.m2,ce.local.m2"),
+        (M2Var::ContextName, DEFAULT_NAME),
+        (M2Var::EnvFile, "./.wf2_default/.docker.env"),
+        (M2Var::UnisonFile, "./.wf2_default/unison/conf/sync.prf"),
+        (M2Var::TraefikFile, "./.wf2_default/traefik/traefik.toml"),
+        (M2Var::NginxDir, "././overrides"),
     ]
     .into_iter()
     .map(|(k, v)| (k, v.into()))
     .collect();
 
-    println!("{:#?}", m2_env.content());
-    assert_eq!(hm, m2_env.content);
-}
-
-pub fn file_path(cwd: &PathBuf, prefix: &str, path: &str) -> PathBuf {
-    cwd.join(prefix).join(path)
+    assert_eq!(hm, vars.content);
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Deserialize)]
-pub enum EnvVar {
+pub enum M2Var {
     Pwd,
     PhpImage,
     Domain,
@@ -173,25 +157,9 @@ pub enum EnvVar {
     NginxDir,
 }
 
-impl From<EnvVar> for String {
-    fn from(env_var: EnvVar) -> Self {
-        let output = match env_var {
-            EnvVar::Pwd => "WF2__M2__PWD",
-            EnvVar::PhpImage => "WF2__M2__PHP_IMAGE",
-            EnvVar::Domain => "WF2__M2__DOMAIN",
-            EnvVar::ContextName => "WF2__M2__CONTEXT_NAME",
-            EnvVar::EnvFile => "WF2__M2__ENV_FILE",
-            EnvVar::UnisonFile => "WF2__M2__UNISON_FILE",
-            EnvVar::TraefikFile => "WF2__M2__TRAEFIK_FILE",
-            EnvVar::NginxDir => "WF2__M2__NGINX_DIR",
-        };
-        output.to_string()
-    }
-}
-
 #[derive(Debug, Clone, Deserialize)]
 struct M2Overrides {
-    env: Option<HashMap<EnvVar, String>>,
+    env: Option<HashMap<M2Var, String>>,
 }
 
 #[test]
@@ -204,7 +172,7 @@ fn test_overrides() {
     match output {
         Ok(overrides) => {
             assert_eq!(
-                overrides.env.unwrap().get(&EnvVar::NginxDir),
+                overrides.env.unwrap().get(&M2Var::NginxDir),
                 Some(&String::from("./docker/nginx/override/sites"))
             );
         }

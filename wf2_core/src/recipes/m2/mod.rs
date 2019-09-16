@@ -1,24 +1,31 @@
+use crate::dc::Dc;
+use crate::file::File;
+use crate::recipes::m2::m2_runtime_env_file::M2RuntimeEnvFile;
+use crate::recipes::m2::services::get_services;
+use crate::recipes::m2::volumes::get_volumes;
+use crate::util::two_col;
 use crate::{
     cmd::Cmd,
     context::Context,
-    docker_compose::DockerCompose,
+    docker_compose::DcTasks,
     recipes::{Recipe, RecipeTemplate},
     task::Task,
     util::path_buf_to_string,
 };
 use clap::{App, ArgMatches};
-use m2_env::{Env, M2Env};
-use m2_runtime_env::create_runtime_env;
+use m2_vars::{M2Vars, Vars};
 use pass_thru::M2PassThru;
 use php_container::PhpContainer;
 use std::path::{Path, PathBuf};
 
 pub mod eject;
-pub mod m2_env;
-pub mod m2_runtime_env;
+pub mod m2_runtime_env_file;
+pub mod m2_vars;
 pub mod pass_thru;
 pub mod php_container;
+pub mod services;
 pub mod up;
+pub mod volumes;
 
 ///
 /// PHP 7.1 + 7.2 Environments for use with Magento 2.
@@ -36,6 +43,7 @@ pub mod up;
 ///
 pub struct M2Recipe {
     pub templates: M2Templates,
+    //    pub services:
 }
 
 ///
@@ -66,8 +74,8 @@ impl Default for M2Templates {
 
 impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
     fn resolve_cmd(&self, ctx: &Context, cmd: Cmd) -> Option<Vec<Task>> {
-        let env = M2Env::from_ctx(&ctx);
-        let runtime_env = create_runtime_env(&ctx, &ctx.env, &ctx.default_domain());
+        let vars = M2Vars::from_ctx(&ctx);
+        let runtime_env = M2RuntimeEnvFile::from_ctx(&ctx);
 
         if runtime_env.is_err() {
             return match runtime_env {
@@ -76,35 +84,53 @@ impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
             };
         }
 
-        if env.is_err() {
-            return match env {
+        if vars.is_err() {
+            return match vars {
                 Err(e) => Some(vec![Task::NotifyError { message: e }]),
                 Ok(..) => unreachable!(),
             };
         }
 
-        let env = env.expect("guarded above");
+        let vars = vars.expect("guarded above");
         let runtime_env = runtime_env.expect("guarded above");
+
+        let mut dc = Dc::new();
+
+        {
+            dc.set_volumes(&get_volumes(&ctx))
+                .set_services(&get_services(&vars, &ctx));
+        }
+
+        let dc_tasks = DcTasks::from_ctx(&ctx, dc.to_bytes());
 
         match cmd {
             Cmd::Up { detached } => Some(up::exec(
                 &ctx,
-                runtime_env,
-                &env,
+                &runtime_env,
+                &vars,
                 detached,
                 self.templates.clone(),
+                dc_tasks,
             )),
-            Cmd::Eject => Some(eject::exec(&ctx, runtime_env, &env, self.templates.clone())),
+            Cmd::Eject => Some(eject::exec(
+                &ctx,
+                &runtime_env,
+                &vars,
+                self.templates.clone(),
+                dc_tasks,
+            )),
             Cmd::Pull { trailing } => Some(self.pull(&ctx, trailing.clone())),
             Cmd::Push { trailing } => Some(self.push(&ctx, trailing.clone())),
-            Cmd::Down => Some(self.down(&ctx, &env)),
-            Cmd::Stop => Some(self.stop(&ctx, &env)),
+            Cmd::Down => Some(self.down(&ctx, &vars, dc_tasks)),
+            Cmd::Stop => Some(self.stop(&ctx, &vars, dc_tasks)),
+            Cmd::ListImages => Some(self.list_images(&dc)),
+            Cmd::UpdateImages { trailing } => Some(self.update_images(&dc, trailing)),
             Cmd::Exec { trailing, user } => Some(self.exec(&ctx, trailing, user.clone())),
             Cmd::DBImport { path } => Some(self.db_import(&ctx, path.clone())),
             Cmd::DBDump => Some(self.db_dump(&ctx)),
             Cmd::Doctor => Some(self.doctor(&ctx)),
             Cmd::PassThrough { cmd, trailing } => {
-                M2PassThru::resolve_cmd(&ctx, &env, cmd, trailing)
+                M2PassThru::resolve_cmd(&ctx, &vars, cmd, trailing, dc_tasks)
             }
         }
     }
@@ -175,16 +201,15 @@ impl M2Recipe {
     ///
     /// Alias for docker-compose down
     ///
-    pub fn down(&self, ctx: &Context, env: &M2Env) -> Vec<Task> {
-        vec![DockerCompose::from_ctx(&ctx).cmd_task(vec!["down".to_string()], env.content())]
+    pub fn down(&self, _ctx: &Context, vars: &M2Vars, dc: DcTasks) -> Vec<Task> {
+        vec![dc.cmd_task(vec!["down".to_string()])]
     }
 
     ///
     /// Alias for docker-compose stop
     ///
-    pub fn stop(&self, ctx: &Context, env: &M2Env) -> Vec<Task> {
-        let dc = DockerCompose::from_ctx(&ctx);
-        vec![dc.cmd_task(vec!["stop".to_string()], env.content())]
+    pub fn stop(&self, _ctx: &Context, vars: &M2Vars, dc: DcTasks) -> Vec<Task> {
+        vec![dc.cmd_task(vec!["stop".to_string()])]
     }
 
     ///
@@ -206,7 +231,7 @@ impl M2Recipe {
     /// If you have the `pv` package installed, it will be used to provide progress information.
     ///
     pub fn db_import(&self, ctx: &Context, path: impl Into<PathBuf>) -> Vec<Task> {
-        use m2_env::{DB_NAME, DB_PASS, DB_USER};
+        use m2_vars::{DB_NAME, DB_PASS, DB_USER};
         let path = path.into();
         let container_name = format!("wf2__{}__db", ctx.name);
         let db_import_command = match ctx.pv {
@@ -238,7 +263,7 @@ impl M2Recipe {
     /// is not configurable.
     ///
     pub fn db_dump(&self, ctx: &Context) -> Vec<Task> {
-        use m2_env::{DB_NAME, DB_PASS, DB_USER};
+        use m2_vars::{DB_NAME, DB_PASS, DB_USER};
         let container_name = format!("wf2__{}__db", ctx.name);
         let db_dump_command = format!(
             r#"docker exec -i {container} mysqldump -u{user} -p{pass} {db} > dump.sql"#,
@@ -409,4 +434,78 @@ impl M2Recipe {
             .chain(cp_commands)
             .collect()
     }
+
+    pub fn list_images(&self, dc: &Dc) -> Vec<Task> {
+        let pairs: Vec<(String, String)> = dc.services.as_ref().map_or(vec![], |services| {
+            services
+                .iter()
+                .map(|(key, service)| (key.to_string(), service.image.clone()))
+                .collect()
+        });
+
+        vec![Task::notify(format!("{}", two_col(pairs)))]
+    }
+
+    pub fn update_images(&self, dc: &Dc, trailing: Vec<String>) -> Vec<Task> {
+        let pairs: Vec<(String, String)> = dc.services.as_ref().map_or(vec![], |services| {
+            services
+                .iter()
+                .map(|(key, service)| (key.to_string(), service.image.clone()))
+                .collect()
+        });
+
+        let mut input = {
+            if trailing.len() == 0 {
+                pairs
+                    .clone()
+                    .into_iter()
+                    .map(|i| i.0)
+                    .collect::<Vec<String>>()
+            } else {
+                trailing
+            }
+        };
+
+        {
+            input.sort();
+            input.dedup();
+        }
+
+        let (valid, invalid): (Vec<String>, Vec<String>) = input
+            .into_iter()
+            .partition(|name| pairs.iter().any(|(service, img)| *service == *name));
+
+        invalid
+            .iter()
+            .map(|service| Task::notify_error(missing_service_msg(service.to_string(), &pairs)))
+            .chain(
+                valid
+                    .iter()
+                    .filter_map(|name| pairs.iter().find(|(service, img)| *service == *name))
+                    .map(|(service, image)| format!("docker pull {}", image))
+                    .map(|cmd| Task::simple_command(cmd)),
+            )
+            .collect()
+    }
+}
+
+fn missing_service_msg(input: String, services: &Vec<(String, String)>) -> String {
+    use ansi_term::Colour::{Cyan, Red};
+    format!(
+        r#"{}
+
+Did you mean one of these?
+{}"#,
+        Red.paint(format!(
+            "'{}' is not a valid service name in this recipe",
+            input
+        )),
+        Cyan.paint(
+            services
+                .iter()
+                .map(|(service, _)| format!("  {}", service.clone()))
+                .collect::<Vec<String>>()
+                .join("\n")
+        )
+    )
 }

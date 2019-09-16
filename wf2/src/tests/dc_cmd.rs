@@ -23,7 +23,7 @@ mod tests {
         let output = CLIOutput::from_input(input);
         match output.unwrap().tasks.unwrap().get(0) {
             Some(Task::Seq(tasks)) => match tasks.get(1).unwrap() {
-                Task::Command { command, .. } => debug_assert_eq!(command, expected),
+                Task::SimpleCommand { command, .. } => debug_assert_eq!(command, expected),
                 _ => unreachable!(),
             },
             _ => unreachable!(),

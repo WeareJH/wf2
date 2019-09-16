@@ -73,6 +73,15 @@ impl<'a, 'b> CLI<'a, 'b> {
                 SubCommand::with_name("eject")
                     .display_order(6)
                     .about("Dump all files into the local directory for manual running"),
+                SubCommand::with_name("update-images")
+                    .display_order(7)
+                    .about("Update images used in the current recipe")
+                    .arg(
+                        Arg::with_name("service_names")
+                            .help("limit the update to a subset of services")
+                            .multiple(true)
+                            .required(false),
+                    ),
             ])
             .settings(&[
                 AppSettings::AllowExternalSubcommands,
@@ -124,64 +133,4 @@ pub fn append_subcommands<'a, 'b>(
         .fold(app, |acc, (index, item)| {
             acc.subcommand(item.display_order(offset + index))
         })
-}
-
-///
-/// Produce the 'PASS THRU COMMANDS' section of the help message
-///
-pub fn get_after_help_lines(commands: Vec<(String, String)>) -> String {
-    match commands.clone().get(0) {
-        Some(_t) => {
-            let longest = commands.iter().fold(
-                commands[0].clone(),
-                |(prev_name, prev_desc), (name, help)| {
-                    if name.len() > prev_name.len() {
-                        (name.to_string(), help.to_string())
-                    } else {
-                        (prev_name, prev_desc)
-                    }
-                },
-            );
-            let longest = longest.0.len();
-            let lines = commands
-                .into_iter()
-                .map(|(name, help)| {
-                    let cur_len = name.len();
-                    let diff = longest - cur_len;
-                    let diff = match longest - cur_len {
-                        0 => 4,
-                        _ => diff + 4,
-                    };
-                    format!(
-                        "    {name}{:diff$}{help}",
-                        " ",
-                        name = name,
-                        diff = diff,
-                        help = help
-                    )
-                })
-                .collect::<Vec<String>>();
-            format!("PASS THRU COMMANDS:\n{}", lines.join("\n"))
-        }
-        None => String::from(""),
-    }
-}
-
-#[test]
-fn test_get_after_help_lines() {
-    let actual = get_after_help_lines(vec![
-        (String::from("npm"), String::from("help string")),
-        (
-            String::from("composer"),
-            String::from("another help string"),
-        ),
-        (String::from("m"), String::from("another help string")),
-    ]);
-    assert_eq!(
-        actual,
-        "PASS THRU COMMANDS:
-    npm         help string
-    composer    another help string
-    m           another help string"
-    );
 }

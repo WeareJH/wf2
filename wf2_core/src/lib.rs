@@ -7,12 +7,16 @@ extern crate from_file_derive;
 
 pub mod cmd;
 pub mod context;
+pub mod dc;
+pub mod dc_service;
+pub mod dc_volume;
 pub mod docker_compose;
-pub mod env;
+pub mod file;
 pub mod php;
 pub mod recipes;
 pub mod task;
 pub mod util;
+pub mod vars;
 
 use futures::{future::lazy, future::Future, stream::iter_ok, Stream};
 
@@ -29,7 +33,9 @@ impl WF2 {
     ///
     /// Create a future that will execute all of the tasks in sequence
     ///
-    pub fn sequence(tasks: Vec<Task>) -> Box<Future<Item = (), Error = (Task, TaskError)> + Send> {
+    pub fn sequence(
+        tasks: Vec<Task>,
+    ) -> Box<dyn Future<Item = (), Error = (Task, TaskError)> + Send> {
         Box::new(lazy(move || {
             // convert the list of tasks into a sequence
             let as_futures = tasks

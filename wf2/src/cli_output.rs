@@ -1,10 +1,11 @@
-use crate::cli::{append_subcommands, get_after_help_lines, CLI};
+use crate::cli::{append_subcommands, CLI};
 use crate::cli_input::CLIInput;
 use crate::error::CLIError;
 
 use clap::ArgMatches;
 use from_file::FromFileError;
 use std::path::PathBuf;
+use wf2_core::util::two_col;
 use wf2_core::{
     cmd::Cmd,
     context::{Context, ContextOverrides, RunMode},
@@ -31,7 +32,10 @@ impl CLIOutput {
         let recipe = RecipeKinds::select(&ctx.recipe);
 
         // Get
-        let after_help_lines = get_after_help_lines(recipe.pass_thru_commands());
+        let after_help_lines = format!(
+            "PASS THRU COMMANDS:\n{}",
+            two_col(recipe.pass_thru_commands())
+        );
 
         // append recipe subcommands
         let app = append_subcommands(cli.app, recipe.subcommands(), base_len + 1)
@@ -161,6 +165,18 @@ impl CLIOutput {
             }),
             ("down", ..) => Some(Cmd::Down),
             ("stop", ..) => Some(Cmd::Stop),
+            ("list-images", ..) => Some(Cmd::ListImages),
+            ("update-images", Some(sub_matches)) => {
+                let trailing = match sub_matches.values_of("service_names") {
+                    Some(services) => services
+                        .collect::<Vec<&str>>()
+                        .into_iter()
+                        .map(|s| s.to_string())
+                        .collect(),
+                    None => vec![],
+                };
+                Some(Cmd::UpdateImages { trailing })
+            }
             ("eject", ..) => Some(Cmd::Eject),
             ("pull", Some(sub_matches)) => {
                 let trailing = match sub_matches.values_of("paths") {

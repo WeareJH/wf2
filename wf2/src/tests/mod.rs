@@ -8,12 +8,14 @@ mod doctor_cmd;
 mod down_cmd;
 mod exec_cmd;
 mod flags_cmd;
+mod list_images_cmd;
 mod m2_contrib_recipe_cmd;
 mod m_cmd;
 mod npm_cmd;
 mod pull_cmd;
 mod push_cmd;
 mod up_cmd;
+mod update_images_cmd;
 
 ///
 /// Test helper to convert a nested task list in a
