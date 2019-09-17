@@ -26,7 +26,7 @@ impl M2Services {
 
 impl M2ServiceImages {
     const UNISON: &'static str = "wearejh/unison";
-    const TRAEFIK: &'static str = "traefik";
+    const TRAEFIK: &'static str = "traefik:1.7";
     const VARNISH: &'static str = "wearejh/magento-varnish:latest";
     const NGINX: &'static str = "wearejh/nginx:stable-m2";
     const NODE: &'static str = "wearejh/node:8-m2";
