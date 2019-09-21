@@ -94,12 +94,10 @@ impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
         let vars = vars.expect("guarded above");
         let runtime_env = runtime_env.expect("guarded above");
 
-        let mut dc = Dc::new();
-
-        {
-            dc.set_volumes(&get_volumes(&ctx))
-                .set_services(&get_services(&vars, &ctx));
-        }
+        let dc = Dc::new()
+            .set_volumes(&get_volumes(&ctx))
+            .set_services(&get_services(&vars, &ctx))
+            .build();
 
         let dc_tasks = DcTasks::from_ctx(&ctx, dc.to_bytes());
 
