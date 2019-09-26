@@ -1,6 +1,8 @@
+use crate::condition::{Answer, Con};
 use crate::WF2;
 use ansi_term::Colour::Red;
-use futures::{future::lazy, future::Future};
+use futures::{future::lazy, future::Future, IntoFuture};
+use std::fmt::Debug;
 use std::{
     collections::HashMap,
     fmt, fs,
@@ -12,7 +14,7 @@ use std::{
 
 pub type FutureSig = Box<dyn Future<Item = usize, Error = TaskError> + Send>;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug)]
 pub enum Task {
     File {
         description: String,
@@ -33,11 +35,16 @@ pub enum Task {
         message: String,
     },
     Seq(Vec<Task>),
+    Cond {
+        conditions: Vec<Box<dyn Con>>,
+        tasks: Vec<Task>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum FileOp {
     Write { content: Vec<u8> },
+    Clone { left: PathBuf, right: PathBuf },
     Exists,
     DirCreate,
     DirRemove,
@@ -79,6 +86,17 @@ impl Task {
             path: path.into(),
         }
     }
+    pub fn file_clone(left: impl Into<PathBuf>, right: impl Into<PathBuf>) -> Task {
+        let left_c = left.into();
+        Task::File {
+            description: String::from("File->clone"),
+            kind: FileOp::Clone {
+                left: left_c.clone(),
+                right: right.into(),
+            },
+            path: left_c.clone(),
+        }
+    }
     pub fn command(command: impl Into<String>, env: HashMap<String, String>) -> Task {
         Task::Command {
             command: command.into(),
@@ -113,6 +131,9 @@ impl Task {
             kind: FileOp::DirRemove,
             path: path.into(),
         }
+    }
+    pub fn conditional(conditions: Vec<Box<dyn Con>>, tasks: Vec<Task>) -> Task {
+        Task::Cond { conditions, tasks }
     }
     ///
     /// Helper for filtering tasks for only those
@@ -164,6 +185,11 @@ impl fmt::Display for Task {
                 path,
                 ..
             } => write!(f, "Remove a File or Directory: {:?}", path),
+            Task::File {
+                kind: FileOp::Clone { left, right },
+                path,
+                ..
+            } => write!(f, "Clone file {:?} to {:?}", left, right),
             Task::Command { command, env } => write!(f, "Command: {:?}\nEnv: {:#?}", command, env),
             Task::SimpleCommand { command, .. } => write!(f, "Command: {:?}", command),
             Task::Notify { message } => write!(f, "Notify: {:?}", message),
@@ -183,6 +209,12 @@ impl fmt::Display for Task {
                     ))
                     .collect::<Vec<String>>()
                     .join("\n")
+            ),
+            Task::Cond { conditions, tasks } => write!(
+                f,
+                "Conditional tasks, {} conditions -> {} tasks",
+                conditions.len(),
+                tasks.len()
             ),
         }
     }
@@ -211,6 +243,27 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                 .map_err(|e| TaskError {
                     index: id,
                     message: format!("Could not create File/Directory, e={}", e),
+                })
+        }
+        Task::File {
+            kind: FileOp::Clone { left, right },
+            ..
+        } => {
+            let mut cloned = right.clone();
+            cloned.pop();
+            let content = fs::read(left).map_err(|e| TaskError {
+                index: id,
+                message: format!("Could not read the content, e={}", e),
+            })?;
+            fs::create_dir_all(cloned)
+                .and_then(|_| {
+                    File::create(&right)
+                        .and_then(|mut f| f.write_all(&content))
+                        .map(|_| id)
+                })
+                .map_err(|e| TaskError {
+                    index: id,
+                    message: format!("Could not clone file/dir, e={}", e),
                 })
         }
         Task::File {
@@ -292,12 +345,32 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
         }
         Task::NotifyError { message } => Err(TaskError { index: id, message }),
         Task::Seq(tasks) => {
-            let task_sequence = WF2::sequence(tasks.clone());
+            let task_sequence = WF2::sequence(tasks);
             let output = task_sequence.wait();
             output.and_then(|_| Ok(id)).map_err(|e| TaskError {
                 index: id,
                 message: format!("Task Seq Item, e={:?}", e),
             })
+        }
+        Task::Cond { conditions, tasks } => {
+            let task_sequence = WF2::conditions(conditions);
+            let output = task_sequence.wait();
+            output
+                .and_then(|output| match output {
+                    Answer::Yes => {
+                        let task_sequence = WF2::sequence(tasks);
+                        let output = task_sequence.wait();
+                        match output {
+                            Ok(..) => Ok(id),
+                            Err((id, te)) => Err(te.message),
+                        }
+                    }
+                    Answer::No => Ok(id),
+                })
+                .map_err(|e| TaskError {
+                    index: id,
+                    message: format!("Task Seq Item, e={:?}", e),
+                })
         }
     }))
 }

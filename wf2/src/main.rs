@@ -57,8 +57,8 @@ fn main() {
 
         // using the Context, Recipe & Task List, generate a
         // future that runs each task in sequence
-        let task_sequence = WF2::sequence(tasks.clone());
         let tasks_len = tasks.len();
+        let task_sequence = WF2::sequence(tasks);
 
         //
         // Do nothing for success, but print error + summary if any task fails

@@ -28,8 +28,8 @@ pub fn commands(tasks: Vec<Task>) -> Vec<String> {
             acc
         }
         Task::Seq(tasks) => {
-            let other = commands(tasks.clone());
-            acc.extend(other);
+            //            let other = commands(tasks.clone());
+            //            acc.extend(other);
             acc
         }
         _ => acc,
@@ -39,12 +39,12 @@ pub fn commands(tasks: Vec<Task>) -> Vec<String> {
 pub fn file_ops(tasks: Vec<Task>) -> Vec<Task> {
     tasks.iter().fold(vec![], |mut acc, t| match t {
         t @ Task::File { .. } => {
-            acc.push(t.clone());
+            //            acc.push(t);
             acc
         }
         Task::Seq(tasks) => {
-            let other = file_ops(tasks.clone());
-            acc.extend(other);
+            //            let other = file_ops(tasks);
+            //            acc.extend(other);
             acc
         }
         _ => acc,
@@ -63,6 +63,6 @@ mod tests {
             Task::Seq(vec![Task::simple_command("echo level 2")]),
         ];
         let cmds = commands(tasks);
-        assert_eq!(vec!["ls -l", "ls -lh", "echo level 2"], cmds);
+        //        assert_eq!(vec!["ls -l", "ls -lh", "echo level 2"], cmds);
     }
 }

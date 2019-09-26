@@ -2,6 +2,7 @@ use crate::dc::Dc;
 use crate::file::File;
 use crate::recipes::m2::m2_runtime_env_file::M2RuntimeEnvFile;
 use crate::recipes::m2::services::get_services;
+use crate::recipes::m2::tasks::env_php::env_php_task;
 use crate::recipes::m2::volumes::get_volumes;
 use crate::util::two_col;
 use crate::{
@@ -24,6 +25,7 @@ pub mod m2_vars;
 pub mod pass_thru;
 pub mod php_container;
 pub mod services;
+pub mod tasks;
 pub mod up;
 pub mod volumes;
 
@@ -215,6 +217,7 @@ impl M2Recipe {
     ///
     pub fn doctor(&self, ctx: &Context) -> Vec<Task> {
         vec![
+            env_php_task(&ctx),
             Task::simple_command(format!(
                 "docker exec -it wf2__{}__unison chown -R docker:docker /volumes/internal",
                 ctx.name
