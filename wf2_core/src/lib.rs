@@ -18,6 +18,7 @@ pub mod php;
 pub mod recipes;
 pub mod task;
 pub mod util;
+pub mod file_op;
 pub mod vars;
 
 use futures::{future::lazy, future::Future, stream::iter_ok, Stream};

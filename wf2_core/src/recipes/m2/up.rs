@@ -142,18 +142,17 @@ mod tests {
             M2Templates::default(),
             dc,
         );
-        //        let cmd = output.clone();
-        //        let last = cmd.get(8).unwrap();
-        //        match last {
-        //            Task::Seq(tasks) => match tasks.get(1).unwrap() {
-        //                Task::SimpleCommand { command, .. } => assert_eq!(
-        //                    command,
-        //                    "docker-compose -f ./.wf2_default/docker-compose.yml up -d"
-        //                ),
-        //                _ => unreachable!(),
-        //            },
-        //            _ => unreachable!(),
-        //        };
+        let last = output.get(9).unwrap();
+        match last {
+            Task::Seq(tasks) => match tasks.get(1).unwrap() {
+                Task::SimpleCommand { command, .. } => assert_eq!(
+                    command,
+                    "docker-compose -f ./.wf2_default/docker-compose.yml up -d"
+                ),
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        };
     }
 
     #[test]
@@ -178,17 +177,16 @@ mod tests {
             dc,
         );
 
-        //        let cmd = output.clone();
-        //        let last = cmd.get(8).unwrap();
-        //        match last {
-        //            Task::Seq(tasks) => match tasks.get(1).unwrap() {
-        //                Task::SimpleCommand { command, .. } => assert_eq!(
-        //                    command,
-        //                    "docker-compose -f ./.wf2_default/docker-compose.yml up"
-        //                ),
-        //                _ => unreachable!(),
-        //            },
-        //            _ => unreachable!(),
-        //        };
+        let last = output.get(9).unwrap();
+        match last {
+            Task::Seq(tasks) => match tasks.get(1).unwrap() {
+                Task::SimpleCommand { command, .. } => assert_eq!(
+                    command,
+                    "docker-compose -f ./.wf2_default/docker-compose.yml up"
+                ),
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        };
     }
 }

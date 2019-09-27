@@ -1,4 +1,5 @@
-use wf2_core::task::{FileOp, Task};
+use wf2_core::task::{Task};
+use wf2_core::file_op::FileOp;
 
 mod composer_cmd;
 mod db_export_cmd;
@@ -38,8 +39,8 @@ pub fn commands(tasks: Vec<Task>) -> Vec<String> {
 
 pub fn file_ops(tasks: Vec<Task>) -> Vec<FileOp> {
     tasks.into_iter().fold(vec![], |mut acc, t| match t {
-        Task::File { kind, .. } => {
-            acc.push(kind);
+        Task::File { op, .. } => {
+            acc.push(op);
             acc
         }
         Task::Seq(tasks) => {

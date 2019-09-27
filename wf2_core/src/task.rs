@@ -1,5 +1,6 @@
 use crate::condition::{Answer, Con};
 use crate::WF2;
+use crate::file_op::FileOp;
 use ansi_term::Colour::Red;
 use futures::{future::lazy, future::Future};
 use std::{
@@ -17,8 +18,7 @@ pub type FutureSig = Box<dyn Future<Item = usize, Error = TaskError> + Send>;
 pub enum Task {
     File {
         description: String,
-        kind: FileOp,
-        path: PathBuf,
+        op: FileOp,
     },
     Command {
         command: String,
@@ -40,15 +40,6 @@ pub enum Task {
     },
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum FileOp {
-    Write { content: Vec<u8> },
-    Clone { left: PathBuf, right: PathBuf },
-    Exists,
-    DirCreate,
-    DirRemove,
-}
-
 #[derive(Debug, Clone)]
 pub struct TaskError {
     pub index: usize,
@@ -66,34 +57,32 @@ impl fmt::Display for TaskError {
 ///
 impl Task {
     pub fn file_write(
-        path: PathBuf,
+        path: impl Into<PathBuf>,
         description: impl Into<String>,
         content: impl Into<Vec<u8>>,
     ) -> Task {
         Task::File {
             description: description.into(),
-            kind: FileOp::Write {
+            op: FileOp::Write {
                 content: content.into(),
+                path: path.into(),
             },
-            path,
         }
     }
     pub fn file_exists(path: impl Into<PathBuf>, description: impl Into<String>) -> Task {
         Task::File {
             description: description.into(),
-            kind: FileOp::Exists,
-            path: path.into(),
+            op: FileOp::Exists { path: path.into() },
         }
     }
     pub fn file_clone(left: impl Into<PathBuf>, right: impl Into<PathBuf>) -> Task {
         let left_c = left.into();
         Task::File {
             description: String::from("File->clone"),
-            kind: FileOp::Clone {
+            op: FileOp::Clone {
                 left: left_c.clone(),
                 right: right.into(),
             },
-            path: left_c.clone(),
         }
     }
     pub fn command(command: impl Into<String>, env: HashMap<String, String>) -> Task {
@@ -120,15 +109,13 @@ impl Task {
     pub fn dir_create(path: impl Into<PathBuf>, description: impl Into<String>) -> Task {
         Task::File {
             description: description.into(),
-            kind: FileOp::DirCreate,
-            path: path.into(),
+            op: FileOp::DirCreate { path: path.into(), },
         }
     }
     pub fn dir_remove(path: impl Into<PathBuf>, description: impl Into<String>) -> Task {
         Task::File {
             description: description.into(),
-            kind: FileOp::DirRemove,
-            path: path.into(),
+            op: FileOp::DirRemove { path: path.into() }
         }
     }
     pub fn conditional(conditions: Vec<Box<dyn Con>>, tasks: Vec<Task>) -> Task {
@@ -143,13 +130,11 @@ impl Task {
             .into_iter()
             .filter_map(|t| match t {
                 Task::File {
-                    kind: FileOp::Write { .. },
-                    path,
+                    op: FileOp::Write { path, .. },
                     ..
                 } => Some(path),
                 Task::File {
-                    kind: FileOp::Exists { .. },
-                    path,
+                    op: FileOp::Exists { path, .. },
                     ..
                 } => Some(path),
                 _ => None,
@@ -165,27 +150,23 @@ impl fmt::Display for Task {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         match self {
             Task::File {
-                kind: FileOp::Write { content },
-                path,
+                op: FileOp::Write { content, path },
                 ..
             } => write!(f, "Write file: {:?}, {} bytes", path, content.len()),
             Task::File {
-                kind: FileOp::Exists,
-                path,
+                op: FileOp::Exists { path },
                 ..
             } => write!(f, "File exists check: {:?}", path),
             Task::File {
-                kind: FileOp::DirCreate,
-                path,
+                op: FileOp::DirCreate { path },
                 ..
             } => write!(f, "Directory creation (delete if exists): {:?}", path),
             Task::File {
-                kind: FileOp::DirRemove,
-                path,
+                op: FileOp::DirRemove { path },
                 ..
             } => write!(f, "Remove a File or Directory: {:?}", path),
             Task::File {
-                kind: FileOp::Clone { left, right },
+                op: FileOp::Clone { left, right },
                 ..
             } => write!(f, "Clone file {:?} to {:?}", left, right),
             Task::Command { command, env } => write!(f, "Command: {:?}\nEnv: {:#?}", command, env),
@@ -226,8 +207,7 @@ impl fmt::Display for Task {
 pub fn as_future(task: Task, id: usize) -> FutureSig {
     Box::new(lazy(move || match task {
         Task::File {
-            kind: FileOp::Write { content },
-            path,
+            op: FileOp::Write { content, path},
             ..
         } => {
             let mut cloned = path.clone();
@@ -244,7 +224,7 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                 })
         }
         Task::File {
-            kind: FileOp::Clone { left, right },
+            op: FileOp::Clone { left, right },
             ..
         } => {
             let mut cloned = right.clone();
@@ -265,8 +245,7 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                 })
         }
         Task::File {
-            kind: FileOp::Exists,
-            path,
+            op: FileOp::Exists { path },
             ..
         } => {
             if Path::exists(path.as_path()) {
@@ -279,8 +258,7 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
             }
         }
         Task::File {
-            kind: FileOp::DirCreate,
-            path,
+            op: FileOp::DirCreate { path},
             ..
         } => std::fs::create_dir_all(&path)
             .and_then(|()| Ok(id))
@@ -289,8 +267,7 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                 message: format!("{}", e),
             }),
         Task::File {
-            kind: FileOp::DirRemove,
-            path,
+            op: FileOp::DirRemove { path },
             ..
         } => fs::remove_dir_all(&path)
             .and_then(|()| Ok(id))
