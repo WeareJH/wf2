@@ -1,14 +1,12 @@
 use crate::condition::{Answer, Con};
-use crate::WF2;
 use crate::file_op::FileOp;
+use crate::WF2;
 use ansi_term::Colour::Red;
 use futures::{future::lazy, future::Future};
 use std::{
     collections::HashMap,
-    fmt, fs,
-    fs::File,
-    io::Write,
-    path::{Path, PathBuf},
+    fmt,
+    path::PathBuf,
     process::{Command, Stdio},
 };
 
@@ -109,13 +107,13 @@ impl Task {
     pub fn dir_create(path: impl Into<PathBuf>, description: impl Into<String>) -> Task {
         Task::File {
             description: description.into(),
-            op: FileOp::DirCreate { path: path.into(), },
+            op: FileOp::DirCreate { path: path.into() },
         }
     }
     pub fn dir_remove(path: impl Into<PathBuf>, description: impl Into<String>) -> Task {
         Task::File {
             description: description.into(),
-            op: FileOp::DirRemove { path: path.into() }
+            op: FileOp::DirRemove { path: path.into() },
         }
     }
     pub fn conditional(conditions: Vec<Box<dyn Con>>, tasks: Vec<Task>) -> Task {
@@ -206,75 +204,10 @@ impl fmt::Display for Task {
 ///
 pub fn as_future(task: Task, id: usize) -> FutureSig {
     Box::new(lazy(move || match task {
-        Task::File {
-            op: FileOp::Write { content, path},
-            ..
-        } => {
-            let mut cloned = path.clone();
-            cloned.pop();
-            fs::create_dir_all(cloned)
-                .and_then(|_| {
-                    File::create(&path)
-                        .and_then(|mut f| f.write_all(&content))
-                        .map(|_| id)
-                })
-                .map_err(|e| TaskError {
-                    index: id,
-                    message: format!("Could not create File/Directory, e={}", e),
-                })
-        }
-        Task::File {
-            op: FileOp::Clone { left, right },
-            ..
-        } => {
-            let mut cloned = right.clone();
-            cloned.pop();
-            let content = fs::read(left).map_err(|e| TaskError {
-                index: id,
-                message: format!("Could not read the content, e={}", e),
-            })?;
-            fs::create_dir_all(cloned)
-                .and_then(|_| {
-                    File::create(&right)
-                        .and_then(|mut f| f.write_all(&content))
-                        .map(|_| id)
-                })
-                .map_err(|e| TaskError {
-                    index: id,
-                    message: format!("Could not clone file/dir, e={}", e),
-                })
-        }
-        Task::File {
-            op: FileOp::Exists { path },
-            ..
-        } => {
-            if Path::exists(path.as_path()) {
-                Ok(id)
-            } else {
-                Err(TaskError {
-                    index: id,
-                    message: format!("Required file does not exist: {:?}", path),
-                })
-            }
-        }
-        Task::File {
-            op: FileOp::DirCreate { path},
-            ..
-        } => std::fs::create_dir_all(&path)
-            .and_then(|()| Ok(id))
-            .map_err(|e| TaskError {
-                index: id,
-                message: format!("{}", e),
-            }),
-        Task::File {
-            op: FileOp::DirRemove { path },
-            ..
-        } => fs::remove_dir_all(&path)
-            .and_then(|()| Ok(id))
-            .map_err(|e| TaskError {
-                index: id,
-                message: format!("{}", e),
-            }),
+        Task::File { op, .. } => op.exec().map(|_| id).map_err(|e| TaskError {
+            index: id,
+            message: format!("FileOp error e={}", e),
+        }),
         Task::SimpleCommand { command } => {
             let mut child_process = Command::new("sh");
             child_process.arg("-c").arg(command);

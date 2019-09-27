@@ -3,8 +3,8 @@ mod tests {
     use crate::cli_input::CLIInput;
     use crate::cli_output::CLIOutput;
     use std::path::PathBuf;
-    use wf2_core::task::{Task};
     use wf2_core::file_op::FileOp;
+    use wf2_core::task::Task;
 
     #[test]
     fn test_pass_through_npm() {

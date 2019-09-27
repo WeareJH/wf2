@@ -2,8 +2,8 @@
 mod tests {
     use crate::cli_input::CLIInput;
     use crate::cli_output::CLIOutput;
-    use wf2_core::task::{Task};
     use wf2_core::file_op::FileOp;
+    use wf2_core::task::Task;
 
     #[test]
     fn test_m2_contrib_recipe() {
@@ -19,7 +19,7 @@ mod tests {
         let unison_task = tasks.get(6).unwrap();
         match unison_task {
             Task::File {
-                op: FileOp::Write { content , ..},
+                op: FileOp::Write { content, .. },
                 ..
             } => {
                 assert_eq!(unison_bytes.to_vec(), *content);

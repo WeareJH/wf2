@@ -1,5 +1,5 @@
-use wf2_core::task::{Task};
 use wf2_core::file_op::FileOp;
+use wf2_core::task::Task;
 
 mod composer_cmd;
 mod db_export_cmd;
