@@ -1,7 +1,7 @@
 use crate::conditions::{FilePresent, FilesDiffer, Question};
 use crate::context::Context;
 use crate::task::Task;
-use ansi_term::Colour::{Cyan, Green, Red};
+use ansi_term::Colour::{Cyan, Green};
 
 const LEFT: &'static str = "app/etc/env.php";
 const RIGHT: &'static str = "app/etc/env.php.dist";

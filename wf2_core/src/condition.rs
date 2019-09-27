@@ -1,4 +1,4 @@
-use futures::{future::lazy, future::Future, IntoFuture};
+use futures::future::Future;
 use std::fmt;
 use std::fmt::Debug;
 
@@ -10,7 +10,7 @@ pub trait Con: Send + Sync {
 }
 
 impl Debug for dyn Con {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         unimplemented!()
     }
 }

@@ -15,7 +15,7 @@ mod tests {
             include_bytes!("../../../wf2_core/src/recipes/m2_contrib/templates/sync.prf");
 
         let tasks = cli_output.unwrap().tasks.unwrap();
-        let unison_task = tasks.get(5).unwrap();
+        let unison_task = tasks.get(6).unwrap();
         match unison_task {
             Task::File {
                 kind: FileOp::Write { content },

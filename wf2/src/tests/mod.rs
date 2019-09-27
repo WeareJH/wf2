@@ -1,4 +1,4 @@
-use wf2_core::task::Task;
+use wf2_core::task::{FileOp, Task};
 
 mod composer_cmd;
 mod db_export_cmd;
@@ -22,29 +22,29 @@ mod update_images_cmd;
 /// Vec of strings for easier comparison
 ///
 pub fn commands(tasks: Vec<Task>) -> Vec<String> {
-    tasks.iter().fold(vec![], |mut acc, t| match t {
+    tasks.into_iter().fold(vec![], |mut acc, t| match t {
         Task::SimpleCommand { command, .. } | Task::Command { command, .. } => {
             acc.push(command.to_string());
             acc
         }
         Task::Seq(tasks) => {
-            //            let other = commands(tasks.clone());
-            //            acc.extend(other);
+            let other = commands(tasks);
+            acc.extend(other);
             acc
         }
         _ => acc,
     })
 }
 
-pub fn file_ops(tasks: Vec<Task>) -> Vec<Task> {
-    tasks.iter().fold(vec![], |mut acc, t| match t {
-        t @ Task::File { .. } => {
-            //            acc.push(t);
+pub fn file_ops(tasks: Vec<Task>) -> Vec<FileOp> {
+    tasks.into_iter().fold(vec![], |mut acc, t| match t {
+        Task::File { kind, .. } => {
+            acc.push(kind);
             acc
         }
         Task::Seq(tasks) => {
-            //            let other = file_ops(tasks);
-            //            acc.extend(other);
+            let other = file_ops(tasks);
+            acc.extend(other);
             acc
         }
         _ => acc,
@@ -63,6 +63,6 @@ mod tests {
             Task::Seq(vec![Task::simple_command("echo level 2")]),
         ];
         let cmds = commands(tasks);
-        //        assert_eq!(vec!["ls -l", "ls -lh", "echo level 2"], cmds);
+        assert_eq!(vec!["ls -l", "ls -lh", "echo level 2"], cmds);
     }
 }

@@ -28,7 +28,6 @@ use crate::{
 };
 
 use crate::condition::{Answer, Con, ConditionFuture};
-use std::sync::Arc;
 
 pub struct WF2;
 

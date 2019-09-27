@@ -1,7 +1,5 @@
 use crate::condition::{Answer, Con, ConditionFuture};
-use crate::task::Task::File;
-use futures::{future::lazy, future::Future, IntoFuture};
-use std::io::Error;
+use futures::future::lazy;
 use std::path::{Path, PathBuf};
 use std::{fs, io};
 

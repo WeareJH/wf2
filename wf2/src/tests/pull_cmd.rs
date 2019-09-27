@@ -101,10 +101,13 @@ mod tests {
         expected_commands: Vec<&str>,
         expected_file_ops: Vec<Task>,
     ) {
-        let input = CLIInput::from_args(args).with_cwd(cwd);
-        let cli_output = CLIOutput::from_input(input);
-        //        let tasks = cli_output.expect("test").tasks.unwrap().clone();
-        //        assert_eq!(commands(tasks.clone()), expected_commands);
-        //        assert_eq!(file_ops(tasks.clone()), expected_file_ops);
+        let cwd = cwd.into();
+        let get_tasks = move || {
+            let input = CLIInput::from_args(args.clone()).with_cwd(cwd.clone());
+            let cli_output = CLIOutput::from_input(input);
+            cli_output.expect("test").tasks.unwrap()
+        };
+        assert_eq!(commands(get_tasks()), expected_commands);
+        assert_eq!(file_ops(get_tasks()), file_ops(expected_file_ops));
     }
 }

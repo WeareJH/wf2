@@ -1,8 +1,7 @@
 use crate::condition::{Answer, Con};
 use crate::WF2;
 use ansi_term::Colour::Red;
-use futures::{future::lazy, future::Future, IntoFuture};
-use std::fmt::Debug;
+use futures::{future::lazy, future::Future};
 use std::{
     collections::HashMap,
     fmt, fs,
@@ -187,7 +186,6 @@ impl fmt::Display for Task {
             } => write!(f, "Remove a File or Directory: {:?}", path),
             Task::File {
                 kind: FileOp::Clone { left, right },
-                path,
                 ..
             } => write!(f, "Clone file {:?} to {:?}", left, right),
             Task::Command { command, env } => write!(f, "Command: {:?}\nEnv: {:#?}", command, env),
@@ -362,7 +360,7 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                         let output = task_sequence.wait();
                         match output {
                             Ok(..) => Ok(id),
-                            Err((id, te)) => Err(te.message),
+                            Err((_id, te)) => Err(te.message),
                         }
                     }
                     Answer::No => Ok(id),

@@ -24,7 +24,7 @@ pub mod m2_contrib;
 /// let cmd = Cmd::Up { detached: false };
 /// let tasks = RecipeKinds::select(&RecipeKinds::M2).resolve_cmd(&ctx, cmd).unwrap();
 ///
-/// assert_eq!(tasks.len(), 9);
+/// assert_eq!(tasks.len(), 10);
 /// ```
 ///
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq)]

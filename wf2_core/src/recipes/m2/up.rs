@@ -1,6 +1,4 @@
-use crate::conditions::{FilesDiffer, Question};
 use crate::recipes::m2::tasks::env_php::env_php_task;
-use crate::util::path_buf_to_string;
 use crate::{
     context::Context,
     docker_compose::DcTasks,
@@ -11,7 +9,6 @@ use crate::{
         m2::M2Templates,
     },
     task::Task,
-    vars::Vars,
 };
 use ansi_term::Colour::Green;
 
@@ -21,7 +18,7 @@ use ansi_term::Colour::Green;
 pub fn exec(
     ctx: &Context,
     runtime_env: &M2RuntimeEnvFile,
-    vars: &M2Vars,
+    _vars: &M2Vars,
     detached: bool,
     templates: M2Templates,
     dc: DcTasks,
@@ -78,6 +75,7 @@ pub fn exec(
 mod tests {
     use super::*;
     use crate::dc::Dc;
+    use crate::recipes::m2::m2_vars::Vars;
     use crate::recipes::m2::services::get_services;
     use crate::recipes::m2::volumes::get_volumes;
 
