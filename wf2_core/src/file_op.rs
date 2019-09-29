@@ -1,3 +1,4 @@
+use core::fmt;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
@@ -22,6 +23,22 @@ impl FileOp {
             FileOp::Exists { path } => exists(path),
             FileOp::DirCreate { path } => dir_create(path),
             FileOp::DirRemove { path } => dir_remove(path),
+        }
+    }
+}
+
+impl fmt::Display for FileOp {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        match self {
+            FileOp::Write { path, content } => {
+                write!(f, "Write file: {:?}, {} bytes", path, content.len())
+            }
+            FileOp::Clone { left, right } => write!(f, "Clone file {:?} to {:?}", left, right),
+            FileOp::Exists { path } => write!(f, "File exists check: {:?}", path),
+            FileOp::DirCreate { path } => {
+                write!(f, "Directory creation (delete if exists): {:?}", path)
+            }
+            FileOp::DirRemove { path } => write!(f, "Remove a File or Directory: {:?}", path),
         }
     }
 }

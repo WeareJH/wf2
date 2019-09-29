@@ -156,26 +156,7 @@ impl Task {
 impl fmt::Display for Task {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         match self {
-            Task::File {
-                op: FileOp::Write { content, path },
-                ..
-            } => write!(f, "Write file: {:?}, {} bytes", path, content.len()),
-            Task::File {
-                op: FileOp::Exists { path },
-                ..
-            } => write!(f, "File exists check: {:?}", path),
-            Task::File {
-                op: FileOp::DirCreate { path },
-                ..
-            } => write!(f, "Directory creation (delete if exists): {:?}", path),
-            Task::File {
-                op: FileOp::DirRemove { path },
-                ..
-            } => write!(f, "Remove a File or Directory: {:?}", path),
-            Task::File {
-                op: FileOp::Clone { left, right },
-                ..
-            } => write!(f, "Clone file {:?} to {:?}", left, right),
+            Task::File { op, .. } => write!(f, "{}", op),
             Task::Command { command, env } => write!(f, "Command: {:?}\nEnv: {:#?}", command, env),
             Task::SimpleCommand { command, .. } => write!(f, "Command: {:?}", command),
             Task::Notify { message } => write!(f, "Notify: {:?}", message),
