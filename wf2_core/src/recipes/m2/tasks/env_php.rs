@@ -1,6 +1,8 @@
-use crate::conditions::{FilePresent, FilesDiffer, Question};
-use crate::context::Context;
-use crate::task::Task;
+use crate::{
+    conditions::{file_present::FilePresent, files_differ::FilesDiffer, question::Question},
+    context::Context,
+    task::Task,
+};
 use ansi_term::Colour::{Cyan, Green};
 
 const LEFT: &'static str = "app/etc/env.php";
@@ -38,5 +40,6 @@ pub fn env_php_task(ctx: &Context) -> Task {
             )),
             Task::notify(format!("{}", warning)),
         ],
+        Some("env.php.dist comparison with env.php"),
     )
 }

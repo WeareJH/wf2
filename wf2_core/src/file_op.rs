@@ -21,7 +21,7 @@ impl FileOp {
             FileOp::Clone { left, right } => clone(left, right),
             FileOp::Exists { path } => exists(path),
             FileOp::DirCreate { path } => dir_create(path),
-            _ => unimplemented!(),
+            FileOp::DirRemove { path } => dir_remove(path),
         }
     }
 }

@@ -5,7 +5,7 @@ use std::fmt::Debug;
 ///
 /// A trait to represent a thread-safe condition
 ///
-pub trait Con: Send + Sync {
+pub trait Con: Send + Sync + fmt::Display {
     fn exec(&self) -> ConditionFuture;
 }
 

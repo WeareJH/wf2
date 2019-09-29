@@ -33,6 +33,7 @@ pub enum Task {
     },
     Seq(Vec<Task>),
     Cond {
+        description: Option<String>,
         conditions: Vec<Box<dyn Con>>,
         tasks: Vec<Task>,
     },
@@ -116,8 +117,16 @@ impl Task {
             op: FileOp::DirRemove { path: path.into() },
         }
     }
-    pub fn conditional(conditions: Vec<Box<dyn Con>>, tasks: Vec<Task>) -> Task {
-        Task::Cond { conditions, tasks }
+    pub fn conditional(
+        conditions: Vec<Box<dyn Con>>,
+        tasks: Vec<Task>,
+        description: Option<impl Into<String>>,
+    ) -> Task {
+        Task::Cond {
+            conditions,
+            tasks,
+            description: description.map(|d| d.into()),
+        }
     }
     ///
     /// Helper for filtering tasks for only those
@@ -187,12 +196,49 @@ impl fmt::Display for Task {
                     .collect::<Vec<String>>()
                     .join("\n")
             ),
-            Task::Cond { conditions, tasks } => write!(
-                f,
-                "Conditional tasks, {} conditions -> {} tasks",
-                conditions.len(),
-                tasks.len()
-            ),
+            Task::Cond {
+                conditions,
+                tasks,
+                description,
+            } => {
+                let cond_list = conditions
+                    .iter()
+                    .enumerate()
+                    .map(|(index, condition)| {
+                        format!(
+                            "{:indent$} [{index}] {condition}",
+                            "",
+                            indent = 4,
+                            index = index,
+                            condition = condition
+                        )
+                    })
+                    .collect::<Vec<String>>()
+                    .join("\n");
+                let task_list = tasks
+                    .iter()
+                    .enumerate()
+                    .map(|(index, task)| {
+                        format!(
+                            "{:indent$} [{index}] {task}",
+                            "",
+                            indent = 8,
+                            index = index,
+                            task = task
+                        )
+                    })
+                    .collect::<Vec<String>>()
+                    .join("\n");
+                write!(
+                    f,
+                    "Conditional Task: {}\n{}\n     Tasks:\n{}",
+                    description
+                        .clone()
+                        .unwrap_or(String::from("Conditional Task:")),
+                    cond_list,
+                    task_list
+                )
+            }
         }
     }
 }
@@ -260,7 +306,9 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                 message: format!("Task Seq Item, e={:?}", e),
             })
         }
-        Task::Cond { conditions, tasks } => {
+        Task::Cond {
+            conditions, tasks, ..
+        } => {
             let task_sequence = WF2::conditions(conditions);
             let output = task_sequence.wait();
             output
