@@ -284,7 +284,7 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
             let output = task_sequence.wait();
             output.and_then(|_| Ok(id)).map_err(|e| TaskError {
                 index: id,
-                message: format!("Task Seq Item, e={:?}", e),
+                message: format!("Task Seq error: {:?}", e),
             })
         }
         Task::Cond {
@@ -306,7 +306,7 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                 })
                 .map_err(|e| TaskError {
                     index: id,
-                    message: format!("Task Seq Item, e={:?}", e),
+                    message: format!("Conditional task error: {:?}", e),
                 })
         }
     }))
