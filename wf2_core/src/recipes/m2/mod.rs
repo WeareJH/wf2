@@ -234,7 +234,7 @@ impl M2Recipe {
         let container_name = format!("wf2__{}__db", ctx.name);
         let db_import_command = match ctx.pv {
             Some(..) => format!(
-                r#"pv -f {file} | docker exec -i {container} mysql -u{user} -p{pass} -D {db}"#,
+                r#"pv -f "{file}" | docker exec -i {container} mysql -u{user} -p{pass} -D {db}"#,
                 file = path_buf_to_string(&path),
                 container = container_name,
                 user = DB_USER,
@@ -242,7 +242,7 @@ impl M2Recipe {
                 db = DB_NAME,
             ),
             None => format!(
-                r#"docker exec -i {container} mysql -u{user} -p{pass} {db} < {file}"#,
+                r#"docker exec -i {container} mysql -u{user} -p{pass} {db} < "{file}""#,
                 file = path_buf_to_string(&path),
                 container = container_name,
                 user = DB_USER,
