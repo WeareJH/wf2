@@ -1,3 +1,4 @@
+use wf2_core::file_op::FileOp;
 use wf2_core::task::Task;
 
 mod composer_cmd;
@@ -22,13 +23,13 @@ mod update_images_cmd;
 /// Vec of strings for easier comparison
 ///
 pub fn commands(tasks: Vec<Task>) -> Vec<String> {
-    tasks.iter().fold(vec![], |mut acc, t| match t {
+    tasks.into_iter().fold(vec![], |mut acc, t| match t {
         Task::SimpleCommand { command, .. } | Task::Command { command, .. } => {
             acc.push(command.to_string());
             acc
         }
         Task::Seq(tasks) => {
-            let other = commands(tasks.clone());
+            let other = commands(tasks);
             acc.extend(other);
             acc
         }
@@ -36,14 +37,14 @@ pub fn commands(tasks: Vec<Task>) -> Vec<String> {
     })
 }
 
-pub fn file_ops(tasks: Vec<Task>) -> Vec<Task> {
-    tasks.iter().fold(vec![], |mut acc, t| match t {
-        t @ Task::File { .. } => {
-            acc.push(t.clone());
+pub fn file_ops(tasks: Vec<Task>) -> Vec<FileOp> {
+    tasks.into_iter().fold(vec![], |mut acc, t| match t {
+        Task::File { op, .. } => {
+            acc.push(op);
             acc
         }
         Task::Seq(tasks) => {
-            let other = file_ops(tasks.clone());
+            let other = file_ops(tasks);
             acc.extend(other);
             acc
         }

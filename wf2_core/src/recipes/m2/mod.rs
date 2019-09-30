@@ -2,6 +2,7 @@ use crate::dc::Dc;
 use crate::file::File;
 use crate::recipes::m2::m2_runtime_env_file::M2RuntimeEnvFile;
 use crate::recipes::m2::services::get_services;
+use crate::recipes::m2::tasks::env_php::env_php_task;
 use crate::recipes::m2::volumes::get_volumes;
 use crate::util::two_col;
 use crate::{
@@ -24,6 +25,7 @@ pub mod m2_vars;
 pub mod pass_thru;
 pub mod php_container;
 pub mod services;
+pub mod tasks;
 pub mod up;
 pub mod volumes;
 
@@ -199,14 +201,14 @@ impl M2Recipe {
     ///
     /// Alias for docker-compose down
     ///
-    pub fn down(&self, _ctx: &Context, vars: &M2Vars, dc: DcTasks) -> Vec<Task> {
+    pub fn down(&self, _ctx: &Context, _vars: &M2Vars, dc: DcTasks) -> Vec<Task> {
         vec![dc.cmd_task(vec!["down".to_string()])]
     }
 
     ///
     /// Alias for docker-compose stop
     ///
-    pub fn stop(&self, _ctx: &Context, vars: &M2Vars, dc: DcTasks) -> Vec<Task> {
+    pub fn stop(&self, _ctx: &Context, _vars: &M2Vars, dc: DcTasks) -> Vec<Task> {
         vec![dc.cmd_task(vec!["stop".to_string()])]
     }
 
@@ -215,6 +217,7 @@ impl M2Recipe {
     ///
     pub fn doctor(&self, ctx: &Context) -> Vec<Task> {
         vec![
+            env_php_task(&ctx),
             Task::simple_command(format!(
                 "docker exec -it wf2__{}__unison chown -R docker:docker /volumes/internal",
                 ctx.name
@@ -471,7 +474,7 @@ impl M2Recipe {
 
         let (valid, invalid): (Vec<String>, Vec<String>) = input
             .into_iter()
-            .partition(|name| pairs.iter().any(|(service, img)| *service == *name));
+            .partition(|name| pairs.iter().any(|(service, _img)| *service == *name));
 
         invalid
             .iter()
@@ -479,8 +482,8 @@ impl M2Recipe {
             .chain(
                 valid
                     .iter()
-                    .filter_map(|name| pairs.iter().find(|(service, img)| *service == *name))
-                    .map(|(service, image)| format!("docker pull {}", image))
+                    .filter_map(|name| pairs.iter().find(|(service, _img)| *service == *name))
+                    .map(|(_service, image)| format!("docker pull {}", image))
                     .map(|cmd| Task::simple_command(cmd)),
             )
             .collect()

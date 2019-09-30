@@ -1,3 +1,4 @@
+use crate::recipes::m2::tasks::env_php::env_php_task;
 use crate::{
     context::Context,
     docker_compose::DcTasks,
@@ -8,7 +9,6 @@ use crate::{
         m2::M2Templates,
     },
     task::Task,
-    vars::Vars,
 };
 use ansi_term::Colour::Green;
 
@@ -18,7 +18,7 @@ use ansi_term::Colour::Green;
 pub fn exec(
     ctx: &Context,
     runtime_env: &M2RuntimeEnvFile,
-    vars: &M2Vars,
+    _vars: &M2Vars,
     detached: bool,
     templates: M2Templates,
     dc: DcTasks,
@@ -33,6 +33,7 @@ pub fn exec(
                 .map(|p| p.to_string_lossy().to_string())
                 .unwrap_or("default, since no config was provided".into())
         )),
+        env_php_task(&ctx),
         Task::file_exists(
             ctx.cwd.join("composer.json"),
             "Ensure that composer.json exists",
@@ -74,6 +75,7 @@ pub fn exec(
 mod tests {
     use super::*;
     use crate::dc::Dc;
+    use crate::recipes::m2::m2_vars::Vars;
     use crate::recipes::m2::services::get_services;
     use crate::recipes::m2::volumes::get_volumes;
 
@@ -140,8 +142,7 @@ mod tests {
             M2Templates::default(),
             dc,
         );
-        let cmd = output.clone();
-        let last = cmd.get(8).unwrap();
+        let last = output.get(9).unwrap();
         match last {
             Task::Seq(tasks) => match tasks.get(1).unwrap() {
                 Task::SimpleCommand { command, .. } => assert_eq!(
@@ -176,8 +177,7 @@ mod tests {
             dc,
         );
 
-        let cmd = output.clone();
-        let last = cmd.get(8).unwrap();
+        let last = output.get(9).unwrap();
         match last {
             Task::Seq(tasks) => match tasks.get(1).unwrap() {
                 Task::SimpleCommand { command, .. } => assert_eq!(

@@ -1,5 +1,4 @@
 use crate::{context::Context, task::Task};
-use std::collections::HashMap;
 use std::path::PathBuf;
 
 pub struct DcTasks {

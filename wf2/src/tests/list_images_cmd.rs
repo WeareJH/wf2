@@ -10,7 +10,7 @@ mod tests {
         let args = vec!["prog", "list-images"];
         let cli_output = CLIOutput::from_input(CLIInput::from_args(args));
         match cli_output.expect("test").tasks.expect("test").get(0) {
-            Some(Task::Notify { message }) => { /* noop */ }
+            Some(Task::Notify { .. }) => { /* noop */ }
             _ => unreachable!(),
         }
     }

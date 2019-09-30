@@ -24,7 +24,7 @@ mod tests {
         let args = vec!["prog", "update-images", "php", "db", "lol"];
         let cli_output = CLIOutput::from_input(CLIInput::from_args(args));
         match cli_output.expect("test").tasks.expect("test").get(0) {
-            Some(Task::NotifyError { message }) => { /* noop */ }
+            Some(Task::NotifyError { .. }) => { /* noop */ }
             _ => unreachable!(),
         }
     }

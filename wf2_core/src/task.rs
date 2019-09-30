@@ -1,23 +1,22 @@
+use crate::condition::{Answer, Con};
+use crate::file_op::FileOp;
 use crate::WF2;
 use ansi_term::Colour::Red;
 use futures::{future::lazy, future::Future};
 use std::{
     collections::HashMap,
-    fmt, fs,
-    fs::File,
-    io::Write,
-    path::{Path, PathBuf},
+    fmt,
+    path::PathBuf,
     process::{Command, Stdio},
 };
 
 pub type FutureSig = Box<dyn Future<Item = usize, Error = TaskError> + Send>;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug)]
 pub enum Task {
     File {
         description: String,
-        kind: FileOp,
-        path: PathBuf,
+        op: FileOp,
     },
     Command {
         command: String,
@@ -33,14 +32,11 @@ pub enum Task {
         message: String,
     },
     Seq(Vec<Task>),
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum FileOp {
-    Write { content: Vec<u8> },
-    Exists,
-    DirCreate,
-    DirRemove,
+    Cond {
+        description: Option<String>,
+        conditions: Vec<Box<dyn Con>>,
+        tasks: Vec<Task>,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -60,23 +56,32 @@ impl fmt::Display for TaskError {
 ///
 impl Task {
     pub fn file_write(
-        path: PathBuf,
+        path: impl Into<PathBuf>,
         description: impl Into<String>,
         content: impl Into<Vec<u8>>,
     ) -> Task {
         Task::File {
             description: description.into(),
-            kind: FileOp::Write {
+            op: FileOp::Write {
                 content: content.into(),
+                path: path.into(),
             },
-            path,
         }
     }
     pub fn file_exists(path: impl Into<PathBuf>, description: impl Into<String>) -> Task {
         Task::File {
             description: description.into(),
-            kind: FileOp::Exists,
-            path: path.into(),
+            op: FileOp::Exists { path: path.into() },
+        }
+    }
+    pub fn file_clone(left: impl Into<PathBuf>, right: impl Into<PathBuf>) -> Task {
+        let left_c = left.into();
+        Task::File {
+            description: String::from("File->clone"),
+            op: FileOp::Clone {
+                left: left_c.clone(),
+                right: right.into(),
+            },
         }
     }
     pub fn command(command: impl Into<String>, env: HashMap<String, String>) -> Task {
@@ -103,15 +108,24 @@ impl Task {
     pub fn dir_create(path: impl Into<PathBuf>, description: impl Into<String>) -> Task {
         Task::File {
             description: description.into(),
-            kind: FileOp::DirCreate,
-            path: path.into(),
+            op: FileOp::DirCreate { path: path.into() },
         }
     }
     pub fn dir_remove(path: impl Into<PathBuf>, description: impl Into<String>) -> Task {
         Task::File {
             description: description.into(),
-            kind: FileOp::DirRemove,
-            path: path.into(),
+            op: FileOp::DirRemove { path: path.into() },
+        }
+    }
+    pub fn conditional(
+        conditions: Vec<Box<dyn Con>>,
+        tasks: Vec<Task>,
+        description: Option<impl Into<String>>,
+    ) -> Task {
+        Task::Cond {
+            conditions,
+            tasks,
+            description: description.map(|d| d.into()),
         }
     }
     ///
@@ -123,13 +137,11 @@ impl Task {
             .into_iter()
             .filter_map(|t| match t {
                 Task::File {
-                    kind: FileOp::Write { .. },
-                    path,
+                    op: FileOp::Write { path, .. },
                     ..
                 } => Some(path),
                 Task::File {
-                    kind: FileOp::Exists { .. },
-                    path,
+                    op: FileOp::Exists { path, .. },
                     ..
                 } => Some(path),
                 _ => None,
@@ -144,26 +156,7 @@ impl Task {
 impl fmt::Display for Task {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         match self {
-            Task::File {
-                kind: FileOp::Write { content },
-                path,
-                ..
-            } => write!(f, "Write file: {:?}, {} bytes", path, content.len()),
-            Task::File {
-                kind: FileOp::Exists,
-                path,
-                ..
-            } => write!(f, "File exists check: {:?}", path),
-            Task::File {
-                kind: FileOp::DirCreate,
-                path,
-                ..
-            } => write!(f, "Directory creation (delete if exists): {:?}", path),
-            Task::File {
-                kind: FileOp::DirRemove,
-                path,
-                ..
-            } => write!(f, "Remove a File or Directory: {:?}", path),
+            Task::File { op, .. } => write!(f, "{}", op),
             Task::Command { command, env } => write!(f, "Command: {:?}\nEnv: {:#?}", command, env),
             Task::SimpleCommand { command, .. } => write!(f, "Command: {:?}", command),
             Task::Notify { message } => write!(f, "Notify: {:?}", message),
@@ -184,6 +177,49 @@ impl fmt::Display for Task {
                     .collect::<Vec<String>>()
                     .join("\n")
             ),
+            Task::Cond {
+                conditions,
+                tasks,
+                description,
+            } => {
+                let cond_list = conditions
+                    .iter()
+                    .enumerate()
+                    .map(|(index, condition)| {
+                        format!(
+                            "{:indent$} [{index}] {condition}",
+                            "",
+                            indent = 4,
+                            index = index,
+                            condition = condition
+                        )
+                    })
+                    .collect::<Vec<String>>()
+                    .join("\n");
+                let task_list = tasks
+                    .iter()
+                    .enumerate()
+                    .map(|(index, task)| {
+                        format!(
+                            "{:indent$} [{index}] {task}",
+                            "",
+                            indent = 8,
+                            index = index,
+                            task = task
+                        )
+                    })
+                    .collect::<Vec<String>>()
+                    .join("\n");
+                write!(
+                    f,
+                    "Conditional Task: {}\n{}\n     Tasks:\n{}",
+                    description
+                        .clone()
+                        .unwrap_or(String::from("Conditional Task:")),
+                    cond_list,
+                    task_list
+                )
+            }
         }
     }
 }
@@ -195,58 +231,10 @@ impl fmt::Display for Task {
 ///
 pub fn as_future(task: Task, id: usize) -> FutureSig {
     Box::new(lazy(move || match task {
-        Task::File {
-            kind: FileOp::Write { content },
-            path,
-            ..
-        } => {
-            let mut cloned = path.clone();
-            cloned.pop();
-            fs::create_dir_all(cloned)
-                .and_then(|_| {
-                    File::create(&path)
-                        .and_then(|mut f| f.write_all(&content))
-                        .map(|_| id)
-                })
-                .map_err(|e| TaskError {
-                    index: id,
-                    message: format!("Could not create File/Directory, e={}", e),
-                })
-        }
-        Task::File {
-            kind: FileOp::Exists,
-            path,
-            ..
-        } => {
-            if Path::exists(path.as_path()) {
-                Ok(id)
-            } else {
-                Err(TaskError {
-                    index: id,
-                    message: format!("Required file does not exist: {:?}", path),
-                })
-            }
-        }
-        Task::File {
-            kind: FileOp::DirCreate,
-            path,
-            ..
-        } => std::fs::create_dir_all(&path)
-            .and_then(|()| Ok(id))
-            .map_err(|e| TaskError {
-                index: id,
-                message: format!("{}", e),
-            }),
-        Task::File {
-            kind: FileOp::DirRemove,
-            path,
-            ..
-        } => fs::remove_dir_all(&path)
-            .and_then(|()| Ok(id))
-            .map_err(|e| TaskError {
-                index: id,
-                message: format!("{}", e),
-            }),
+        Task::File { op, .. } => op.exec().map(|_| id).map_err(|e| TaskError {
+            index: id,
+            message: format!("FileOp error e={}", e),
+        }),
         Task::SimpleCommand { command } => {
             let mut child_process = Command::new("sh");
             child_process.arg("-c").arg(command);
@@ -292,12 +280,34 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
         }
         Task::NotifyError { message } => Err(TaskError { index: id, message }),
         Task::Seq(tasks) => {
-            let task_sequence = WF2::sequence(tasks.clone());
+            let task_sequence = WF2::sequence(tasks);
             let output = task_sequence.wait();
             output.and_then(|_| Ok(id)).map_err(|e| TaskError {
                 index: id,
-                message: format!("Task Seq Item, e={:?}", e),
+                message: format!("Task Seq error: {:?}", e),
             })
+        }
+        Task::Cond {
+            conditions, tasks, ..
+        } => {
+            let task_sequence = WF2::conditions(conditions);
+            let output = task_sequence.wait();
+            output
+                .and_then(|output| match output {
+                    Answer::Yes => {
+                        let task_sequence = WF2::sequence(tasks);
+                        let output = task_sequence.wait();
+                        match output {
+                            Ok(..) => Ok(id),
+                            Err((_id, te)) => Err(te.message),
+                        }
+                    }
+                    Answer::No => Ok(id),
+                })
+                .map_err(|e| TaskError {
+                    index: id,
+                    message: format!("Conditional task error: {:?}", e),
+                })
         }
     }))
 }

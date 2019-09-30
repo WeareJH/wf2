@@ -3,7 +3,8 @@ mod tests {
     use crate::cli_input::CLIInput;
     use crate::cli_output::CLIOutput;
     use std::path::PathBuf;
-    use wf2_core::task::{FileOp, Task};
+    use wf2_core::file_op::FileOp;
+    use wf2_core::task::Task;
 
     #[test]
     fn test_pass_through_npm() {
@@ -48,8 +49,7 @@ mod tests {
             Task::Seq(tasks) => {
                 match tasks.get(0) {
                     Some(Task::File {
-                        kind: FileOp::Write { .. },
-                        path,
+                        op: FileOp::Write { path, .. },
                         ..
                     }) => {
                         assert_eq!(PathBuf::from(expected_path), *path);
