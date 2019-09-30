@@ -18,7 +18,7 @@ use ansi_term::Colour::Green;
 pub fn exec(
     ctx: &Context,
     runtime_env: &M2RuntimeEnvFile,
-    vars: &M2Vars,
+    _vars: &M2Vars,
     detached: bool,
     templates: M2Templates,
     dc: DcTasks,

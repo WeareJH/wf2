@@ -199,14 +199,14 @@ impl M2Recipe {
     ///
     /// Alias for docker-compose down
     ///
-    pub fn down(&self, _ctx: &Context, vars: &M2Vars, dc: DcTasks) -> Vec<Task> {
+    pub fn down(&self, _ctx: &Context, _vars: &M2Vars, dc: DcTasks) -> Vec<Task> {
         vec![dc.cmd_task(vec!["down".to_string()])]
     }
 
     ///
     /// Alias for docker-compose stop
     ///
-    pub fn stop(&self, _ctx: &Context, vars: &M2Vars, dc: DcTasks) -> Vec<Task> {
+    pub fn stop(&self, _ctx: &Context, _vars: &M2Vars, dc: DcTasks) -> Vec<Task> {
         vec![dc.cmd_task(vec!["stop".to_string()])]
     }
 
@@ -471,7 +471,7 @@ impl M2Recipe {
 
         let (valid, invalid): (Vec<String>, Vec<String>) = input
             .into_iter()
-            .partition(|name| pairs.iter().any(|(service, img)| *service == *name));
+            .partition(|name| pairs.iter().any(|(service, _img)| *service == *name));
 
         invalid
             .iter()
@@ -479,8 +479,8 @@ impl M2Recipe {
             .chain(
                 valid
                     .iter()
-                    .filter_map(|name| pairs.iter().find(|(service, img)| *service == *name))
-                    .map(|(service, image)| format!("docker pull {}", image))
+                    .filter_map(|name| pairs.iter().find(|(service, _img)| *service == *name))
+                    .map(|(_service, image)| format!("docker pull {}", image))
                     .map(|cmd| Task::simple_command(cmd)),
             )
             .collect()

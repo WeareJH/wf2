@@ -16,7 +16,7 @@ use crate::{
 pub fn exec(
     ctx: &Context,
     runtime_env: &M2RuntimeEnvFile,
-    vars: &M2Vars,
+    _vars: &M2Vars,
     templates: M2Templates,
     dc: DcTasks,
 ) -> Vec<Task> {

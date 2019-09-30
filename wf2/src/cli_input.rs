@@ -55,7 +55,7 @@ impl CLIInput {
         }
     }
 
-    pub fn with_args(&mut self, args: Vec<&str>) -> &mut Self {
+    pub fn _with_args(&mut self, args: Vec<&str>) -> &mut Self {
         self.args = args.iter().map(|s| s.to_string()).collect();
         self
     }
