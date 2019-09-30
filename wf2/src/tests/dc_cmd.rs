@@ -7,14 +7,14 @@ mod tests {
     #[test]
     fn test_dc_01() {
         let input = vec!["prog", "--cwd", "/users/acme", "dc", "logs", "unison"];
-        let expected = "docker-compose -f /users/acme/.wf2_m2_acme/docker-compose.yml logs unison";
+        let expected = r#"docker-compose -f "/users/acme/.wf2_m2_acme/docker-compose.yml" logs unison"#;
         test_dc(input, expected);
     }
 
     #[test]
     fn test_dc_02() {
         let input = vec!["prog", "--cwd", "/users/acme", "dc"];
-        let expected = "docker-compose -f /users/acme/.wf2_m2_acme/docker-compose.yml ";
+        let expected = r#"docker-compose -f "/users/acme/.wf2_m2_acme/docker-compose.yml" "#;
         test_dc(input, expected);
     }
 

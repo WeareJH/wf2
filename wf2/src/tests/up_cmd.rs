@@ -7,14 +7,14 @@ mod tests {
     #[test]
     fn test_up_01() {
         let args = vec!["prog", "--cwd", "/users/shane", "up"];
-        let expected = "docker-compose -f /users/shane/.wf2_m2_shane/docker-compose.yml up";
+        let expected = r#"docker-compose -f "/users/shane/.wf2_m2_shane/docker-compose.yml" up"#;
         test_up(args, expected);
     }
 
     #[test]
     fn test_up_02() {
         let args = vec!["prog", "--cwd", "/users/shane", "up", "-d"];
-        let expected = "docker-compose -f /users/shane/.wf2_m2_shane/docker-compose.yml up -d";
+        let expected = r#"docker-compose -f "/users/shane/.wf2_m2_shane/docker-compose.yml" up -d"#;
         test_up(args, expected);
     }
 

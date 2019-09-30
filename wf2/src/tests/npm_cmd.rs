@@ -24,7 +24,7 @@ mod tests {
             ..CLIInput::default()
         })
         .unwrap();
-        let expected_cmd = "docker-compose -f /users/shane/acme/.wf2_m2_acme/docker-compose.yml run --workdir /var/www/app/code/frontend/Acme/design node npm run watch -vvv";
+        let expected_cmd = r#"docker-compose -f "/users/shane/acme/.wf2_m2_acme/docker-compose.yml" run --workdir /var/www/app/code/frontend/Acme/design node npm run watch -vvv"#;
         let expected_path = "/users/shane/acme/.wf2_m2_acme/docker-compose.yml";
         test_npm(cli_output.tasks.unwrap(), expected_cmd, expected_path);
     }
@@ -38,7 +38,7 @@ mod tests {
             ..CLIInput::default()
         })
         .unwrap();
-        let expected_cmd = "docker-compose -f /users/acme/.wf2_m2_acme/docker-compose.yml run --workdir /var/www/. node npm run watch -vvv";
+        let expected_cmd = r#"docker-compose -f "/users/acme/.wf2_m2_acme/docker-compose.yml" run --workdir /var/www/. node npm run watch -vvv"#;
         let expected_path = "/users/acme/.wf2_m2_acme/docker-compose.yml";
         test_npm(cli_output.tasks.unwrap(), expected_cmd, expected_path);
     }

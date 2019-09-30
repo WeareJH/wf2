@@ -146,7 +146,7 @@ mod tests {
             Task::Seq(tasks) => match tasks.get(1).unwrap() {
                 Task::SimpleCommand { command, .. } => assert_eq!(
                     command,
-                    "docker-compose -f ./.wf2_default/docker-compose.yml up -d"
+                    r#"docker-compose -f "./.wf2_default/docker-compose.yml" up -d"#
                 ),
                 _ => unreachable!(),
             },
@@ -182,7 +182,7 @@ mod tests {
             Task::Seq(tasks) => match tasks.get(1).unwrap() {
                 Task::SimpleCommand { command, .. } => assert_eq!(
                     command,
-                    "docker-compose -f ./.wf2_default/docker-compose.yml up"
+                    r#"docker-compose -f "./.wf2_default/docker-compose.yml" up"#
                 ),
                 _ => unreachable!(),
             },

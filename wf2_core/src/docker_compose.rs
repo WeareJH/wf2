@@ -19,7 +19,7 @@ impl DcTasks {
     }
     pub fn cmd_string(&self, trailing: impl Into<String>) -> String {
         format!(
-            r#"docker-compose -f "{file}" -p "{file}" {trailing}"#,
+            r#"docker-compose -f "{file}" {trailing}"#,
             file = &self.file.display(),
             trailing = trailing.into()
         )
