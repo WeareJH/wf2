@@ -3,3 +3,25 @@ domains: [ acme.m2 ]
 name: acme
 npm_path: app/code/frontend/Acme/design
 php_version: 7.2
+
+scripts:
+  bundle:
+    description: Use this script to create bundles
+    steps:
+      - run:
+          service: node
+          command: echo hello
+          cwd: /var/www
+          user: root
+      - sh: |
+          echo before
+          sleep 1
+          echo after
+      - dc: logs unison
+      - run:
+
+          service: node
+          command: npm i
+      - run:
+          service: node
+          command: "ls"
