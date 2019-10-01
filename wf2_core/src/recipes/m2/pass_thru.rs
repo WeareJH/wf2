@@ -1,10 +1,7 @@
 use crate::{
     context::Context,
     docker_compose::DcTasks,
-    recipes::m2::{
-        m2_vars::M2Vars,
-        php_container::PhpContainer,
-    },
+    recipes::m2::{m2_vars::M2Vars, php_container::PhpContainer},
     task::Task,
     util::path_buf_to_string,
 };
