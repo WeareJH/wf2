@@ -50,7 +50,7 @@ impl DcService {
         let name: String = name.into();
         DcService {
             name: name.clone(),
-            container_name: format!("wf2__{}__{}", ctx_name.into().replace(" ", "_"), name.clone()),
+            container_name: format!("wf2__{}__{}", ctx_name.into(), name.clone()),
             image: image.into(),
             ..DcService::default()
         }

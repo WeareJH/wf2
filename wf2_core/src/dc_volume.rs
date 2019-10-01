@@ -11,7 +11,7 @@ impl DcVolume {
     pub fn new(ctx_name: impl Into<String>, name: impl Into<String>) -> DcVolume {
         let name: String = name.into();
         DcVolume {
-            name: format!("wf2__{}__{}", ctx_name.into().replace(" ", "_"), name),
+            name: format!("wf2__{}__{}", ctx_name.into(), name),
             display_name: name.clone(),
         }
     }

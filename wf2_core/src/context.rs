@@ -160,7 +160,7 @@ impl Context {
     }
     pub fn get_context_name(cwd: &PathBuf) -> String {
         cwd.file_name()
-            .map(|os_str| os_str.to_string_lossy().to_string())
+            .map(|os_str| os_str.to_string_lossy().to_string().replace(" ", "_"))
             .unwrap_or(DEFAULT_NAME.into())
     }
     pub fn merge(&mut self, other: ContextOverrides) -> &mut Self {
