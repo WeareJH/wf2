@@ -25,7 +25,7 @@ impl Script {
                 .clone()
                 .into_iter()
                 .map(|step: ScriptItem| match step {
-                    ScriptItem::Alias(s) => unimplemented!(),
+                    ScriptItem::Alias(_s) => unimplemented!(),
                     ScriptItem::DcRunCommand { run } => ScriptItem::DcRunCommand {
                         run: ServiceCmd {
                             dc_subcommand: Some(String::from("run")),
@@ -43,7 +43,7 @@ impl Script {
                     ScriptItem::DcPassThru { dc } => ScriptItem::DcRunCommand {
                         run: ServiceCmd {
                             dc_file: Some(dc_file.clone()),
-                            command: dc.clone(),
+                            command: Some(dc.clone()),
                             ..ServiceCmd::default()
                         },
                     },

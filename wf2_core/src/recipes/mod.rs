@@ -1,7 +1,6 @@
 use crate::scripts::script::Script;
-use crate::{cmd::Cmd, context::Context, recipes::m2::M2Recipe, task::Task};
+use crate::{cmd::Cmd, context::Context, task::Task};
 use clap::{App, ArgMatches};
-use std::fmt;
 
 pub mod m2;
 pub mod m2_contrib;

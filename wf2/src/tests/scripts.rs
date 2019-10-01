@@ -30,18 +30,45 @@ mod tests {
 
     #[test]
     fn test_dc_pass_through() {
-        let args = vec!["prog", "--config", "../fixtures/config_01.yaml", "dc_pass_thru"];
+        let args = vec![
+            "prog",
+            "--config",
+            "../fixtures/config_01.yaml",
+            "dc_pass_thru",
+        ];
         let cmds = _test(args);
-        let expected = r#"docker-compose -f /users/acme/.wf2_m2_acme/docker-compose.yml logs unison"#;
+        let expected =
+            r#"docker-compose -f /users/acme/.wf2_m2_acme/docker-compose.yml logs unison"#;
         assert_eq!(expected, cmds.get(0).expect("test"));
     }
 
     #[test]
     fn test_sh() {
-        let args = vec!["prog", "--config", "../fixtures/config_01.yaml", "shell_script"];
+        let args = vec![
+            "prog",
+            "--config",
+            "../fixtures/config_01.yaml",
+            "shell_script",
+        ];
         let cmds = _test(args);
         let expected = r#"echo hello world"#;
         assert_eq!(expected, cmds.get(0).expect("test"));
+    }
+
+    #[test]
+    fn test_multi_commands() {
+        let args = vec![
+            "prog",
+            "--config",
+            "../fixtures/config_01.yaml",
+            "multi_commands",
+        ];
+        let cmds = _test(args);
+        let expected = vec![
+            "docker-compose -f /users/acme/.wf2_m2_acme/docker-compose.yml run --workdir /var/www/app/code node yarn --production",
+            "docker-compose -f /users/acme/.wf2_m2_acme/docker-compose.yml run --workdir /var/www/app/code node npm run build-all",
+        ];
+        assert_eq!(expected, cmds);
     }
 
     fn _test(args: Vec<&str>) -> Vec<String> {
@@ -50,7 +77,7 @@ mod tests {
             cwd: PathBuf::from("/users/acme"),
             ..CLIInput::default()
         })
-            .unwrap();
+        .unwrap();
         commands(cli_output.tasks.expect("test"))
     }
 }

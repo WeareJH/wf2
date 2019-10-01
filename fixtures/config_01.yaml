@@ -25,6 +25,14 @@ scripts:
   shell_script:
     steps:
       - sh: echo hello world
+  multi_commands:
+    steps:
+      - run:
+          service: node
+          workdir: /var/www/app/code
+          commands:
+            - yarn --production
+            - npm run build-all
   bundle:
     description: Use this script to create bundles
     steps:

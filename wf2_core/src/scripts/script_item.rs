@@ -1,4 +1,3 @@
-use crate::scripts::script_item::ScriptItem::DcRunCommand;
 use crate::scripts::service_cmd::ServiceCmd;
 use crate::task::Task;
 
@@ -13,9 +12,16 @@ pub enum ScriptItem {
 }
 
 impl From<ScriptItem> for Task {
-    fn from(item: ScriptItem) -> Self {
-        let s: String = item.into();
-        Task::simple_command(s)
+    fn from(item: ScriptItem) -> Task {
+        match item {
+            t @ ScriptItem::ShellCommand { .. } | t @ ScriptItem::DcPassThru { .. } => {
+                let s: String = t.into();
+                Task::simple_command(s)
+            }
+            ScriptItem::DcRunCommand { run } => run.into(),
+            ScriptItem::DcExecCommand { exec } => exec.into(),
+            _ => unimplemented!(),
+        }
     }
 }
 
@@ -40,7 +46,8 @@ mod test {
             run: ServiceCmd {
                 dc_file: Some(String::from("docker-compose.yaml")),
                 dc_subcommand: Some(String::from("run")),
-                command: String::from("echo hello"),
+                command: Some(String::from("echo hello")),
+                commands: None,
                 workdir: Some(String::from("/var/www/app")),
                 env: Some(vec![
                     String::from("MSQL_USER=hello"),
@@ -60,7 +67,8 @@ mod test {
             run: ServiceCmd {
                 dc_file: Some(String::from("docker-compose.yaml")),
                 dc_subcommand: None,
-                command: String::from("logs unison"),
+                command: Some(String::from("logs unison")),
+                commands: None,
                 service: None,
                 workdir: None,
                 env: None,
