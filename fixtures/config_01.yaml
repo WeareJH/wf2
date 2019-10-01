@@ -5,6 +5,26 @@ npm_path: app/code/frontend/Acme/design
 php_version: 7.2
 
 scripts:
+  dc_run:
+    steps:
+      - run:
+          service: node
+          command: echo hello
+          cwd: /var/www
+          user: root
+  dc_exec:
+    steps:
+      - exec:
+          service: node
+          command: echo hello
+          cwd: /var/www
+          user: root
+  dc_pass_thru:
+    steps:
+      - dc: logs unison
+  shell_script:
+    steps:
+      - sh: echo hello world
   bundle:
     description: Use this script to create bundles
     steps:
