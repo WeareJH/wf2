@@ -53,3 +53,16 @@ scripts:
       - run:
           service: node
           command: "ls"
+  task_alias_1:
+    steps:
+      - task_alias_2
+  task_alias_2:
+    steps:
+      - task_alias_3
+  task_alias_3:
+    steps:
+      - sh: echo hello world
+
+  task_missing:
+    steps:
+      - oops

@@ -71,6 +71,40 @@ mod tests {
         assert_eq!(expected, cmds);
     }
 
+    #[test]
+    fn test_task_aliases() {
+        let args = vec![
+            "prog",
+            "--config",
+            "../fixtures/config_01.yaml",
+            "task_alias_1",
+        ];
+        let cmds = _test(args);
+        let expected = vec!["echo hello world"];
+        assert_eq!(expected, cmds);
+    }
+
+    #[test]
+    fn test_missing_alias() {
+        let args = vec![
+            "prog",
+            "--config",
+            "../fixtures/config_01.yaml",
+            "task_missing",
+        ];
+        let cli_output = CLIOutput::from_input(CLIInput {
+            args: args.into_iter().map(String::from).collect(),
+            cwd: PathBuf::from("/users/acme"),
+            ..CLIInput::default()
+        })
+        .unwrap();
+        use wf2_core::task::Task;
+        match cli_output.tasks.unwrap().get(0).unwrap() {
+            Task::NotifyError { message } => assert!(true),
+            _ => unreachable!(),
+        }
+    }
+
     fn _test(args: Vec<&str>) -> Vec<String> {
         let cli_output = CLIOutput::from_input(CLIInput {
             args: args.into_iter().map(String::from).collect(),

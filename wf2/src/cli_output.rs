@@ -6,6 +6,7 @@ use clap::ArgMatches;
 use from_file::FromFileError;
 use std::path::PathBuf;
 use wf2_core::recipes::recipe_kinds::RecipeKinds;
+use wf2_core::scripts::script::Script;
 use wf2_core::util::two_col;
 use wf2_core::{
     cmd::Cmd,
@@ -171,8 +172,29 @@ impl CLIOutput {
     pub fn get_project_tasks(matches: &ArgMatches, ctx: &Context) -> Option<Vec<Task>> {
         let name = matches.subcommand_name()?;
         let matching_script = ctx.scripts.as_ref()?.0.get(name)?;
+        let desc = matching_script.description.clone();
+        let steps = Script::flatten(
+            &matching_script.steps,
+            name,
+            ctx.scripts.as_ref()?,
+            &vec![name.to_string()],
+        );
+
+        if steps.is_err() {
+            match steps {
+                Err(e) => return Some(vec![Task::notify_error(e)]),
+                _ => unreachable!(),
+            }
+        }
+
         let recipe = RecipeKinds::select(&ctx.recipe);
-        recipe.resolve_script(&ctx, matching_script)
+
+        let flattened = Script {
+            description: desc,
+            steps: steps.unwrap(),
+        };
+
+        recipe.resolve_script(&ctx, &flattened)
     }
 
     pub fn get_recipe_tasks(matches: &ArgMatches, ctx: &Context) -> Option<Vec<Task>> {
