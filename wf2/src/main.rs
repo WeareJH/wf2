@@ -2,11 +2,13 @@
 extern crate clap;
 
 use futures::{future::lazy, future::Future};
+use futures::sync::oneshot;
 use wf2_core::context::RunMode;
 use wf2_core::WF2;
 
 use crate::cli_input::CLIInput;
 use crate::cli_output::CLIOutput;
+use std::process;
 
 mod cli;
 mod cli_input;
@@ -50,6 +52,8 @@ fn main() {
         return;
     }
 
+    let (tx, rx) = oneshot::channel();
+
     // This is where the tasks are executed
     tokio::run(lazy(move || {
         // This .unwrap() is safe here since we bailed on None earlier
@@ -64,15 +68,28 @@ fn main() {
         // Do nothing for success, but print error + summary if any task fails
         //
         task_sequence
-            .map(|_| ())
-            .map_err(move |(_task, task_error)| {
-                eprintln!("{}", task_error);
-                eprintln!(
-                    "\nSummary: {} complete, 1 errored, {} didn't start",
-                    task_error.index,
-                    tasks_len - task_error.index - 1
-                );
-                ()
+            .then(|res| {
+                match res {
+                    Ok(id) => tx.send(Ok(id)),
+                    Err(err) => {
+                        tx.send(Err(err))
+                    },
+                }
             })
+            .map(|_| ())
+            .map_err(|_| ())
     }));
+
+    process::exit(match rx.wait() {
+        Ok(Ok(..)) => 0,
+        Ok(Err((id, task_error))) => {
+            eprintln!("{}", task_error);
+            1
+        },
+        Err(..) => {
+            eprintln!("final communication failed");
+            1
+        }
+    })
 }
+
