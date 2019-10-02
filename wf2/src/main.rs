@@ -1,8 +1,8 @@
 #[macro_use]
 extern crate clap;
 
-use futures::{future::lazy, future::Future};
 use futures::sync::oneshot;
+use futures::{future::lazy, future::Future};
 use wf2_core::context::RunMode;
 use wf2_core::WF2;
 
@@ -61,20 +61,16 @@ fn main() {
 
         // using the Context, Recipe & Task List, generate a
         // future that runs each task in sequence
-        let tasks_len = tasks.len();
+        let _tasks_len = tasks.len();
         let task_sequence = WF2::sequence(tasks);
 
         //
         // Do nothing for success, but print error + summary if any task fails
         //
         task_sequence
-            .then(|res| {
-                match res {
-                    Ok(id) => tx.send(Ok(id)),
-                    Err(err) => {
-                        tx.send(Err(err))
-                    },
-                }
+            .then(|res| match res {
+                Ok(id) => tx.send(Ok(id)),
+                Err(err) => tx.send(Err(err)),
             })
             .map(|_| ())
             .map_err(|_| ())
@@ -83,13 +79,16 @@ fn main() {
     process::exit(match rx.wait() {
         Ok(Ok(..)) => 0,
         Ok(Err((id, task_error))) => {
-            eprintln!("{}", task_error);
-            1
-        },
+            if task_error.exit_code.is_some() {
+                task_error.exit_code.unwrap()
+            } else {
+                eprintln!("{}", task_error);
+                1
+            }
+        }
         Err(..) => {
             eprintln!("final communication failed");
             1
         }
     })
 }
-
