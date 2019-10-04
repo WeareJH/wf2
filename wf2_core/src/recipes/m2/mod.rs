@@ -167,7 +167,7 @@ impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
         }
     }
     fn resolve_script(&self, ctx: &Context, script: &Script) -> Option<Vec<Task>> {
-        if script.has_dc_tasks() {
+        if Script::has_dc_tasks(&script.steps) {
             let vars = M2Vars::from_ctx(&ctx).ok()?;
             let dc = Dc::new()
                 .set_volumes(&get_volumes(&ctx))
@@ -175,13 +175,17 @@ impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
                 .build();
             let dc_tasks = DcTasks::from_ctx(&ctx, dc.to_bytes());
             let script = script.set_dc_file(path_buf_to_string(&dc_tasks.file));
-            let ts: Vec<Task> = script.into();
-            let t = vec![
+            let script_tasks: Vec<Task> = script.into();
+            let additional_dc_tasks = vec![
                 dc_tasks.write(),
                 M2RuntimeEnvFile::from_ctx(&ctx).ok()?.write(),
             ]
             .into_iter();
-            Some(t.chain(ts.into_iter()).collect())
+            Some(
+                additional_dc_tasks
+                    .chain(script_tasks.into_iter())
+                    .collect(),
+            )
         } else {
             let ts: Vec<Task> = script.clone().into();
             Some(ts)

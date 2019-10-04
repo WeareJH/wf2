@@ -64,9 +64,16 @@ impl Script {
         }
         Ok(matches)
     }
-    pub fn has_dc_tasks(&self) -> bool {
-        true
+
+    pub fn has_dc_tasks(steps: &Vec<ScriptItem>) -> bool {
+        steps.iter().any(|step| match step {
+            ScriptItem::DcRunCommand { .. }
+            | ScriptItem::DcExecCommand { .. }
+            | ScriptItem::DcPassThru { .. } => true,
+            _ => false,
+        })
     }
+
     pub fn set_dc_file(&self, dc_file: String) -> Script {
         Script {
             steps: self

@@ -105,6 +105,40 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_doesnt_write_dc_file() {
+        let args = vec![
+            "prog",
+            "--config",
+            "../fixtures/config_01.yaml",
+            "task_alias_3", // this has no 'dc' commands
+        ];
+        let cli_output = CLIOutput::from_input(CLIInput {
+            args: args.into_iter().map(String::from).collect(),
+            cwd: PathBuf::from("/users/acme"),
+            ..CLIInput::default()
+        })
+        .unwrap();
+        assert_eq!(cli_output.tasks.unwrap().len(), 1);
+    }
+
+    #[test]
+    fn test_does_write_dc_file() {
+        let args = vec![
+            "prog",
+            "--config",
+            "../fixtures/config_01.yaml",
+            "dc_exec", // this HAS a 'dc' command
+        ];
+        let cli_output = CLIOutput::from_input(CLIInput {
+            args: args.into_iter().map(String::from).collect(),
+            cwd: PathBuf::from("/users/acme"),
+            ..CLIInput::default()
+        })
+        .unwrap();
+        assert_eq!(cli_output.tasks.unwrap().len(), 4); // 2 dc files + the command
+    }
+
     fn _test(args: Vec<&str>) -> Vec<String> {
         let cli_output = CLIOutput::from_input(CLIInput {
             args: args.into_iter().map(String::from).collect(),
