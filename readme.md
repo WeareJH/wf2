@@ -5,9 +5,6 @@
 `wf2` is distributed as a single binary with everything packaged inside -
 this means you *do not* need PHP or Composer installed on your machine.
 
-### Homebrew
-`brew install wearejh/tools/wf2`
-
 ### Manual
 1. Download the latest version from the [releases page](https://github.com/WeareJH/wf2/releases)
 2. Make the file executable: (assuming you keep it in the `Downloads` folder)
