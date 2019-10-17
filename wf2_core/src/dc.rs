@@ -43,4 +43,9 @@ impl Dc {
     pub fn to_bytes(&self) -> Vec<u8> {
         serde_yaml::to_vec(self).expect("works")
     }
+    pub fn service_names(&self) -> Option<Vec<String>> {
+        self.services
+            .as_ref()
+            .map(|services| services.iter().map(|(key, _)| key.into()).collect())
+    }
 }

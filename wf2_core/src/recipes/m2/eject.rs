@@ -1,6 +1,6 @@
 use crate::{
     context::Context,
-    docker_compose::DcTasks,
+    dc_tasks::DcTasks,
     file::File,
     recipes::m2::{
         m2_runtime_env_file::M2RuntimeEnvFile,

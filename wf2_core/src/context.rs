@@ -1,5 +1,6 @@
 use crate::php::PHP;
-use crate::recipes::RecipeKinds;
+use crate::recipes::recipe_kinds::RecipeKinds;
+use crate::scripts::scripts::Scripts;
 use from_file::{FromFile, FromFileError};
 use std::path::PathBuf;
 
@@ -16,7 +17,7 @@ pub const DEFAULT_DOMAIN: &str = "local.m2";
 ///
 /// ```
 /// use wf2_core::context::Context;
-/// use wf2_core::recipes::RecipeKinds;
+/// use wf2_core::recipes::recipe_kinds::RecipeKinds;
 /// use wf2_core::php::PHP;
 ///
 /// let ctx = Context::default();
@@ -32,7 +33,7 @@ pub const DEFAULT_DOMAIN: &str = "local.m2";
 /// # use std::path::PathBuf;
 /// # fn main() -> Result<(), FromFileError> {
 /// # use wf2_core::context::Context;
-/// # use wf2_core::recipes::RecipeKinds;
+/// # use wf2_core::recipes::recipe_kinds::RecipeKinds;
 /// # use wf2_core::php::PHP;
 /// let ctx = Context::new_from_file("../fixtures/config_01.yaml")?;
 ///
@@ -93,6 +94,9 @@ pub struct Context {
 
     #[serde(default = "default_id")]
     pub gid: u32,
+
+    #[serde(default)]
+    pub scripts: Option<Scripts>,
 }
 
 ///
@@ -132,6 +136,7 @@ impl Default for Context {
             uid: 0,
             gid: 0,
             env: None,
+            scripts: None,
         }
     }
 }

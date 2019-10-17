@@ -1,7 +1,7 @@
 use crate::recipes::m2::tasks::env_php::env_php_task;
 use crate::{
     context::Context,
-    docker_compose::DcTasks,
+    dc_tasks::DcTasks,
     file::File,
     recipes::{
         m2::m2_runtime_env_file::M2RuntimeEnvFile,

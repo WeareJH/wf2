@@ -43,6 +43,7 @@ pub enum Task {
 pub struct TaskError {
     pub index: usize,
     pub message: String,
+    pub exit_code: Option<i32>,
 }
 
 impl fmt::Display for TaskError {
@@ -234,6 +235,7 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
         Task::File { op, .. } => op.exec().map(|_| id).map_err(|e| TaskError {
             index: id,
             message: format!("FileOp error e={}", e),
+            exit_code: None,
         }),
         Task::SimpleCommand { command } => {
             let mut child_process = Command::new("sh");
@@ -249,12 +251,14 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                         Err(TaskError {
                             index: id,
                             message: format!("None-zero exit code"),
+                            exit_code: s.code(),
                         })
                     }
                 }
                 Err(e) => Err(TaskError {
                     index: id,
                     message: format!("Could not run simple command, e={}", e),
+                    exit_code: None,
                 }),
             }
         }
@@ -265,27 +269,44 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
             child_process.stdin(Stdio::inherit());
             child_process.stdout(Stdio::inherit());
 
-            child_process
-                .spawn()
-                .and_then(|mut c| c.wait())
-                .map(|_| id)
-                .map_err(|e| TaskError {
+            match child_process.status() {
+                Ok(s) => {
+                    if s.success() {
+                        Ok(id)
+                    } else {
+                        Err(TaskError {
+                            index: id,
+                            message: format!("None-zero exit code"),
+                            exit_code: s.code(),
+                        })
+                    }
+                }
+                Err(e) => Err(TaskError {
                     index: id,
                     message: format!("Could not run simple command, e={}", e),
-                })
+                    exit_code: None,
+                }),
+            }
         }
         Task::Notify { message } => {
             println!("{}", message);
             Ok(id)
         }
-        Task::NotifyError { message } => Err(TaskError { index: id, message }),
+        Task::NotifyError { message } => Err(TaskError {
+            index: id,
+            message,
+            exit_code: None,
+        }),
         Task::Seq(tasks) => {
             let task_sequence = WF2::sequence(tasks);
             let output = task_sequence.wait();
-            output.and_then(|_| Ok(id)).map_err(|e| TaskError {
-                index: id,
-                message: format!("Task Seq error: {:?}", e),
-            })
+            output
+                .and_then(|_| Ok(id))
+                .map_err(|(error_id, task_error)| TaskError {
+                    index: id,
+                    message: format!("Task Seq error: {:?}", error_id),
+                    exit_code: task_error.exit_code,
+                })
         }
         Task::Cond {
             conditions, tasks, ..
@@ -307,6 +328,7 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                 .map_err(|e| TaskError {
                     index: id,
                     message: format!("Conditional task error: {:?}", e),
+                    exit_code: None,
                 })
         }
     }))

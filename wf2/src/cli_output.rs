@@ -5,12 +5,13 @@ use crate::error::CLIError;
 use clap::ArgMatches;
 use from_file::FromFileError;
 use std::path::PathBuf;
+use wf2_core::recipes::recipe_kinds::RecipeKinds;
+use wf2_core::scripts::script::Script;
 use wf2_core::util::two_col;
 use wf2_core::{
     cmd::Cmd,
     context::{Context, ContextOverrides, RunMode},
     php::PHP,
-    recipes::RecipeKinds,
     task::Task,
 };
 
@@ -37,9 +38,15 @@ impl CLIOutput {
             two_col(recipe.pass_thru_commands())
         );
 
+        // custom scripts come next
+        let script_pairs: Vec<(String, String)> = ctx.scripts.clone().map_or(vec![], |s| s.pairs());
+        let script_help_lines = format!("PROJECT COMMANDS\n{}", two_col(script_pairs));
+
+        let both = vec![after_help_lines, script_help_lines].join("\n\n");
+
         // append recipe subcommands
-        let app = append_subcommands(cli.app, recipe.subcommands(), base_len + 1)
-            .after_help(&after_help_lines[..]);
+        let app =
+            append_subcommands(cli.app, recipe.subcommands(), base_len + 1).after_help(&both[..]);
 
         CLIOutput::from_ctx(&app.clone().get_matches_from(input_args), &ctx, input)
     }
@@ -101,9 +108,14 @@ impl CLIOutput {
             ctx.merge(overrides);
         };
 
-        let tasks = CLIOutput::get_tasks_from_cli(&matches, &ctx);
+        let recipe_tasks = CLIOutput::get_recipe_tasks(&matches, &ctx);
+        let project_tasks = CLIOutput::get_project_tasks(&matches, &ctx);
+        let output_tasks = recipe_tasks.or(project_tasks);
 
-        Ok(CLIOutput { ctx, tasks })
+        Ok(CLIOutput {
+            ctx,
+            tasks: output_tasks,
+        })
     }
 
     pub fn matches_to_context_overrides(
@@ -154,7 +166,40 @@ impl CLIOutput {
         }
     }
 
-    pub fn get_tasks_from_cli(matches: &ArgMatches, ctx: &Context) -> Option<Vec<Task>> {
+    ///
+    /// Try to access a matching project command
+    ///
+    pub fn get_project_tasks(matches: &ArgMatches, ctx: &Context) -> Option<Vec<Task>> {
+        let name = matches.subcommand_name()?;
+        let matching_script = ctx.scripts.as_ref()?.0.get(name)?;
+        let desc = matching_script.description.clone();
+        let steps = Script::flatten(
+            &matching_script.steps,
+            name,
+            ctx.scripts.as_ref()?,
+            &vec![name.to_string()],
+        );
+
+        if steps.is_err() {
+            match steps {
+                Err(e) => return Some(vec![Task::notify_error(e)]),
+                _ => unreachable!(),
+            }
+        }
+
+        let recipe = RecipeKinds::select(&ctx.recipe);
+
+        let flattened = Script {
+            description: desc,
+            steps: steps.unwrap(),
+        };
+
+        recipe.resolve_script(&ctx, &flattened)
+    }
+
+    pub fn get_recipe_tasks(matches: &ArgMatches, ctx: &Context) -> Option<Vec<Task>> {
+        let recipe = RecipeKinds::select(&ctx.recipe);
+
         //
         // Get the task list by checking which sub-command was used
         //
@@ -220,16 +265,11 @@ impl CLIOutput {
                     user: user.to_string(),
                 })
             }
-            (cmd, Some(sub_matches)) => {
-                RecipeKinds::select(&ctx.recipe).select_command((cmd, Some(sub_matches)))
-            }
+            (cmd, Some(sub_matches)) => recipe.select_command((cmd, Some(sub_matches))),
             _ => None,
         };
 
-        match cmd {
-            Some(cmd) => RecipeKinds::select(&ctx.recipe).resolve_cmd(&ctx, cmd),
-            None => None,
-        }
+        cmd.and_then(|cmd| recipe.resolve_cmd(&ctx, cmd))
     }
 }
 
