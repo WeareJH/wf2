@@ -136,7 +136,35 @@ mod tests {
             ..CLIInput::default()
         })
         .unwrap();
-        assert_eq!(cli_output.tasks.unwrap().len(), 4); // 2 dc files + the command
+        assert_eq!(cli_output.tasks.unwrap().len(), 3); // 2 dc files + the command
+    }
+
+    #[test]
+    fn test_doesnt_allow_invalid_service_names() {
+        let args = vec![
+            "prog",
+            "--config",
+            "../fixtures/config_invalid_service.yaml",
+            "dc_run",
+        ];
+        let cli_output = CLIOutput::from_input(CLIInput {
+            args: args.into_iter().map(String::from).collect(),
+            cwd: PathBuf::from("/users/acme"),
+            ..CLIInput::default()
+        })
+        .unwrap();
+        use wf2_core::task::Task;
+
+        match cli_output.tasks.unwrap().get(0).unwrap() {
+            Task::NotifyError { message } => {
+                println!("{}", message);
+                /* yay! */
+            }
+            _output => {
+                println!("{:?}", _output);
+                unreachable!();
+            }
+        }
     }
 
     fn _test(args: Vec<&str>) -> Vec<String> {

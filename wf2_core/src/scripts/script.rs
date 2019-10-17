@@ -74,6 +74,22 @@ impl Script {
         })
     }
 
+    pub fn service_names(steps: &Vec<ScriptItem>) -> Option<Vec<String>> {
+        let names: Vec<String> = steps
+            .iter()
+            .filter_map(|script| match script {
+                ScriptItem::DcRunCommand { run } => run.service.clone(),
+                ScriptItem::DcExecCommand { exec } => exec.service.clone(),
+                _ => None,
+            })
+            .collect();
+        if names.len() > 0 {
+            Some(names)
+        } else {
+            None
+        }
+    }
+
     pub fn set_dc_file(&self, dc_file: String) -> Script {
         Script {
             steps: self

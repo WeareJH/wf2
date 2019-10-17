@@ -1,0 +1,6 @@
+scripts:
+  dc_run:
+    steps:
+      - run:
+          service: lulz
+          command: echo "hello world!"
