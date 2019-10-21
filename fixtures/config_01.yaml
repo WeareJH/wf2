@@ -3,3 +3,66 @@ domains: [ acme.m2 ]
 name: acme
 npm_path: app/code/frontend/Acme/design
 php_version: 7.2
+
+scripts:
+  dc_run:
+    steps:
+      - run:
+          service: node
+          command: echo hello
+          cwd: /var/www
+          user: root
+  dc_exec:
+    steps:
+      - exec:
+          service: node
+          command: echo hello
+          cwd: /var/www
+          user: root
+  dc_pass_thru:
+    steps:
+      - dc: logs unison
+  shell_script:
+    steps:
+      - sh: echo hello world
+  multi_commands:
+    steps:
+      - run:
+          service: node
+          workdir: /var/www/app/code
+          commands:
+            - yarn --production
+            - npm run build-all
+  bundle:
+    description: Use this script to create bundles
+    steps:
+      - run:
+          service: node
+          command: echo hello
+          cwd: /var/www
+          user: root
+      - sh: |
+          echo before
+          sleep 1
+          echo after
+      - dc: logs unison
+      - run:
+
+          service: node
+          command: npm i
+      - run:
+          service: node
+          command: "ls"
+  task_alias_1:
+    steps:
+      - task_alias_2
+  task_alias_2:
+    steps:
+      - task_alias_3
+  task_alias_3:
+    steps:
+      - sh: echo hello world
+
+  task_missing:
+    steps:
+      - oops

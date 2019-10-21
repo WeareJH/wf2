@@ -15,6 +15,7 @@ mod m_cmd;
 mod npm_cmd;
 mod pull_cmd;
 mod push_cmd;
+mod scripts;
 mod up_cmd;
 mod update_images_cmd;
 
