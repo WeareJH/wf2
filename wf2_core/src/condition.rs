@@ -10,8 +10,8 @@ pub trait Con: Send + Sync + fmt::Display {
 }
 
 impl Debug for dyn Con {
-    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        unimplemented!()
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        write!(f, "Conditional Task")
     }
 }
 

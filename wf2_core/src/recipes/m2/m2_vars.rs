@@ -6,6 +6,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 pub const TRAEFIK_OUTPUT_FILE: &str = "traefik/traefik.toml";
 pub const NGINX_OUTPUT_FILE: &str = "nginx/sites/site.conf";
+pub const DB_CONF_OUTPUT_FILE: &str = "mysql/mysqlconf/mysql.cnf";
 pub const UNISON_OUTPUT_FILE: &str = "unison/conf/sync.prf";
 
 pub const DB_PASS: &str = "docker";
@@ -41,6 +42,10 @@ impl Vars<M2Vars> for M2Vars {
         let mut nginx_dir = ctx.file_path(NGINX_OUTPUT_FILE);
         nginx_dir.pop();
 
+        //
+        let mut db_conf_dir = ctx.file_path(DB_CONF_OUTPUT_FILE);
+        db_conf_dir.pop();
+
         let env: HashMap<M2Var, String> = vec![
             (M2Var::PhpImage, php_container.image.to_string()),
             (M2Var::Pwd, path_buf_to_string(&ctx.cwd)),
@@ -56,6 +61,7 @@ impl Vars<M2Vars> for M2Vars {
                 path_buf_to_string(&ctx.file_path(TRAEFIK_OUTPUT_FILE)),
             ),
             (M2Var::NginxDir, path_buf_to_string(&nginx_dir)),
+            (M2Var::DbConfDir, path_buf_to_string(&db_conf_dir)),
         ]
         .into_iter()
         .collect();
@@ -71,7 +77,7 @@ impl Vars<M2Vars> for M2Vars {
                         env_overrides
                             .into_iter()
                             .map(|(key, value)| match key {
-                                M2Var::NginxDir => {
+                                M2Var::NginxDir | M2Var::DbConfDir => {
                                     if value.starts_with("/") {
                                         (key, value)
                                     } else {
@@ -107,6 +113,7 @@ fn test_env_from_ctx() {
         (M2Var::UnisonFile, "./.wf2_default/unison/conf/sync.prf"),
         (M2Var::TraefikFile, "./.wf2_default/traefik/traefik.toml"),
         (M2Var::NginxDir, "./.wf2_default/nginx/sites"),
+        (M2Var::DbConfDir, "./.wf2_default/mysql/mysqlconf"),
     ]
     .into_iter()
     .map(|(k, v)| (k, v.into()))
@@ -121,6 +128,7 @@ fn test_env_from_ctx_with_overrides() {
     let overrides = r#"
     env:
         NginxDir: "./overrides"
+        DbConfDir: "./db-overrides"
     "#;
     let ctx = Context {
         overrides: Some(serde_yaml::from_str(overrides).unwrap()),
@@ -137,6 +145,7 @@ fn test_env_from_ctx_with_overrides() {
         (M2Var::UnisonFile, "./.wf2_default/unison/conf/sync.prf"),
         (M2Var::TraefikFile, "./.wf2_default/traefik/traefik.toml"),
         (M2Var::NginxDir, "././overrides"),
+        (M2Var::DbConfDir, "././db-overrides"),
     ]
     .into_iter()
     .map(|(k, v)| (k, v.into()))
@@ -155,6 +164,7 @@ pub enum M2Var {
     UnisonFile,
     TraefikFile,
     NginxDir,
+    DbConfDir,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -167,13 +177,18 @@ fn test_overrides() {
     let yaml = r#"
     env:
       NginxDir: "./docker/nginx/override/sites"
+      DbConfDir: "./docker/mysql/mysqlconf"
     "#;
     let output: Result<M2Overrides, _> = serde_yaml::from_str(yaml);
     match output {
         Ok(overrides) => {
             assert_eq!(
-                overrides.env.unwrap().get(&M2Var::NginxDir),
+                overrides.env.clone().unwrap().get(&M2Var::NginxDir),
                 Some(&String::from("./docker/nginx/override/sites"))
+            );
+            assert_eq!(
+                overrides.env.clone().unwrap().get(&M2Var::DbConfDir),
+                Some(&String::from("./docker/mysql/mysqlconf"))
             );
         }
         Err(e) => println!("{}", e),
