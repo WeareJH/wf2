@@ -9,7 +9,7 @@ mod tests {
     fn test_update_images_all() {
         let args = vec!["prog", "update-images"];
         let cli_output = CLIOutput::from_input(CLIInput::from_args(args));
-        assert_eq!(commands(cli_output.expect("test").tasks.unwrap()).len(), 12);
+        assert_eq!(commands(cli_output.expect("test").tasks.unwrap()).len(), 13);
     }
 
     #[test]
