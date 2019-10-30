@@ -161,7 +161,10 @@ fn node(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService {
 
 fn db(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService {
     DcService::new(ctx.name.clone(), name, image)
-        .set_volumes(vec![format!("{}:/var/lib/mysql", M2Volumes::DB)])
+        .set_volumes(vec![
+            format!("{}:/var/lib/mysql", M2Volumes::DB),
+            format!("{}:/etc/mysql/conf.d", vars.content[&M2Var::DbConfDir]),
+        ])
         .set_ports(vec!["3306:3306"])
         .set_restart("unless-stopped")
         .set_env_file(vec![format!("{}", vars.content[&M2Var::EnvFile])])
