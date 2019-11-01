@@ -9,6 +9,7 @@ use std::{
     path::PathBuf,
     process::{Command, Stdio},
 };
+use crate::commands::self_update::run_self_update;
 
 pub type FutureSig = Box<dyn Future<Item = usize, Error = TaskError> + Send>;
 
@@ -37,6 +38,7 @@ pub enum Task {
         conditions: Vec<Box<dyn Con>>,
         tasks: Vec<Task>,
     },
+    SelfUpdate
 }
 
 #[derive(Debug, Clone)]
@@ -149,6 +151,10 @@ impl Task {
             })
             .collect()
     }
+
+    pub fn self_update(tasks: Vec<Task>) -> Task {
+        Task::SelfUpdate
+    }
 }
 
 ///
@@ -220,7 +226,8 @@ impl fmt::Display for Task {
                     cond_list,
                     task_list
                 )
-            }
+            },
+            Task::SelfUpdate { .. } => write!(f, "Self Update Error: see above for error message")
         }
     }
 }
@@ -330,6 +337,15 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                     message: format!("Conditional task error: {:?}", e),
                     exit_code: None,
                 })
-        }
+        },
+        Task::SelfUpdate => {
+            run_self_update()
+                .map(|_| id)
+                .map_err(|e| TaskError {
+                    exit_code: None,
+                    index: id,
+                    message: e.to_string(),
+                })
+        },
     }))
 }

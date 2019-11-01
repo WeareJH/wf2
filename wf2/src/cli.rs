@@ -82,6 +82,9 @@ impl<'a, 'b> CLI<'a, 'b> {
                             .multiple(true)
                             .required(false),
                     ),
+                SubCommand::with_name("self-update")
+                    .display_order(8)
+                    .about("Update wf2 to the latest release")
             ])
             .settings(&[
                 AppSettings::AllowExternalSubcommands,

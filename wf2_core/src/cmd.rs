@@ -14,5 +14,5 @@ pub enum Cmd {
     DBDump,
     PassThrough { cmd: String, trailing: Vec<String> },
     ListImages,
-    UpdateImages { trailing: Vec<String> },
+    UpdateImages { trailing: Vec<String> }
 }

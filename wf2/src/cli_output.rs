@@ -21,6 +21,11 @@ pub struct CLIOutput {
     pub tasks: Option<Vec<Task>>,
 }
 
+pub enum Match {
+    RecipeCmd(Cmd),
+    InternalCmd(Option<Vec<Task>>)
+}
+
 impl CLIOutput {
     ///
     /// Create CLIOutput from CLIInput
@@ -204,13 +209,13 @@ impl CLIOutput {
         // Get the task list by checking which sub-command was used
         //
         let cmd = match matches.subcommand() {
-            ("doctor", ..) => Some(Cmd::Doctor),
-            ("up", Some(sub_matches)) => Some(Cmd::Up {
+            ("doctor", ..) => Some(Match::RecipeCmd(Cmd::Doctor)),
+            ("up", Some(sub_matches)) => Some(Match::RecipeCmd(Cmd::Up {
                 detached: sub_matches.is_present("detached"),
-            }),
-            ("down", ..) => Some(Cmd::Down),
-            ("stop", ..) => Some(Cmd::Stop),
-            ("list-images", ..) => Some(Cmd::ListImages),
+            })),
+            ("down", ..) => Some(Match::RecipeCmd(Cmd::Down)),
+            ("stop", ..) => Some(Match::RecipeCmd(Cmd::Stop)),
+            ("list-images", ..) => Some(Match::RecipeCmd(Cmd::ListImages)),
             ("update-images", Some(sub_matches)) => {
                 let trailing = match sub_matches.values_of("service_names") {
                     Some(services) => services
@@ -220,9 +225,9 @@ impl CLIOutput {
                         .collect(),
                     None => vec![],
                 };
-                Some(Cmd::UpdateImages { trailing })
+                Some(Match::RecipeCmd(Cmd::UpdateImages { trailing }))
             }
-            ("eject", ..) => Some(Cmd::Eject),
+            ("eject", ..) => Some(Match::RecipeCmd(Cmd::Eject)),
             ("pull", Some(sub_matches)) => {
                 let trailing = match sub_matches.values_of("paths") {
                     Some(cmd) => cmd
@@ -232,7 +237,7 @@ impl CLIOutput {
                         .collect(),
                     None => vec![],
                 };
-                Some(Cmd::Pull { trailing })
+                Some(Match::RecipeCmd(Cmd::Pull { trailing }))
             }
             ("push", Some(sub_matches)) => {
                 let trailing = match sub_matches.values_of("paths") {
@@ -243,16 +248,16 @@ impl CLIOutput {
                         .collect(),
                     None => vec![],
                 };
-                Some(Cmd::Push { trailing })
+                Some(Match::RecipeCmd(Cmd::Push { trailing }))
             }
             ("db-import", Some(sub_matches)) => {
                 // .unwrap() is safe here since Clap will exit before this if it's absent
                 let trailing = sub_matches.value_of("file").map(|x| x.to_string()).unwrap();
-                Some(Cmd::DBImport {
+                Some(Match::RecipeCmd(Cmd::DBImport {
                     path: PathBuf::from(trailing),
-                })
+                }))
             }
-            ("db-dump", ..) => Some(Cmd::DBDump),
+            ("db-dump", ..) => Some(Match::RecipeCmd(Cmd::DBDump)),
             ("exec", Some(sub_matches)) => {
                 let trailing = get_trailing(sub_matches);
                 let user = if sub_matches.is_present("root") {
@@ -260,16 +265,27 @@ impl CLIOutput {
                 } else {
                     "www-data"
                 };
-                Some(Cmd::Exec {
+                Some(Match::RecipeCmd(Cmd::Exec {
                     trailing,
                     user: user.to_string(),
-                })
+                }))
             }
-            (cmd, Some(sub_matches)) => recipe.select_command((cmd, Some(sub_matches))),
+            ("self-update", ..) => {
+                Some(Match::InternalCmd(Some(vec![Task::SelfUpdate])))
+            },
+            (cmd, Some(sub_matches)) => {
+                RecipeKinds::select(&ctx.recipe)
+                    .select_command((cmd, Some(sub_matches)))
+                    .map(|cmd| Match::RecipeCmd(cmd))
+            }
             _ => None,
         };
 
-        cmd.and_then(|cmd| recipe.resolve_cmd(&ctx, cmd))
+        match cmd {
+            Some(Match::RecipeCmd(cmd)) => RecipeKinds::select(&ctx.recipe).resolve_cmd(&ctx, cmd),
+            Some(Match::InternalCmd(tasks)) => tasks,
+            None => None,
+        }
     }
 }
 
