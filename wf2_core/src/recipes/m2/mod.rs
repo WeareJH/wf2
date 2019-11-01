@@ -32,14 +32,14 @@ pub mod up;
 pub mod volumes;
 
 ///
-/// PHP 7.1 + 7.2 Environments for use with Magento 2.
+/// PHP 7.1 + 7.2 + 7.3 Environments for use with Magento 2.
 ///
 /// Includes:
 ///
 /// - traefik
 /// - varnish
 /// - nginx
-/// - php 7.1 + 7.2
+/// - php 7.1 + 7.2 + 7.3
 /// - node
 /// - db
 /// - redis

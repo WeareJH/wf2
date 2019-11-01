@@ -7,6 +7,7 @@ pub struct PhpContainer {
 
 pub const PHP_7_1: &str = "wearejh/php:7.1-m2";
 pub const PHP_7_2: &str = "wearejh/php:7.2-m2";
+pub const PHP_7_3: &str = "wearejh/php:7.3-m2";
 
 impl PhpContainer {
     pub fn from_ctx(ctx: &Context) -> PhpContainer {
@@ -19,6 +20,7 @@ impl PhpContainer {
         let image = match ctx.php_version {
             PHP::SevenOne => PHP_7_1,
             PHP::SevenTwo => PHP_7_2,
+            PHP::SevenThree => PHP_7_3,
         };
 
         PhpContainer {

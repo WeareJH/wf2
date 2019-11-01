@@ -106,7 +106,7 @@ fn test_env_from_ctx() {
     let vars = M2Vars::from_ctx(&Context::default()).unwrap();
     let hm: HashMap<M2Var, String> = vec![
         (M2Var::Pwd, "."),
-        (M2Var::PhpImage, "wearejh/php:7.2-m2"),
+        (M2Var::PhpImage, "wearejh/php:7.3-m2"),
         (M2Var::Domain, DEFAULT_DOMAIN),
         (M2Var::ContextName, DEFAULT_NAME),
         (M2Var::EnvFile, "./.wf2_default/.docker.env"),
@@ -138,7 +138,7 @@ fn test_env_from_ctx_with_overrides() {
     let vars = M2Vars::from_ctx(&ctx).unwrap();
     let hm: HashMap<M2Var, String> = vec![
         (M2Var::Pwd, "."),
-        (M2Var::PhpImage, "wearejh/php:7.2-m2"),
+        (M2Var::PhpImage, "wearejh/php:7.3-m2"),
         (M2Var::Domain, "local.m2,ce.local.m2"),
         (M2Var::ContextName, DEFAULT_NAME),
         (M2Var::EnvFile, "./.wf2_default/.docker.env"),

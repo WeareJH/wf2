@@ -21,7 +21,7 @@ impl<'a, 'b> CLI<'a, 'b> {
                 Arg::with_name("php")
                     .help("path to a wf2.yml config file")
                     .takes_value(true)
-                    .possible_values(&["7.1", "7.2"])
+                    .possible_values(&["7.1", "7.2", "7.3"])
                     .long("php"),
                 Arg::with_name("cwd")
                     .help("Sets the CWD for all docker commands")

@@ -23,7 +23,7 @@ pub const DEFAULT_DOMAIN: &str = "local.m2";
 /// let ctx = Context::default();
 ///
 /// assert_eq!(ctx.recipe, RecipeKinds::M2);
-/// assert_eq!(ctx.php_version, PHP::SevenTwo);
+/// assert_eq!(ctx.php_version, PHP::SevenThree);
 /// ```
 ///
 /// You can also create a context directly from a file
@@ -38,7 +38,7 @@ pub const DEFAULT_DOMAIN: &str = "local.m2";
 /// let ctx = Context::new_from_file("../fixtures/config_01.yaml")?;
 ///
 /// assert_eq!(ctx.recipe, RecipeKinds::M2);
-/// assert_eq!(ctx.php_version, PHP::SevenTwo);
+/// assert_eq!(ctx.php_version, PHP::SevenThree);
 /// assert_eq!(ctx.domains, vec![String::from("acme.m2")]);
 /// assert_eq!(ctx.npm_path, PathBuf::from("app/code/frontend/Acme/design"));
 /// # Ok(())
@@ -128,7 +128,7 @@ impl Default for Context {
             term: default_term(),
             pv: None,
             npm_path: default_cwd(),
-            php_version: PHP::SevenTwo,
+            php_version: PHP::SevenThree,
             config_path: None,
             file_prefix: default_file_prefix(),
             overrides: None,
