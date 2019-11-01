@@ -289,6 +289,16 @@ impl M2Recipe {
         ]
     }
 
+    /// 
+    /// Update wf2 to latest
+    /// 
+
+    pub fn self_update(&self, ctx: &Context) -> Vec<Task> {
+        vec![
+            Task::SelfUpdate
+        ]
+    }
+
     ///
     /// Import a DB from a file.
     ///

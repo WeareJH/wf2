@@ -5,45 +5,41 @@
 `wf2` is distributed as a single binary with everything packaged inside -
 this means you *do not* need PHP or Composer installed on your machine.
 
-### Homebrew
-`brew install wearejh/tools/wf2`
-
-### Manual
 1. Download the latest version from the [releases page](https://github.com/WeareJH/wf2/releases)
-2. Make the file executable: (assuming you keep it in the `Downloads` folder)
+2. Make the file executable: (assuming it downloaded to the `Downloads` folder)
 
     `chmod +x ~/Downloads/wf2`
-3. Now either add an alias to your `~/.zshrc` (or bash profile)
-
-    `echo 'alias wf2="~/Downloads/wf2"' >> ~/.zshrc`
-
-   or, move the program to somewhere in your existing path - see instructions below if you wish to do this:
-
-<details><summary>Instructions for adding to your path</summary>
-
-1. Move the executable from your Downloads folder to /opt
+    
+3. Move the executable from your Downloads folder to /opt
 
     `sudo mv ~/Downloads/wf2 /opt`
+    
+    - If "opt" does not exist run the command below
 
-2. **Replace** the alias you made previously in your *zshrc* or *bash_profile* with:
+        `sudo mkdir /opt`
+    
+    - Then make sure the permissions are correct on the folder
+    
+        `sudo chown -R $(whoami) /opt`
+
+5. Add this to the bottom of your *zshrc* or *bash_profile*:
 
     `export PATH="$PATH:/opt"`
 
-3. Use the following command to refresh any already open terminals
+6. Use the following command to refresh any already open terminals
 
     `source ~/.zshrc`
 
-4. Or for bash users
+7. Or for bash users
 
     `source ~/.bash_profile`
 
-5. Type the following command to check all is installed OK:
+8. Type the following command to check all is installed OK:
 
     `wf2`
 
-6. You should see the same output as below (in features):
+9. You should see the same output as below (in features):
 
-</details>
 
 
 ## Features (assuming you are using `M2` recipe)
