@@ -64,7 +64,7 @@ FLAGS:
 OPTIONS:
         --config <config>    path to a wf2.yml config file
         --cwd <cwd>          Sets the CWD for all docker commands
-        --php <php>          path to a wf2.yml config file [possible values: 7.1, 7.2]
+        --php <php>          path to a wf2.yml config file [possible values: 7.1, 7.2, 7.3]
 
 SUBCOMMANDS:
     up               Bring up containers

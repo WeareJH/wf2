@@ -14,11 +14,12 @@ use std::fmt;
 pub enum PHP {
     SevenOne,
     SevenTwo,
+    SevenThree
 }
 
 impl Default for PHP {
     fn default() -> Self {
-        PHP::SevenTwo
+        PHP::SevenThree
     }
 }
 
@@ -35,7 +36,7 @@ where
         type Value = PHP;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            formatter.write_str("either `7.1` or `7.2`")
+            formatter.write_str("either `7.1`, `7.2` or `7.3`")
         }
 
         fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
@@ -45,7 +46,8 @@ where
             let r = match v {
                 num if num == 7.1 => Ok(PHP::SevenOne),
                 num if num == 7.2 => Ok(PHP::SevenTwo),
-                _ => Err("expected either 7.1 or 7.2"),
+                num if num == 7.3 => Ok(PHP::SevenThree),
+                _ => Err("expected either 7.1, 7.2 or 7.3"),
             };
             r.map_err(E::custom)
         }
@@ -56,7 +58,8 @@ where
             let r = match v {
                 "7.1" => Ok(PHP::SevenOne),
                 "7.2" => Ok(PHP::SevenTwo),
-                _ => Err("expected either 7.1 or 7.2"),
+                "7.3" => Ok(PHP::SevenThree),
+                _ => Err("expected either 7.1, 7.2 or 7.3"),
             };
             r.map_err(E::custom)
         }
