@@ -353,7 +353,7 @@ impl M2Recipe {
             .filter(|path| path.starts_with("app/"))
             .map(|_| {
                 if force {
-                    Task::notify("Ignoring all warning/checks. I hope you know what you're doing :)")
+                    Task::notify_warn("Ignoring all warning/checks. I hope you know what you're doing :)")
                 } else {
                     Task::notify_error("Invalid paths provided. Don't try to push anything into `app/` - files there are already synced (override with -f)")
                 }
