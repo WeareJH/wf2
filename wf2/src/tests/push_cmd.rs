@@ -2,7 +2,7 @@
 mod tests {
     use crate::cli_input::CLIInput;
     use crate::cli_output::CLIOutput;
-    use crate::tests::commands;
+    use crate::tests::_commands;
     use std::path::PathBuf;
     use wf2_core::task::Task;
 
@@ -42,15 +42,15 @@ mod tests {
     }
 
     fn test_push(args: Vec<&str>, cwd: impl Into<PathBuf>, expected_commands: Vec<&str>) {
-        let input = CLIInput::from_args(args).with_cwd(cwd);
+        let input = CLIInput::_from_args(args)._with_cwd(cwd);
         let cli_output = CLIOutput::from_input(input);
         let tasks = cli_output.expect("test").tasks.unwrap();
-        assert_eq!(commands(tasks), expected_commands);
+        assert_eq!(_commands(tasks), expected_commands);
     }
 
     fn test_push_invalid(args: Vec<&str>) {
         let cwd = "/users/acme";
-        let input = CLIInput::from_args(args).with_cwd(cwd);
+        let input = CLIInput::_from_args(args)._with_cwd(cwd);
         let cli_output = CLIOutput::from_input(input);
         let tasks = cli_output.expect("test").tasks.unwrap();
         match tasks.get(0) {

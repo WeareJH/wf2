@@ -31,14 +31,20 @@ impl fmt::Display for FileOp {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         match self {
             FileOp::Write { path, content } => {
-                write!(f, "Write file: {:?}, {} bytes", path, content.len())
+                write!(f, "Write file: {}, {} bytes", path.display(), content.len())
             }
-            FileOp::Clone { left, right } => write!(f, "Clone file {:?} to {:?}", left, right),
-            FileOp::Exists { path } => write!(f, "File exists check: {:?}", path),
-            FileOp::DirCreate { path } => {
-                write!(f, "Directory creation (delete if exists): {:?}", path)
+            FileOp::Clone { left, right } => {
+                write!(f, "Clone file {} to {}", left.display(), right.display())
             }
-            FileOp::DirRemove { path } => write!(f, "Remove a File or Directory: {:?}", path),
+            FileOp::Exists { path } => write!(f, "File exists check: {}", path.display()),
+            FileOp::DirCreate { path } => write!(
+                f,
+                "Directory creation (delete if exists): {}",
+                path.display()
+            ),
+            FileOp::DirRemove { path } => {
+                write!(f, "Remove a File or Directory: {}", path.display())
+            }
         }
     }
 }
@@ -60,7 +66,7 @@ pub fn exists(path: PathBuf) -> FileOpResult {
     if Path::exists(path.as_path()) {
         Ok(())
     } else {
-        Err(format!("Required file does not exist: {:?}", path))
+        Err(format!("Required file does not exist: {}", path.display()))
     }
 }
 

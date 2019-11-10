@@ -1,4 +1,7 @@
 #[macro_use]
+extern crate prettytable;
+
+#[macro_use]
 extern crate serde_derive;
 extern crate serde;
 
@@ -6,6 +9,7 @@ extern crate serde;
 extern crate from_file_derive;
 
 pub mod cmd;
+pub mod commands;
 pub mod condition;
 pub mod conditions;
 pub mod context;
@@ -21,7 +25,6 @@ pub mod scripts;
 pub mod task;
 pub mod util;
 pub mod vars;
-pub mod commands;
 
 use futures::{future::lazy, future::Future, stream::iter_ok, Stream};
 

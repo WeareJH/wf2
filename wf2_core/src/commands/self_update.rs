@@ -2,59 +2,97 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 
 use std::env;
-use std::io;
-use std::str;
-use std::io::copy;
 use std::fs::File;
+use std::io;
+use std::io::copy;
+use std::str;
 
-use ansi_term::Color::Green;
+use crate::commands::CliCommand;
+use crate::task::Task;
 use ansi_term::Color::Blue;
+use ansi_term::Color::Green;
 use ansi_term::Color::Red;
-use std::process::Command;
+use clap::{App, ArgMatches};
+use futures::future::lazy;
 use std::path::PathBuf;
-use std::error::Error;
+use std::process::Command;
+
+const NAME: &'static str = "self-update";
+
+#[derive(Debug)]
+pub struct SelfUpdate(String);
+
+impl SelfUpdate {
+    pub fn new() -> SelfUpdate {
+        SelfUpdate(String::from(NAME))
+    }
+}
+
+impl<'a, 'b> CliCommand<'a, 'b> for SelfUpdate {
+    fn name(&self) -> String {
+        String::from(NAME)
+    }
+
+    fn exec(&self, _matches: Option<&ArgMatches>) -> Vec<Task> {
+        vec![Task::Exec {
+            exec: Box::new(lazy(|| run_self_update().map_err(|e| e.to_string()))),
+        }]
+    }
+
+    fn subcommands(&self) -> Vec<App<'a, 'b>> {
+        vec![App::new(NAME)
+            .display_order(8)
+            .about("Update wf2 to the latest release")]
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Wf2Json {
     assets: Vec<Wf2JsonAsset>,
     name: String,
-    tag_name: String
+    tag_name: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Wf2JsonAsset {
     browser_download_url: String,
     size: i32,
-    name: String
+    name: String,
 }
 
 pub fn run_self_update() -> Result<(), Box<dyn std::error::Error>> {
-
     let request_url = String::from("https://api.github.com/repos/wearejh/wf2/releases/latest");
     let mut response = reqwest::get(&request_url)?;
     let resp = response.text()?;
 
-    let args: Vec<String> = env::args().collect();
-    let wf2_name = args[0].as_str();
     let wf2_path_cmd = env::current_exe()?;
 
     let wf2_path = match wf2_path_cmd.to_str() {
         Some(path) => path,
         None => {
-            return Err(Box::new(io::Error::new(io::ErrorKind::PermissionDenied, "Cannot read path to executable")));
+            return Err(Box::new(io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                "Cannot read path to executable",
+            )));
         }
     };
 
     let wf2: Wf2Json = serde_json::from_str(&resp)?;
-    let url = wf2.assets.get(0)
+    let url = wf2
+        .assets
+        .get(0)
         .map(|asset| asset.browser_download_url.clone())
         .ok_or(String::from("Assets contained no items"))?;
 
-    let name = wf2.assets.get(0)
+    let name = wf2
+        .assets
+        .get(0)
         .map(|asset| asset.name.clone())
         .ok_or(String::from("Assets contained no items"))?;
 
-    let size = wf2.assets.get(0)
+    let size = wf2
+        .assets
+        .get(0)
         .map(|asset| asset.size.clone())
         .ok_or(String::from("Assets contained no items"))?;
 
@@ -65,17 +103,34 @@ pub fn run_self_update() -> Result<(), Box<dyn std::error::Error>> {
     println!("Description : {}", wf2.name);
     println!("Url         : {}", url);
     println!("Version     : {}", wf2.tag_name);
-    println!("Size        : {}kb", size / 1024 );
+    println!("Size        : {}kb", size / 1024);
     println!();
-    println!("Current wf2 directory is reported as: {}", Blue.paint(wf2_path));
+    println!(
+        "Current wf2 directory is reported as: {}",
+        Blue.paint(wf2_path)
+    );
     println!();
     if wf2_path != "/opt/wf2" {
-        println!("{}", Red.paint("Warning! Working directory is NOT the standard directory expected."));
+        println!(
+            "{}",
+            Red.paint("Warning! Working directory is NOT the standard directory expected.")
+        );
         println!("{}", Red.paint("Expected directory to be /opt/wf2"));
-        println!("{}", Red.paint("You can proceed with the update, but at your own risk!"));
+        println!(
+            "{}",
+            Red.paint("You can proceed with the update, but at your own risk!")
+        );
         println!();
-        println!("{} {} {}", Blue.paint("If you wish to fix this, exit out of this app and run 'sudo mv"), Blue.paint(wf2_path), Blue.paint("/opt/wf2'"));
-        println!("{}", Blue.paint("More info here: https://github.com/WeareJH/wf2#manual"));
+        println!(
+            "{} {} {}",
+            Blue.paint("If you wish to fix this, exit out of this app and run 'sudo mv"),
+            Blue.paint(wf2_path),
+            Blue.paint("/opt/wf2'")
+        );
+        println!(
+            "{}",
+            Blue.paint("More info here: https://github.com/WeareJH/wf2#manual")
+        );
     } else {
         println!("{}", Green.paint("Working directory is ok!"));
     }
@@ -87,7 +142,8 @@ pub fn run_self_update() -> Result<(), Box<dyn std::error::Error>> {
         println!("Ok to proceed? (y/n)");
         let mut user_input = String::new();
 
-        io::stdin().read_line(&mut user_input)
+        io::stdin()
+            .read_line(&mut user_input)
             .expect("Failed to read line");
 
         if let Some('\n') = user_input.chars().next_back() {
@@ -121,9 +177,15 @@ pub fn run_self_update() -> Result<(), Box<dyn std::error::Error>> {
         copy(&mut response, &mut current_dir)?;
 
         clear_terminal();
-        let version = Command::new(wf2_path).arg("-V").output().expect("failed to execute process");
+        let version = Command::new(wf2_path)
+            .arg("-V")
+            .output()
+            .expect("failed to execute process");
         println!("Success!");
-        println!("You updated to {}", str::from_utf8(&version.stdout).unwrap());
+        println!(
+            "You updated to {}",
+            str::from_utf8(&version.stdout).unwrap()
+        );
     } else {
         clear_terminal();
         println!("Aborted update");

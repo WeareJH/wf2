@@ -19,7 +19,7 @@ mod tests {
     }
 
     fn test_up(args: Vec<&str>, expected: &str) {
-        let cli_output = CLIOutput::from_input(CLIInput::from_args(args));
+        let cli_output = CLIOutput::from_input(CLIInput::_from_args(args));
         match cli_output.unwrap().tasks.unwrap().get(10).unwrap() {
             Task::Seq(tasks) => match tasks.get(1).unwrap() {
                 Task::SimpleCommand { command, .. } => {

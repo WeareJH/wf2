@@ -2,7 +2,7 @@
 mod tests {
     use crate::cli_input::CLIInput;
     use crate::cli_output::CLIOutput;
-    use crate::tests::commands;
+    use crate::tests::_commands;
     use std::path::PathBuf;
 
     #[test]
@@ -17,7 +17,7 @@ mod tests {
             r#"docker exec -it -u www-data wf2__crafters__php composer install -vvv"#;
         assert_eq!(
             vec![expected_cmd],
-            commands(cli_output.expect("test").tasks.unwrap())
+            _commands(cli_output.expect("test").tasks.unwrap())
         );
     }
 }

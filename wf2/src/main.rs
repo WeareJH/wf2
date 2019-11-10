@@ -78,7 +78,7 @@ fn main() {
 
     process::exit(match rx.wait() {
         Ok(Ok(..)) => 0,
-        Ok(Err((id, task_error))) => {
+        Ok(Err((_id, task_error))) => {
             if task_error.exit_code.is_some() {
                 task_error.exit_code.unwrap()
             } else {

@@ -18,7 +18,7 @@ impl From<Script> for Vec<Task> {
 impl Script {
     pub fn flatten(
         steps: &Vec<ScriptItem>,
-        curr: &str,
+        _curr: &str,
         scripts: &Scripts,
         path: &Vec<String>,
     ) -> Result<Vec<ScriptItem>, String> {

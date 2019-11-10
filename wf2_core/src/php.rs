@@ -14,7 +14,7 @@ use std::fmt;
 pub enum PHP {
     SevenOne,
     SevenTwo,
-    SevenThree
+    SevenThree,
 }
 
 impl Default for PHP {

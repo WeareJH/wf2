@@ -5,6 +5,7 @@ use crate::error::CLIError;
 use clap::ArgMatches;
 use from_file::FromFileError;
 use std::path::PathBuf;
+use wf2_core::commands::internal_commands;
 use wf2_core::recipes::recipe_kinds::RecipeKinds;
 use wf2_core::scripts::script::Script;
 use wf2_core::util::two_col;
@@ -15,15 +16,9 @@ use wf2_core::{
     task::Task,
 };
 
-#[derive(Debug)]
 pub struct CLIOutput {
     pub ctx: Context,
     pub tasks: Option<Vec<Task>>,
-}
-
-pub enum Match {
-    RecipeCmd(Cmd),
-    InternalCmd(Option<Vec<Task>>)
 }
 
 impl CLIOutput {
@@ -52,6 +47,15 @@ impl CLIOutput {
         // append recipe subcommands
         let app =
             append_subcommands(cli.app, recipe.subcommands(), base_len + 1).after_help(&both[..]);
+
+        // flatten the subcommands
+        let combined_subcommands = internal_commands().iter().fold(vec![], |mut acc, item| {
+            acc.extend(item.subcommands());
+            acc
+        });
+
+        // append internal subcommands
+        let app = append_subcommands(app, combined_subcommands, 20);
 
         CLIOutput::from_ctx(&app.clone().get_matches_from(input_args), &ctx, input)
     }
@@ -113,9 +117,15 @@ impl CLIOutput {
             ctx.merge(overrides);
         };
 
-        let recipe_tasks = CLIOutput::get_recipe_tasks(&matches, &ctx);
-        let project_tasks = CLIOutput::get_project_tasks(&matches, &ctx);
-        let output_tasks = recipe_tasks.or(project_tasks);
+        let internal_cmd = internal_commands()
+            .iter()
+            .find(|cmd| matches.is_present(cmd.name()))
+            .map(|cmd| cmd.exec(matches.subcommand_matches(cmd.name())));
+
+        let output_tasks = internal_cmd.or_else(|| {
+            CLIOutput::get_recipe_tasks(&matches, &ctx)
+                .or_else(|| CLIOutput::get_project_tasks(&matches, &ctx))
+        });
 
         Ok(CLIOutput {
             ctx,
@@ -209,13 +219,13 @@ impl CLIOutput {
         // Get the task list by checking which sub-command was used
         //
         let cmd = match matches.subcommand() {
-            ("doctor", ..) => Some(Match::RecipeCmd(Cmd::Doctor)),
-            ("up", Some(sub_matches)) => Some(Match::RecipeCmd(Cmd::Up {
+            ("doctor", ..) => Some(Cmd::Doctor),
+            ("up", Some(sub_matches)) => Some(Cmd::Up {
                 detached: sub_matches.is_present("detached"),
-            })),
-            ("down", ..) => Some(Match::RecipeCmd(Cmd::Down)),
-            ("stop", ..) => Some(Match::RecipeCmd(Cmd::Stop)),
-            ("list-images", ..) => Some(Match::RecipeCmd(Cmd::ListImages)),
+            }),
+            ("down", ..) => Some(Cmd::Down),
+            ("stop", ..) => Some(Cmd::Stop),
+            ("list-images", ..) => Some(Cmd::ListImages),
             ("update-images", Some(sub_matches)) => {
                 let trailing = match sub_matches.values_of("service_names") {
                     Some(services) => services
@@ -225,9 +235,9 @@ impl CLIOutput {
                         .collect(),
                     None => vec![],
                 };
-                Some(Match::RecipeCmd(Cmd::UpdateImages { trailing }))
+                Some(Cmd::UpdateImages { trailing })
             }
-            ("eject", ..) => Some(Match::RecipeCmd(Cmd::Eject)),
+            ("eject", ..) => Some(Cmd::Eject),
             ("pull", Some(sub_matches)) => {
                 let trailing = match sub_matches.values_of("paths") {
                     Some(cmd) => cmd
@@ -237,7 +247,7 @@ impl CLIOutput {
                         .collect(),
                     None => vec![],
                 };
-                Some(Match::RecipeCmd(Cmd::Pull { trailing }))
+                Some(Cmd::Pull { trailing })
             }
             ("push", Some(sub_matches)) => {
                 let trailing = match sub_matches.values_of("paths") {
@@ -248,16 +258,16 @@ impl CLIOutput {
                         .collect(),
                     None => vec![],
                 };
-                Some(Match::RecipeCmd(Cmd::Push { trailing }))
+                Some(Cmd::Push { trailing })
             }
             ("db-import", Some(sub_matches)) => {
                 // .unwrap() is safe here since Clap will exit before this if it's absent
                 let trailing = sub_matches.value_of("file").map(|x| x.to_string()).unwrap();
-                Some(Match::RecipeCmd(Cmd::DBImport {
+                Some(Cmd::DBImport {
                     path: PathBuf::from(trailing),
-                }))
+                })
             }
-            ("db-dump", ..) => Some(Match::RecipeCmd(Cmd::DBDump)),
+            ("db-dump", ..) => Some(Cmd::DBDump),
             ("exec", Some(sub_matches)) => {
                 let trailing = get_trailing(sub_matches);
                 let user = if sub_matches.is_present("root") {
@@ -265,27 +275,18 @@ impl CLIOutput {
                 } else {
                     "www-data"
                 };
-                Some(Match::RecipeCmd(Cmd::Exec {
+                Some(Cmd::Exec {
                     trailing,
                     user: user.to_string(),
-                }))
+                })
             }
-            ("self-update", ..) => {
-                Some(Match::InternalCmd(Some(vec![Task::SelfUpdate])))
-            },
             (cmd, Some(sub_matches)) => {
-                RecipeKinds::select(&ctx.recipe)
-                    .select_command((cmd, Some(sub_matches)))
-                    .map(|cmd| Match::RecipeCmd(cmd))
+                RecipeKinds::select(&ctx.recipe).select_command((cmd, Some(sub_matches)))
             }
             _ => None,
         };
 
-        match cmd {
-            Some(Match::RecipeCmd(cmd)) => RecipeKinds::select(&ctx.recipe).resolve_cmd(&ctx, cmd),
-            Some(Match::InternalCmd(tasks)) => tasks,
-            None => None,
-        }
+        cmd.and_then(|cmd| recipe.resolve_cmd(&ctx, cmd))
     }
 }
 

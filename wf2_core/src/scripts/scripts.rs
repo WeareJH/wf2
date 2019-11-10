@@ -71,7 +71,6 @@ mod test {
         let scripts: Scripts = serde_yaml::from_str(yaml).expect("test");
         let cmd = scripts.0.get("mage").expect("test").to_owned();
         let cmd = cmd.set_dc_file(String::from("/users/shane/docker-compose.yml"));
-        let ts: Vec<Task> = cmd.into();
-        println!("{:#?}", ts);
+        let _ts: Vec<Task> = cmd.into();
     }
 }
