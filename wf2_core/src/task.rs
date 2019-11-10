@@ -1,7 +1,7 @@
 use crate::condition::{Answer, Con};
 use crate::file_op::FileOp;
 use crate::WF2;
-use ansi_term::Colour::Red;
+use ansi_term::Colour::{Red, Yellow};
 use futures::{future::lazy, future::Future};
 use std::{
     collections::HashMap,
@@ -29,6 +29,9 @@ pub enum Task {
         message: String,
     },
     NotifyError {
+        message: String,
+    },
+    NotifyWarn {
         message: String,
     },
     Seq(Vec<Task>),
@@ -109,6 +112,11 @@ impl Task {
             message: message.into(),
         }
     }
+    pub fn notify_warn(message: impl Into<String>) -> Task {
+        Task::NotifyWarn {
+            message: message.into(),
+        }
+    }
     pub fn dir_create(path: impl Into<PathBuf>, description: impl Into<String>) -> Task {
         Task::File {
             description: description.into(),
@@ -164,6 +172,7 @@ impl fmt::Display for Task {
             Task::Command { command, env } => write!(f, "Command: {}\nEnv: {:#?}", command, env),
             Task::SimpleCommand { command, .. } => write!(f, "Command: {}", command),
             Task::Notify { message } => write!(f, "Notify: {}", message),
+            Task::NotifyWarn { message } => write!(f, "NotifyWarn: {}", message),
             Task::NotifyError { .. } => write!(f, "Notify Error: see above for error message"),
             Task::Seq(tasks) => write!(
                 f,
@@ -294,6 +303,10 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
         }
         Task::Notify { message } => {
             println!("{}", message);
+            Ok(id)
+        }
+        Task::NotifyWarn { message } => {
+            println!("{}: {}", Yellow.paint("[wf2 warning]"), message);
             Ok(id)
         }
         Task::NotifyError { message } => Err(TaskError {

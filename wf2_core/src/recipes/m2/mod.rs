@@ -125,7 +125,7 @@ impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
                 dc_tasks,
             )),
             Cmd::Pull { trailing } => Some(self.pull(&ctx, trailing.clone())),
-            Cmd::Push { trailing } => Some(self.push(&ctx, trailing.clone())),
+            Cmd::Push { trailing, force } => Some(self.push(&ctx, trailing.clone(), force)),
             Cmd::Down => Some(self.down(&ctx, &vars, dc_tasks)),
             Cmd::Stop => Some(self.stop(&ctx, &vars, dc_tasks)),
             Cmd::ListImages => Some(self.list_images(&dc)),
@@ -341,7 +341,7 @@ impl M2Recipe {
         ]
     }
 
-    pub fn push(&self, ctx: &Context, trailing: Vec<String>) -> Vec<Task> {
+    pub fn push(&self, ctx: &Context, trailing: Vec<String>, force: bool) -> Vec<Task> {
         let remote_prefix = PathBuf::from("/var/www");
         let container_name = PhpContainer::from_ctx(&ctx).name;
 
@@ -351,7 +351,13 @@ impl M2Recipe {
         let invalid_push_paths = trailing
             .iter()
             .filter(|path| path.starts_with("app/"))
-            .map(|_| Task::notify_error("invalid paths provided. Don't try to push anything into `app/` - files there are already synced"));
+            .map(|_| {
+                if force {
+                    Task::notify_warn("Ignoring all warning/checks. I hope you know what you're doing :)")
+                } else {
+                    Task::notify_error("Invalid paths provided. Don't try to push anything into `app/` - files there are already synced (override with -f)")
+                }
+            });
 
         // first make sure we're looking at files that exist
         // on the host
@@ -414,13 +420,21 @@ impl M2Recipe {
             acc
         });
 
-        invalid_push_paths
-            .into_iter()
-            .chain(exists_checks)
-            .chain(deletes)
-            .chain(recreates)
-            .chain(copy_to_remotes)
-            .collect()
+        if force {
+            invalid_push_paths
+                .into_iter()
+                .chain(exists_checks)
+                .chain(copy_to_remotes)
+                .collect()
+        } else {
+            invalid_push_paths
+                .into_iter()
+                .chain(exists_checks)
+                .chain(deletes)
+                .chain(recreates)
+                .chain(copy_to_remotes)
+                .collect()
+        }
     }
 
     ///
