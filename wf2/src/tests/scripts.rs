@@ -2,7 +2,7 @@
 mod tests {
     use crate::cli_input::CLIInput;
     use crate::cli_output::CLIOutput;
-    use crate::tests::commands;
+    use crate::tests::_commands;
     use std::path::PathBuf;
 
     #[test]
@@ -100,7 +100,7 @@ mod tests {
         .unwrap();
         use wf2_core::task::Task;
         match cli_output.tasks.unwrap().get(0).unwrap() {
-            Task::NotifyError { message } => assert!(true),
+            Task::NotifyError { .. } => assert!(true),
             _ => unreachable!(),
         }
     }
@@ -161,7 +161,6 @@ mod tests {
                 /* yay! */
             }
             _output => {
-                println!("{:?}", _output);
                 unreachable!();
             }
         }
@@ -174,6 +173,6 @@ mod tests {
             ..CLIInput::default()
         })
         .unwrap();
-        commands(cli_output.tasks.expect("test"))
+        _commands(cli_output.tasks.expect("test"))
     }
 }

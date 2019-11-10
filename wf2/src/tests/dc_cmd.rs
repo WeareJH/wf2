@@ -19,7 +19,7 @@ mod tests {
     }
 
     fn test_dc(args: Vec<&str>, expected: &str) {
-        let input = CLIInput::from_args(args);
+        let input = CLIInput::_from_args(args);
         let output = CLIOutput::from_input(input);
         match output.unwrap().tasks.unwrap().get(0) {
             Some(Task::Seq(tasks)) => match tasks.get(1).unwrap() {

@@ -2,7 +2,7 @@
 mod tests {
     use crate::cli_input::CLIInput;
     use crate::cli_output::CLIOutput;
-    use crate::tests::{commands, file_ops};
+    use crate::tests::{_commands, _file_ops};
     use std::env::current_dir;
     use std::path::PathBuf;
     use wf2_core::task::Task;
@@ -103,11 +103,11 @@ mod tests {
     ) {
         let cwd = cwd.into();
         let get_tasks = move || {
-            let input = CLIInput::from_args(args.clone()).with_cwd(cwd.clone());
+            let input = CLIInput::_from_args(args.clone())._with_cwd(cwd.clone());
             let cli_output = CLIOutput::from_input(input);
             cli_output.expect("test").tasks.unwrap()
         };
-        assert_eq!(commands(get_tasks()), expected_commands);
-        assert_eq!(file_ops(get_tasks()), file_ops(expected_file_ops));
+        assert_eq!(_commands(get_tasks()), expected_commands);
+        assert_eq!(_file_ops(get_tasks()), _file_ops(expected_file_ops));
     }
 }

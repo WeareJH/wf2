@@ -23,14 +23,14 @@ mod update_images_cmd;
 /// Test helper to convert a nested task list in a
 /// Vec of strings for easier comparison
 ///
-pub fn commands(tasks: Vec<Task>) -> Vec<String> {
+pub fn _commands(tasks: Vec<Task>) -> Vec<String> {
     tasks.into_iter().fold(vec![], |mut acc, t| match t {
         Task::SimpleCommand { command, .. } | Task::Command { command, .. } => {
             acc.push(command.to_string());
             acc
         }
         Task::Seq(tasks) => {
-            let other = commands(tasks);
+            let other = _commands(tasks);
             acc.extend(other);
             acc
         }
@@ -38,14 +38,14 @@ pub fn commands(tasks: Vec<Task>) -> Vec<String> {
     })
 }
 
-pub fn file_ops(tasks: Vec<Task>) -> Vec<FileOp> {
+pub fn _file_ops(tasks: Vec<Task>) -> Vec<FileOp> {
     tasks.into_iter().fold(vec![], |mut acc, t| match t {
         Task::File { op, .. } => {
             acc.push(op);
             acc
         }
         Task::Seq(tasks) => {
-            let other = file_ops(tasks);
+            let other = _file_ops(tasks);
             acc.extend(other);
             acc
         }
@@ -64,7 +64,7 @@ mod tests {
             Task::command("ls -lh", HashMap::new()),
             Task::Seq(vec![Task::simple_command("echo level 2")]),
         ];
-        let cmds = commands(tasks);
+        let cmds = _commands(tasks);
         assert_eq!(vec!["ls -l", "ls -lh", "echo level 2"], cmds);
     }
 }

@@ -82,9 +82,6 @@ impl<'a, 'b> CLI<'a, 'b> {
                             .multiple(true)
                             .required(false),
                     ),
-                SubCommand::with_name("self-update")
-                    .display_order(8)
-                    .about("Update wf2 to the latest release")
             ])
             .settings(&[
                 AppSettings::AllowExternalSubcommands,
@@ -126,7 +123,7 @@ impl<'a, 'b> CLI<'a, 'b> {
 /// Append Subcommands to the CLI
 ///
 pub fn append_subcommands<'a, 'b>(
-    app: clap::App<'a, 'b>,
+    app: App<'a, 'b>,
     items: Vec<App<'a, 'b>>,
     offset: usize,
 ) -> clap::App<'a, 'b> {

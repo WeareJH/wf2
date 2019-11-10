@@ -5,7 +5,6 @@ use crate::recipes::m2::services::get_services;
 use crate::recipes::m2::tasks::env_php::env_php_task;
 use crate::recipes::m2::volumes::get_volumes;
 use crate::scripts::script::Script;
-use crate::scripts::script_item::ScriptItem;
 use crate::util::two_col;
 use crate::{
     cmd::Cmd,
@@ -286,16 +285,6 @@ impl M2Recipe {
                 ctx.name
             )),
             Task::notify("Fixed a known permissions error in the unison container"),
-        ]
-    }
-
-    /// 
-    /// Update wf2 to latest
-    /// 
-
-    pub fn self_update(&self, ctx: &Context) -> Vec<Task> {
-        vec![
-            Task::SelfUpdate
         ]
     }
 

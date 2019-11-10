@@ -6,7 +6,7 @@ use crate::{
     recipes::{
         m2::m2_runtime_env_file::M2RuntimeEnvFile,
         m2::m2_vars::{
-            M2Vars, NGINX_OUTPUT_FILE, TRAEFIK_OUTPUT_FILE, UNISON_OUTPUT_FILE, DB_CONF_OUTPUT_FILE
+            M2Vars, DB_CONF_OUTPUT_FILE, NGINX_OUTPUT_FILE, TRAEFIK_OUTPUT_FILE, UNISON_OUTPUT_FILE,
         },
         m2::M2Templates,
     },

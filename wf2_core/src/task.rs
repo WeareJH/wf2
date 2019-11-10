@@ -9,11 +9,10 @@ use std::{
     path::PathBuf,
     process::{Command, Stdio},
 };
-use crate::commands::self_update::run_self_update;
 
 pub type FutureSig = Box<dyn Future<Item = usize, Error = TaskError> + Send>;
+pub type ExecSig = Box<dyn Future<Item = (), Error = String> + Send>;
 
-#[derive(Debug)]
 pub enum Task {
     File {
         description: String,
@@ -38,7 +37,9 @@ pub enum Task {
         conditions: Vec<Box<dyn Con>>,
         tasks: Vec<Task>,
     },
-    SelfUpdate
+    Exec {
+        exec: ExecSig,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -151,10 +152,6 @@ impl Task {
             })
             .collect()
     }
-
-    pub fn self_update(tasks: Vec<Task>) -> Task {
-        Task::SelfUpdate
-    }
 }
 
 ///
@@ -164,9 +161,9 @@ impl fmt::Display for Task {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         match self {
             Task::File { op, .. } => write!(f, "{}", op),
-            Task::Command { command, env } => write!(f, "Command: {:?}\nEnv: {:#?}", command, env),
-            Task::SimpleCommand { command, .. } => write!(f, "Command: {:?}", command),
-            Task::Notify { message } => write!(f, "Notify: {:?}", message),
+            Task::Command { command, env } => write!(f, "Command: {}\nEnv: {:#?}", command, env),
+            Task::SimpleCommand { command, .. } => write!(f, "Command: {}", command),
+            Task::Notify { message } => write!(f, "Notify: {}", message),
             Task::NotifyError { .. } => write!(f, "Notify Error: see above for error message"),
             Task::Seq(tasks) => write!(
                 f,
@@ -226,8 +223,8 @@ impl fmt::Display for Task {
                     cond_list,
                     task_list
                 )
-            },
-            Task::SelfUpdate { .. } => write!(f, "Self Update Error: see above for error message")
+            }
+            Task::Exec { .. } => write!(f, "Exec"),
         }
     }
 }
@@ -311,7 +308,7 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                 .and_then(|_| Ok(id))
                 .map_err(|(error_id, task_error)| TaskError {
                     index: id,
-                    message: format!("Task Seq error: {:?}", error_id),
+                    message: format!("Task Seq error: {}", error_id),
                     exit_code: task_error.exit_code,
                 })
         }
@@ -334,18 +331,17 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                 })
                 .map_err(|e| TaskError {
                     index: id,
-                    message: format!("Conditional task error: {:?}", e),
+                    message: format!("Conditional task error: {}", e),
                     exit_code: None,
                 })
-        },
-        Task::SelfUpdate => {
-            run_self_update()
-                .map(|_| id)
-                .map_err(|e| TaskError {
-                    exit_code: None,
-                    index: id,
-                    message: e.to_string(),
-                })
-        },
+        }
+        Task::Exec { exec } => {
+            let output = exec.wait();
+            output.and_then(|_| Ok(id)).map_err(|e| TaskError {
+                exit_code: None,
+                index: id,
+                message: e,
+            })
+        }
     }))
 }

@@ -55,19 +55,19 @@ impl CLIInput {
         }
     }
 
-    pub fn with_args(&mut self, args: Vec<&str>) -> &mut Self {
+    pub fn _with_args(&mut self, args: Vec<&str>) -> &mut Self {
         self.args = args.iter().map(|s| s.to_string()).collect();
         self
     }
 
-    pub fn from_args(args: Vec<&str>) -> CLIInput {
+    pub fn _from_args(args: Vec<&str>) -> CLIInput {
         CLIInput {
             args: args.iter().map(|s| s.to_string()).collect(),
             ..CLIInput::default()
         }
     }
 
-    pub fn with_cwd(mut self, cwd: impl Into<PathBuf>) -> CLIInput {
+    pub fn _with_cwd(mut self, cwd: impl Into<PathBuf>) -> CLIInput {
         self.cwd = cwd.into();
         self
     }

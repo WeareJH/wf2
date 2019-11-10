@@ -67,7 +67,12 @@ pub fn get_services(vars: &M2Vars, ctx: &Context) -> Vec<DcService> {
         rabbitmq(M2Services::RABBITMQ, M2ServiceImages::RABBITMQ, vars, ctx),
         mail(M2Services::MAIL, M2ServiceImages::MAIL, vars, ctx),
         blackfire(M2Services::BLACKFIRE, M2ServiceImages::BLACKFIRE, vars, ctx),
-        elasticsearch(M2Services::ELASTICSEARCH, M2ServiceImages::ELASTICSEARCH, vars, ctx),
+        elasticsearch(
+            M2Services::ELASTICSEARCH,
+            M2ServiceImages::ELASTICSEARCH,
+            vars,
+            ctx,
+        ),
     ]
 }
 
@@ -204,10 +209,13 @@ fn blackfire(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService
         .build()
 }
 
-fn elasticsearch(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService {
+fn elasticsearch(name: &str, image: &str, _vars: &M2Vars, ctx: &Context) -> DcService {
     DcService::new(ctx.name.clone(), name, image)
         .set_ports(vec!["9200:9200"])
-        .set_volumes(vec![format!("{}:/usr/share/elasticsearch/data", M2Volumes::ELASTICSEARCH)])
+        .set_volumes(vec![format!(
+            "{}:/usr/share/elasticsearch/data",
+            M2Volumes::ELASTICSEARCH
+        )])
         .set_environment(vec!["discovery.type=single-node"])
         .set_labels(vec![M2Services::TRAEFIK_LABEL.to_string()])
         .build()
