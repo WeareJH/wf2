@@ -65,8 +65,9 @@ impl<'a, 'b> CLI<'a, 'b> {
                     .arg_from_usage("<paths>... 'files or paths to pull'"),
                 SubCommand::with_name("push")
                     .display_order(4)
-                    .about("Push files or folders into the main container")
-                    .arg_from_usage("<paths>... 'files or paths to push'"),
+                    .about("Push files or folders (use -f to force)")
+                    .arg_from_usage("<paths>... 'files or paths to push'")
+                    .arg_from_usage("-f --force 'ignore warnings about synced files'"),
                 SubCommand::with_name("doctor")
                     .display_order(5)
                     .about("Try to fix common issues with a recipe"),

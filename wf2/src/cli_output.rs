@@ -258,7 +258,10 @@ impl CLIOutput {
                         .collect(),
                     None => vec![],
                 };
-                Some(Cmd::Push { trailing })
+                Some(Cmd::Push {
+                    trailing,
+                    force: sub_matches.is_present("force"),
+                })
             }
             ("db-import", Some(sub_matches)) => {
                 // .unwrap() is safe here since Clap will exit before this if it's absent

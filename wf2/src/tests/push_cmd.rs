@@ -41,6 +41,16 @@ mod tests {
         test_push_invalid(args);
     }
 
+    #[test]
+    fn test_push_invalid_files_with_force() {
+        let args = vec!["prog", "push", "app/code/Acme/Lib/File", "-f"];
+        let cwd = "/users/acme";
+        let expected_commands = vec![
+            "docker cp /users/acme/app/code/Acme/Lib/File wf2__acme__php:/var/www/app/code/Acme/Lib",
+        ];
+        test_push(args, cwd, expected_commands);
+    }
+
     fn test_push(args: Vec<&str>, cwd: impl Into<PathBuf>, expected_commands: Vec<&str>) {
         let input = CLIInput::_from_args(args)._with_cwd(cwd);
         let cli_output = CLIOutput::from_input(input);
