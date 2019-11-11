@@ -1,5 +1,12 @@
 # wf2 [![Build Status](https://travis-ci.org/WeareJH/wf2.svg?branch=master)](https://travis-ci.org/WeareJH/wf2)
 
+## Express Install
+
+Simply run the following in your terminal
+
+```
+zsh <(curl -L https://raw.githubusercontent.com/WeareJH/wf2/bash-installer/express-install.sh) && source ~/.zshrc
+```
 
 ## Install
 `wf2` is distributed as a single binary with everything packaged inside -
