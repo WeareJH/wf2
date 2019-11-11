@@ -65,6 +65,7 @@ if [[ $continueInstall == "y" ]] ; then
 			    echo " - this will delete your existing installation (y/n) "
 				read reinstall
 				if [[ $reinstall == "y" ]] ; then
+						rm $(which wf2)
 						exec_install
 				else
 						aborting_install
