@@ -5,7 +5,7 @@
 Simply run the following in your terminal
 
 ```
-zsh <(curl -L https://raw.githubusercontent.com/WeareJH/wf2/bash-installer/express-install.sh) && source ~/.zshrc
+zsh <(curl -L https://raw.githubusercontent.com/WeareJH/wf2/master/express-install.sh) && source ~/.zshrc
 ```
 
 ## Install
