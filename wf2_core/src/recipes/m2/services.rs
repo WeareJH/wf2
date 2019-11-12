@@ -169,6 +169,7 @@ fn db(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService {
         .set_volumes(vec![
             format!("{}:/var/lib/mysql", M2Volumes::DB),
             format!("{}:/etc/mysql/conf.d", vars.content[&M2Var::DbConfDir]),
+            format!("{}:/docker-entrypoint-initdb.d", vars.content[&M2Var::DbInitDir]),
         ])
         .set_ports(vec!["3306:3306"])
         .set_restart("unless-stopped")

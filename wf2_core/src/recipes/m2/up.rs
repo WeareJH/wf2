@@ -6,7 +6,12 @@ use crate::{
     recipes::{
         m2::m2_runtime_env_file::M2RuntimeEnvFile,
         m2::m2_vars::{
-            M2Vars, DB_CONF_OUTPUT_FILE, NGINX_OUTPUT_FILE, TRAEFIK_OUTPUT_FILE, UNISON_OUTPUT_FILE,
+            M2Vars,
+            DB_CONF_OUTPUT_FILE,
+            DB_INIT_OUTPUT_FILE,
+            NGINX_OUTPUT_FILE,
+            TRAEFIK_OUTPUT_FILE,
+            UNISON_OUTPUT_FILE,
         },
         m2::M2Templates,
     },
@@ -70,6 +75,11 @@ pub fn exec(
             "Writes the mysql conf file",
             templates.db_conf.bytes,
         ),
+        Task::file_write(
+            ctx.file_path(DB_INIT_OUTPUT_FILE),
+            "Writes the mysql init file",
+            templates.db_init.bytes,
+        ),
         if detached {
             dc.cmd_task(vec!["up -d".to_string()])
         } else {
@@ -121,7 +131,8 @@ mod tests {
                 "/users/shane/.wf2_default/unison/conf/sync.prf",
                 "/users/shane/.wf2_default/traefik/traefik.toml",
                 "/users/shane/.wf2_default/nginx/sites/site.conf",
-                "/users/shane/.wf2_default/mysql/mysqlconf/mysql.cnf"
+                "/users/shane/.wf2_default/mysql/mysqlconf/mysql.cnf",
+                "/users/shane/.wf2_default/mysql/init-scripts/init-db.sh",
             ]
             .into_iter()
             .map(|s| PathBuf::from(s))
@@ -150,7 +161,7 @@ mod tests {
             M2Templates::default(),
             dc,
         );
-        let last = output.get(10).unwrap();
+        let last = output.get(11).unwrap();
         match last {
             Task::Seq(tasks) => match tasks.get(1).unwrap() {
                 Task::SimpleCommand { command, .. } => assert_eq!(
@@ -185,7 +196,7 @@ mod tests {
             dc,
         );
 
-        let last = output.get(10).unwrap();
+        let last = output.get(11).unwrap();
         match last {
             Task::Seq(tasks) => match tasks.get(1).unwrap() {
                 Task::SimpleCommand { command, .. } => assert_eq!(
