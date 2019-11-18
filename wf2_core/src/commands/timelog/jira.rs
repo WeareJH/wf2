@@ -6,13 +6,11 @@ use crate::commands::timelog::jira_worklog_result::WorklogResult;
 use chrono::{Date, Utc};
 use clap::ArgMatches;
 use futures::stream::iter_ok;
+use futures::Stream;
 use futures::{future::lazy, future::Future};
-use futures::{Async, Stream};
+use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::Duration;
-use std::{fs, thread};
-use tokio::prelude::Poll;
 use tokio::sync::oneshot;
 
 pub const JIRA_DATE_FORMAT: &'static str = "%Y-%m-%d";

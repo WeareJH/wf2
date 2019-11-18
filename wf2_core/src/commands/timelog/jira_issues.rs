@@ -1,7 +1,5 @@
-use crate::commands::timelog::date_input::DateInput;
 use crate::commands::timelog::jira::{Jira, JIRA_DATE_FORMAT};
 use crate::commands::timelog::jira_types::JiraField;
-use chrono::offset::TimeZone;
 use chrono::{Date, Utc};
 use reqwest::header::AUTHORIZATION;
 use std::collections::HashMap;
@@ -62,7 +60,7 @@ fn date_string(dates: &Vec<Date<Utc>>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::convert::TryFrom;
+    use chrono::TimeZone;
 
     #[test]
     fn test_issue_query() {

@@ -1,8 +1,5 @@
 use chrono::offset::TimeZone;
-use chrono::{Date, Datelike, Duration, LocalResult, Utc};
-use serde::export::Formatter;
-use std::error::Error;
-use std::fmt;
+use chrono::{Date, Duration, Utc};
 use std::str::FromStr;
 
 const MAX_DAYS: i64 = 31;
@@ -156,29 +153,12 @@ fn test_jira_date_format() {
     );
 }
 
-#[derive(Debug)]
+#[derive(Debug, Fail)]
 pub enum DateInputError {
+    #[fail(display = "`{}` is not a valid input.", _0)]
     Invalid(String),
+    #[fail(display = "date argument missing")]
     Missing,
+    #[fail(display = "invalid user")]
     InvalidUser,
-}
-
-impl Error for DateInputError {
-    fn description(&self) -> &str {
-        match self {
-            DateInputError::Invalid(reason) => reason,
-            DateInputError::Missing => "date argument missing",
-            DateInputError::InvalidUser => "invalid user",
-        }
-    }
-}
-
-impl fmt::Display for DateInputError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        match self {
-            DateInputError::Invalid(reason) => write!(f, "`{}` is not a valid input.", reason),
-            DateInputError::Missing => write!(f, "date argument missing"),
-            DateInputError::InvalidUser => write!(f, "invalid user"),
-        }
-    }
 }

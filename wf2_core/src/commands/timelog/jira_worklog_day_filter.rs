@@ -1,10 +1,7 @@
 use crate::commands::timelog::jira_worklog_day::WorklogDay;
 use chrono::Datelike;
 use chrono::Weekday;
-use clap::ArgMatches;
-use core::fmt;
-use std::convert::{TryFrom, TryInto};
-use std::error::Error;
+use failure::_core::str::FromStr;
 
 ///
 /// Enum to represent all possible filters.
@@ -78,14 +75,6 @@ pub fn weekend_filter(item: &WorklogDay) -> bool {
 }
 
 ///
-/// A filter, that does not filter anything, but does
-/// return true :)
-///
-fn noop_filter(item: &WorklogDay) -> bool {
-    true
-}
-
-///
 /// Filter based on whether the item is 'empty' meaning
 /// there are both 0 hours & 0 minutes
 ///
@@ -116,7 +105,6 @@ impl WorklogDayFilter {
             WorklogDayFilter::Weekends => weekend_filter,
             WorklogDayFilter::Overtime => overtime_filter,
             WorklogDayFilter::Normal => normal_filter,
-            _ => noop_filter,
         };
         days.into_iter().filter(func).collect()
     }
@@ -124,7 +112,7 @@ impl WorklogDayFilter {
         let orig_len = input.len();
         let converted = input
             .into_iter()
-            .map(|str| WorklogDayFilter::try_from(str).ok())
+            .map(|str| WorklogDayFilter::from_str(str).ok())
             .filter_map(|x| x)
             .collect::<Vec<WorklogDayFilter>>();
 
@@ -148,11 +136,11 @@ impl Filter for Vec<WorklogDay> {
     }
 }
 
-impl TryFrom<&str> for WorklogDayFilter {
-    type Error = String;
+impl FromStr for WorklogDayFilter {
+    type Err = WorklogDayFilterError;
 
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        match value {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
             WorklogDayFilter::EMPTY_NAME => Ok(WorklogDayFilter::Empty),
             WorklogDayFilter::WEEKDAYS_NAME => Ok(WorklogDayFilter::Weekdays),
             WorklogDayFilter::WEEKENDS_NAME => Ok(WorklogDayFilter::Weekends),
@@ -160,7 +148,7 @@ impl TryFrom<&str> for WorklogDayFilter {
                 Ok(WorklogDayFilter::Overtime)
             }
             WorklogDayFilter::NORMAL_NAME => Ok(WorklogDayFilter::Normal),
-            filter_name => Err(format!("`{}` not supported", filter_name)),
+            filter_name => Err(WorklogDayFilterError::NotFound(filter_name.to_string())),
         }
     }
 }
@@ -175,25 +163,11 @@ impl WorklogDayFilter {
     pub const OVERTIME_NAME_2: &'static str = "ot";
 }
 
-#[derive(Debug)]
+#[derive(Debug, Fail)]
 pub enum WorklogDayFilterError {
+    #[fail(display = "invalid filter: {}", _0)]
     Invalid(String),
-}
 
-impl Error for WorklogDayFilterError {
-    fn description(&self) -> &str {
-        match self {
-            WorklogDayFilterError::Invalid(reason) => reason,
-        }
-    }
-}
-
-impl fmt::Display for WorklogDayFilterError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        match self {
-            WorklogDayFilterError::Invalid(reason) => {
-                write!(f, "`{}` is not a valid filter.", reason)
-            }
-        }
-    }
+    #[fail(display = "filter not found: {}", _0)]
+    NotFound(String),
 }

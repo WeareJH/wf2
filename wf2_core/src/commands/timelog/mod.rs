@@ -2,18 +2,13 @@ use crate::commands::timelog::date_input::{DateInput, DateInputError};
 use crate::commands::timelog::jira::Jira;
 use crate::commands::timelog::jira_user::JiraUser;
 use crate::commands::timelog::jira_worklog_day_filter::WorklogDayFilter;
-use crate::commands::timelog::jira_worklog_result::WorklogResult;
 use crate::commands::timelog::printer::printer_from_matches;
-use crate::commands::CliCommand;
 use crate::conditions::question::Question;
 use crate::task::Task;
 use ansi_term::Colour::Green;
-use chrono::prelude::*;
-use chrono::Utc;
-use clap::{App, Arg, ArgMatches};
+use clap::ArgMatches;
+use failure::Error;
 use futures::future::lazy;
-use std::convert::{TryFrom, TryInto};
-use std::error::Error;
 use std::str::FromStr;
 
 pub mod command;
@@ -40,7 +35,7 @@ impl TimelogCmd {
         TimelogCmd(String::from(CLI_COMMAND_NAME))
     }
 
-    pub fn get_tasks(&self, matches: Option<&ArgMatches>) -> Result<Vec<Task>, Box<dyn Error>> {
+    pub fn get_tasks(&self, matches: Option<&ArgMatches>) -> Result<Vec<Task>, Error> {
         let prefix = Green.paint("[wf2 info]");
         let from_file = Jira::from_file();
         let read_from_file = from_file.is_some();
@@ -50,8 +45,7 @@ impl TimelogCmd {
         let printer = printer_from_matches(&matches);
 
         // adaptor (jira supported for now)
-        let jira =
-            Jira::from_matches(from_file, &matches).ok_or(Box::new(DateInputError::InvalidUser))?;
+        let jira = Jira::from_matches(from_file, &matches).ok_or(DateInputError::InvalidUser)?;
 
         printer.info(format!("{} getting your account info...", prefix));
 
