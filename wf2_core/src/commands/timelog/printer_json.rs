@@ -1,4 +1,4 @@
-use crate::commands::timelog::jira_types::WorklogResult;
+use crate::commands::timelog::jira_worklog_result::WorklogResult;
 use crate::commands::timelog::printer::Printer;
 
 pub struct JsonPrinter(String);
