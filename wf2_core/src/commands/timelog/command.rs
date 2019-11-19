@@ -59,6 +59,13 @@ impl<'a, 'b> CliCommand<'a, 'b> for TimelogCmd {
                     .help("make the output more verbose"),
             )
             .arg(
+                Arg::with_name("target")
+                    .long("target")
+                    .short("t")
+                    .takes_value(true)
+                    .help("set the daily target (eg: 7h30m)"),
+            )
+            .arg(
                 Arg::with_name("filter")
                     .long("filter")
                     .short("f")

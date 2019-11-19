@@ -2,6 +2,7 @@ use crate::commands::timelog::date_input::{DateInput, DateInputError};
 use crate::commands::timelog::jira::Jira;
 use crate::commands::timelog::jira_user::JiraUser;
 use crate::commands::timelog::jira_worklog_day_filter::WorklogDayFilter;
+use crate::commands::timelog::jira_worklog_time::WorklogTime;
 use crate::commands::timelog::printer::printer_from_matches;
 use crate::conditions::question::Question;
 use crate::task::Task;
@@ -21,6 +22,7 @@ pub mod jira_worklog;
 pub mod jira_worklog_day;
 pub mod jira_worklog_day_filter;
 pub mod jira_worklog_result;
+pub mod jira_worklog_time;
 pub mod printer;
 pub mod printer_ascii;
 pub mod printer_json;
@@ -63,6 +65,13 @@ impl TimelogCmd {
             .values_of("filter")
             .map_or(Ok(vec![]), |filters| {
                 WorklogDayFilter::from_vec(filters.collect())
+            })?;
+
+        let target: Option<WorklogTime> = matches
+            .expect("guarded")
+            .value_of("target")
+            .map_or(Ok(None), |target| {
+                WorklogTime::from_str(target).map(|t| Some(t))
             })?;
 
         printer.info(format!(
