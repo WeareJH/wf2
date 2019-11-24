@@ -8,6 +8,9 @@ extern crate serde;
 #[macro_use]
 extern crate from_file_derive;
 
+#[macro_use]
+extern crate failure;
+
 pub mod cmd;
 pub mod commands;
 pub mod condition;
