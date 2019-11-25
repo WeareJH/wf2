@@ -2,6 +2,9 @@
 name = "env_proc"
 version = "0.1.0"
 edition = "2018"
+authors = ["Shane Osbourne <shane.osbourne8@gmail.com>"]
+description = "env vars"
+license = "MIT"
 
 [lib]
 proc-macro = true
