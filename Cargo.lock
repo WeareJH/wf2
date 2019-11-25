@@ -1806,7 +1806,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "wf2"
-version = "0.19.0"
+version = "0.20.0"
 dependencies = [
  "ansi_term 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1819,12 +1819,12 @@ dependencies = [
  "terminal_size 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "users 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "wf2_core 0.19.0",
+ "wf2_core 0.20.0",
 ]
 
 [[package]]
 name = "wf2_core"
-version = "0.19.0"
+version = "0.20.0"
 dependencies = [
  "ansi_term 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "base64 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
