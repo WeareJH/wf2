@@ -1,7 +1,9 @@
+use crate::commands::CliCommand;
 use crate::dc::Dc;
 use crate::file::File;
 use crate::recipes::m2::m2_runtime_env_file::M2RuntimeEnvFile;
 use crate::recipes::m2::services::get_services;
+use crate::recipes::m2::subcommands::m2_recipe_subcommands;
 use crate::recipes::m2::tasks::env_php::env_php_task;
 use crate::recipes::m2::volumes::get_volumes;
 use crate::scripts::script::Script;
@@ -14,7 +16,7 @@ use crate::{
     task::Task,
     util::path_buf_to_string,
 };
-use clap::{App, ArgMatches};
+use clap::ArgMatches;
 use m2_vars::{M2Vars, Vars};
 use pass_thru::M2PassThru;
 use php_container::PhpContainer;
@@ -26,6 +28,7 @@ pub mod m2_vars;
 pub mod pass_thru;
 pub mod php_container;
 pub mod services;
+pub mod subcommands;
 pub mod tasks;
 pub mod up;
 pub mod volumes;
@@ -139,8 +142,8 @@ impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
             }
         }
     }
-    fn subcommands(&self) -> Vec<App<'a, 'b>> {
-        vec![]
+    fn subcommands(&self) -> Vec<Box<dyn CliCommand<'a, 'b>>> {
+        m2_recipe_subcommands()
     }
     fn pass_thru_commands(&self) -> Vec<(String, String)> {
         pass_thru::commands()

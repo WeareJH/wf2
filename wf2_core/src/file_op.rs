@@ -1,4 +1,5 @@
 use core::fmt;
+use failure::Error;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
@@ -86,4 +87,11 @@ pub fn inner_write(dir: PathBuf, file: PathBuf, content: Vec<u8>) -> FileOpResul
                 .map(|_| ())
         })
         .map_err(|e| e.to_string())
+}
+
+pub fn inner_write_err(dir: PathBuf, file: PathBuf, content: Vec<u8>) -> Result<(), Error> {
+    let _d = fs::create_dir_all(dir)?;
+    let mut f = File::create(&file)?;
+    f.write_all(&content)?;
+    Ok(())
 }

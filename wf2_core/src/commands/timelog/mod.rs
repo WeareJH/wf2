@@ -78,6 +78,7 @@ impl TimelogCmd {
         });
 
         let mut tasks = vec![Task::Exec {
+            description: Some(format!("Timelog command")),
             exec: Box::new(lazy(move || {
                 jira.fetch(user, dates.dates, filters, TARGET_TIME)
                     .and_then(move |worklog| printer.print(worklog, is_verbose))
@@ -107,6 +108,7 @@ impl TimelogCmd {
         tasks.push(Task::conditional(
             vec![Box::new(Question::new(question))],
             cond_tasks,
+            vec![],
             Some(String::from("Save this config for later use")),
         ));
 

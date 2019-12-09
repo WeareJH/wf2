@@ -1,7 +1,7 @@
 use crate::condition::{Answer, Con};
 use crate::file_op::FileOp;
 use crate::WF2;
-use ansi_term::Colour::{Red, Yellow};
+use ansi_term::Colour::{Green, Red, Yellow};
 use futures::{future::lazy, future::Future};
 use std::{
     collections::HashMap,
@@ -11,7 +11,7 @@ use std::{
 };
 
 pub type FutureSig = Box<dyn Future<Item = usize, Error = TaskError> + Send>;
-pub type ExecSig = Box<dyn Future<Item = (), Error = String> + Send>;
+pub type ExecSig = Box<dyn Future<Item = (), Error = failure::Error> + Send>;
 
 pub enum Task {
     File {
@@ -34,13 +34,18 @@ pub enum Task {
     NotifyWarn {
         message: String,
     },
+    NotifyInfo {
+        message: String,
+    },
     Seq(Vec<Task>),
     Cond {
         description: Option<String>,
         conditions: Vec<Box<dyn Con>>,
         tasks: Vec<Task>,
+        or_else: Vec<Task>,
     },
     Exec {
+        description: Option<String>,
         exec: ExecSig,
     },
 }
@@ -117,6 +122,11 @@ impl Task {
             message: message.into(),
         }
     }
+    pub fn notify_info(message: impl Into<String>) -> Task {
+        Task::NotifyInfo {
+            message: message.into(),
+        }
+    }
     pub fn dir_create(path: impl Into<PathBuf>, description: impl Into<String>) -> Task {
         Task::File {
             description: description.into(),
@@ -132,11 +142,13 @@ impl Task {
     pub fn conditional(
         conditions: Vec<Box<dyn Con>>,
         tasks: Vec<Task>,
+        or_else: Vec<Task>,
         description: Option<impl Into<String>>,
     ) -> Task {
         Task::Cond {
             conditions,
             tasks,
+            or_else,
             description: description.map(|d| d.into()),
         }
     }
@@ -173,6 +185,7 @@ impl fmt::Display for Task {
             Task::SimpleCommand { command, .. } => write!(f, "Command: {}", command),
             Task::Notify { message } => write!(f, "Notify: {}", message),
             Task::NotifyWarn { message } => write!(f, "NotifyWarn: {}", message),
+            Task::NotifyInfo { message } => write!(f, "NotifyInfo: {}", message),
             Task::NotifyError { .. } => write!(f, "Notify Error: see above for error message"),
             Task::Seq(tasks) => write!(
                 f,
@@ -194,6 +207,7 @@ impl fmt::Display for Task {
                 conditions,
                 tasks,
                 description,
+                or_else,
             } => {
                 let cond_list = conditions
                     .iter()
@@ -209,31 +223,36 @@ impl fmt::Display for Task {
                     })
                     .collect::<Vec<String>>()
                     .join("\n");
-                let task_list = tasks
-                    .iter()
-                    .enumerate()
-                    .map(|(index, task)| {
-                        format!(
-                            "{:indent$} [{index}] {task}",
-                            "",
-                            indent = 8,
-                            index = index,
-                            task = task
-                        )
-                    })
-                    .collect::<Vec<String>>()
-                    .join("\n");
+                let tl = |tasks: &Vec<Task>| {
+                    tasks
+                        .iter()
+                        .enumerate()
+                        .map(|(index, task)| {
+                            format!(
+                                "{:indent$} [{index}] {task}",
+                                "",
+                                indent = 8,
+                                index = index,
+                                task = task
+                            )
+                        })
+                        .collect::<Vec<String>>()
+                        .join("\n")
+                };
+                let task_list = tl(tasks);
+                let or_else_list = tl(or_else);
                 write!(
                     f,
-                    "Conditional Task: {}\n{}\n     Tasks:\n{}",
+                    "Conditional Task: {}\n{}\n     Yes Tasks:\n{}\n     No: Tasks:\n{}",
                     description
                         .clone()
                         .unwrap_or(String::from("Conditional Task:")),
                     cond_list,
-                    task_list
+                    task_list,
+                    or_else_list
                 )
             }
-            Task::Exec { .. } => write!(f, "Exec"),
+            Task::Exec { description, .. } => write!(f, "Exec: {:?}", description),
         }
     }
 }
@@ -309,6 +328,10 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
             println!("{}: {}", Yellow.paint("[wf2 warning]"), message);
             Ok(id)
         }
+        Task::NotifyInfo { message } => {
+            println!("{}: {}", Green.paint("[wf2 info]"), message);
+            Ok(id)
+        }
         Task::NotifyError { message } => Err(TaskError {
             index: id,
             message,
@@ -326,7 +349,10 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                 })
         }
         Task::Cond {
-            conditions, tasks, ..
+            conditions,
+            tasks,
+            or_else,
+            ..
         } => {
             let task_sequence = WF2::conditions(conditions);
             let output = task_sequence.wait();
@@ -340,20 +366,31 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                             Err((_id, te)) => Err(te.message),
                         }
                     }
-                    Answer::No => Ok(id),
+                    Answer::No => {
+                        if or_else.len() > 0 {
+                            let or_else_sequence = WF2::sequence(or_else);
+                            let output = or_else_sequence.wait();
+                            match output {
+                                Ok(..) => Ok(id),
+                                Err((_id, te)) => Err(te.message),
+                            }
+                        } else {
+                            Ok(id)
+                        }
+                    }
                 })
                 .map_err(|e| TaskError {
                     index: id,
-                    message: format!("Conditional task error: {}", e),
+                    message: e.to_string(),
                     exit_code: None,
                 })
         }
-        Task::Exec { exec } => {
+        Task::Exec { exec, .. } => {
             let output = exec.wait();
             output.and_then(|_| Ok(id)).map_err(|e| TaskError {
                 exit_code: None,
                 index: id,
-                message: e,
+                message: e.to_string(),
             })
         }
     }))

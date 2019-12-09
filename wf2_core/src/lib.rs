@@ -28,6 +28,7 @@ pub mod scripts;
 pub mod task;
 pub mod util;
 pub mod vars;
+pub mod zip_utils;
 
 use futures::{future::lazy, future::Future, stream::iter_ok, Stream};
 

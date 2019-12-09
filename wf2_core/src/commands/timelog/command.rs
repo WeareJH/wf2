@@ -2,6 +2,7 @@ use crate::commands::timelog::jira::Jira;
 use crate::commands::timelog::jira_worklog_day_filter::WorklogDayFilter;
 use crate::commands::timelog::{TimelogCmd, CLI_COMMAND_NAME};
 use crate::commands::CliCommand;
+use crate::context::Context;
 use crate::task::Task;
 use clap::{App, Arg, ArgMatches};
 
@@ -10,7 +11,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for TimelogCmd {
         String::from(CLI_COMMAND_NAME)
     }
 
-    fn exec(&self, matches: Option<&ArgMatches>) -> Vec<Task> {
+    fn exec(&self, matches: Option<&ArgMatches>, _ctx: &Context) -> Vec<Task> {
         self.get_tasks(matches)
             .unwrap_or_else(|e| vec![Task::notify_error(e.to_string())])
     }

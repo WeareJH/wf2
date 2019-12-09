@@ -7,7 +7,7 @@ pub trait Printer: Send + Sync {
     fn info(&self, line: String) {
         println!("{}", line);
     }
-    fn print(&self, result: WorklogResult, verbose: bool) -> Result<(), String>;
+    fn print(&self, result: WorklogResult, verbose: bool) -> Result<(), failure::Error>;
 }
 
 pub fn printer_from_matches(matches: &Option<&ArgMatches>) -> Box<dyn Printer> {

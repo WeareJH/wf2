@@ -40,10 +40,6 @@ pub fn exec(
             ctx.cwd.join("composer.json"),
             "Ensure that composer.json exists",
         ),
-        Task::file_exists(
-            ctx.cwd.join("composer.lock"),
-            "Ensure that composer.lock exists",
-        ),
         Task::file_exists(ctx.cwd.join("auth.json"), "Ensure that auth.json exists"),
         Task::file_write(
             runtime_env.file_path(),
@@ -115,7 +111,6 @@ mod tests {
         assert_eq!(
             vec![
                 "/users/shane/composer.json",
-                "/users/shane/composer.lock",
                 "/users/shane/auth.json",
                 "/users/shane/.wf2_default/.docker.env",
                 "/users/shane/.wf2_default/unison/conf/sync.prf",
@@ -150,7 +145,7 @@ mod tests {
             M2Templates::default(),
             dc,
         );
-        let last = output.get(10).unwrap();
+        let last = output.get(9).unwrap();
         match last {
             Task::Seq(tasks) => match tasks.get(1).unwrap() {
                 Task::SimpleCommand { command, .. } => assert_eq!(
@@ -185,7 +180,7 @@ mod tests {
             dc,
         );
 
-        let last = output.get(10).unwrap();
+        let last = output.get(9).unwrap();
         match last {
             Task::Seq(tasks) => match tasks.get(1).unwrap() {
                 Task::SimpleCommand { command, .. } => assert_eq!(

@@ -25,8 +25,8 @@ pub fn env_php_task(ctx: &Context) -> Task {
     );
     Task::conditional(
         vec![
-            Box::new(FilePresent::new(left_abs.clone())),
-            Box::new(FilePresent::new(right_abs.clone())),
+            Box::new(FilePresent::new(left_abs.clone(), false)),
+            Box::new(FilePresent::new(right_abs.clone(), false)),
             Box::new(FilesDiffer::new(left_abs.clone(), right_abs.clone())),
             Box::new(Question::new(question)),
         ],
@@ -40,6 +40,7 @@ pub fn env_php_task(ctx: &Context) -> Task {
             )),
             Task::notify(format!("{}", warning)),
         ],
+        vec![],
         Some("env.php.dist comparison with env.php"),
     )
 }
