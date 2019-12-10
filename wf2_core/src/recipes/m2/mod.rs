@@ -61,6 +61,7 @@ pub struct M2Templates {
     pub traefik: RecipeTemplate,
     pub nginx: RecipeTemplate,
     pub db_conf: RecipeTemplate,
+    pub db_init: RecipeTemplate,
 }
 
 impl Default for M2Templates {
@@ -76,7 +77,10 @@ impl Default for M2Templates {
                 bytes: include_bytes!("templates/site.conf").to_vec(),
             },
             db_conf: RecipeTemplate {
-                bytes: include_bytes!("templates/mysql.cnf").to_vec(),
+                bytes: include_bytes!("templates/db/mysql.cnf").to_vec(),
+            },
+            db_init: RecipeTemplate {
+                bytes: include_bytes!("templates/db/init-db.sh").to_vec(),
             },
         }
     }
