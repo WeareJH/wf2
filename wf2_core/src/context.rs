@@ -45,57 +45,61 @@ pub const DEFAULT_DOMAIN: &str = "local.m2";
 /// # }
 /// ```
 ///
-#[derive(Debug, Clone, Deserialize, FromFile)]
+#[derive(Debug, Clone, Deserialize, Serialize, FromFile)]
 pub struct Context {
     #[serde(default = "default_recipe")]
     pub recipe: RecipeKinds,
 
-    #[serde(default = "default_cwd")]
+    #[serde(skip_serializing, default = "default_cwd")]
     pub cwd: PathBuf,
 
-    #[serde(default = "default_run_mode")]
+    #[serde(skip_serializing, default = "default_run_mode")]
     pub run_mode: RunMode,
 
-    #[serde(default = "default_name")]
+    #[serde(skip_serializing, default = "default_name")]
     pub name: String,
 
     #[serde(default)]
     pub domains: Vec<String>,
 
-    #[serde(default = "default_term")]
+    #[serde(skip_serializing, default = "default_term")]
     pub term: Term,
 
-    #[serde(default)]
+    #[serde(skip_serializing, default)]
     pub pv: Option<String>,
 
-    #[serde(default = "default_cwd")]
+    #[serde(skip_serializing, default = "default_cwd")]
     pub npm_path: PathBuf,
 
-    #[serde(default, deserialize_with = "crate::php::deserialize_php")]
+    #[serde(
+        skip_serializing,
+        default,
+        deserialize_with = "crate::php::deserialize_php"
+    )]
     pub php_version: PHP,
 
-    #[serde(default)]
+    #[serde(skip_serializing, default)]
     pub config_path: Option<PathBuf>,
 
-    #[serde(default)]
+    #[serde(skip_serializing, default)]
     pub env: Option<serde_yaml::Value>,
 
-    #[serde(default = "default_file_prefix")]
+    #[serde(skip_serializing, default = "default_file_prefix")]
     pub file_prefix: PathBuf,
 
-    #[serde(default)]
+    #[serde(skip_serializing, default)]
     pub overrides: Option<serde_yaml::Value>,
 
-    #[serde(default = "default_debug")]
+    #[serde(skip_serializing, default = "default_debug")]
     pub debug: bool,
 
-    #[serde(default = "default_id")]
+    #[serde(skip_serializing, default = "default_id")]
     pub uid: u32,
 
-    #[serde(default = "default_id")]
+    #[serde(skip_serializing, default = "default_id")]
     pub gid: u32,
 
-    #[serde(default)]
+    #[serde(skip_serializing, default)]
     pub scripts: Option<Scripts>,
 }
 

@@ -3,7 +3,7 @@ use crate::conditions::file_present::FilePresent;
 use crate::conditions::question::Question;
 use crate::context::Context;
 use crate::recipes::m2::subcommands::m2_playground::{
-    get_composer_json, get_project_files, write_auth_json, M2Playground,
+    get_composer_json, get_project_files, write_auth_json, write_wf2_file, M2Playground,
 };
 use crate::recipes::m2::subcommands::m2_playground_help;
 use crate::task::Task;
@@ -60,10 +60,12 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
             password: String::from(password),
         };
 
+        // I assume there's a better way to share these
         let pg = Arc::new(pg);
         let pg_1 = pg.clone();
         let pg_2 = pg.clone();
         let pg_3 = pg.clone();
+        let pg_4 = pg.clone();
 
         let get_files = Task::Exec {
             description: Some(format!("Get M2 project files")),
@@ -78,6 +80,11 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
         let auth_json = Task::Exec {
             description: Some(format!("Write auth.json")),
             exec: Box::new(lazy(move || write_auth_json(&pg_3))),
+        };
+
+        let wf2_file = Task::Exec {
+            description: Some(format!("Write wf2.yaml")),
+            exec: Box::new(lazy(move || write_wf2_file(&pg_4))),
         };
 
         let save_creds = if !from_file {
@@ -111,9 +118,11 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
                 Cyan.paint("composer.json")
             )),
             get_composer_json,
-            Task::notify_info(format!("Creating an `{}` file", Cyan.paint("auth.json"))),
+            Task::notify_info(format!("Creating {}", Cyan.paint("auth.json"))),
             auth_json,
-            Task::notify_info(format!("{}", Green.paint("All done :)"))),
+            Task::notify_info(format!("Creating {}", Cyan.paint("wf2.yml"))),
+            wf2_file,
+            Task::notify_info(format!("{}", Green.paint("All done!"))),
             Task::notify_info(m2_playground_help::help(&pg)),
         ];
 

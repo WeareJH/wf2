@@ -24,7 +24,7 @@ use std::fmt;
 /// assert_eq!(tasks.len(), 11);
 /// ```
 ///
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum RecipeKinds {
     M2,
     M2Contrib,

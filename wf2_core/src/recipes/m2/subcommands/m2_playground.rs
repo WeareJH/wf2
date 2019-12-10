@@ -1,4 +1,6 @@
+use crate::context::Context;
 use crate::file_op::inner_write_err;
+use crate::recipes::recipe_kinds::RecipeKinds;
 use crate::zip_utils;
 use clap::ArgMatches;
 use failure::Error;
@@ -72,6 +74,18 @@ pub fn write_auth_json(pg: &M2Playground) -> Result<(), Error> {
         output,
         serde_json::to_vec_pretty(&output_json).expect("cannot fail"),
     )
+}
+
+pub fn write_wf2_file(pg: &M2Playground) -> Result<(), Error> {
+    let c = Context {
+        recipe: RecipeKinds::M2,
+        domains: vec![String::from("local.m2")],
+        ..Context::default()
+    };
+    let output = pg.dir.join("wf2.yml");
+    let dir = pg.dir.clone();
+    let s = serde_yaml::to_vec(&c)?;
+    inner_write_err(dir, output, s)
 }
 
 pub fn get_composer_json(pg: &M2Playground) -> Result<(), Error> {
