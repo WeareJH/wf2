@@ -1,19 +1,20 @@
 use crate::file_op::inner_write_err;
 use crate::zip_utils;
+use clap::ArgMatches;
 use failure::Error;
 use hyper::http::header::ACCEPT_ENCODING;
 use reqwest::header::{AUTHORIZATION, USER_AGENT};
 use reqwest::StatusCode;
-use std::fs::File;
+use std::fs;
 use std::io::Read;
 use std::path::PathBuf;
 use tempdir::TempDir;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct M2Playground {
-    #[serde(skip_serializing)]
+    #[serde(skip)]
     pub version: String,
-    #[serde(skip_serializing)]
+    #[serde(skip)]
     pub dir: PathBuf,
 
     pub username: String,
@@ -26,6 +27,19 @@ impl M2Playground {
             "Basic {}",
             base64::encode(&format!("{}:{}", self.username, self.password))
         )
+    }
+    pub fn from_matches(matches: &Option<&ArgMatches>) -> Option<M2Playground> {
+        None
+    }
+    pub fn output_file() -> Option<PathBuf> {
+        let home = dirs::home_dir()?;
+        Some(home.join(".wf2").join("m2-playground.json"))
+    }
+    pub fn from_file() -> Option<M2Playground> {
+        let pb = M2Playground::output_file()?;
+        let bytes = fs::read(pb).ok()?;
+        let pg = serde_json::from_slice::<M2Playground>(&bytes).ok()?;
+        Some(pg)
     }
 }
 
@@ -69,7 +83,7 @@ pub fn get_composer_json(pg: &M2Playground) -> Result<(), Error> {
     let client = reqwest::Client::new();
     let tmp_dir = TempDir::new(TMP_DIR_NAME)?;
     let file_path = tmp_dir.path().join("composer.json");
-    let mut file_handle = File::create(&file_path)?;
+    let mut file_handle = fs::File::create(&file_path)?;
 
     let mut res = client
         .get(&composer_project_path)
@@ -86,7 +100,7 @@ pub fn get_composer_json(pg: &M2Playground) -> Result<(), Error> {
         s => Err(status_err(s, pg)),
     }?;
 
-    let zipfile_pointer = File::open(&file_path)?;
+    let zipfile_pointer = fs::File::open(&file_path)?;
     let mut archive = zip::ZipArchive::new(zipfile_pointer)?;
     let mut file = archive.by_name("composer.json")?;
     let mut contents = String::new();
@@ -109,7 +123,7 @@ pub fn get_project_files(pg: &M2Playground) -> Result<(), Error> {
     let client = reqwest::Client::new();
     let tmp_dir = TempDir::new(TMP_DIR_NAME)?;
     let file_path = tmp_dir.path().join("m2-base.zip");
-    let mut file_handle = File::create(&file_path)?;
+    let mut file_handle = fs::File::create(&file_path)?;
 
     let mut res = client
         .get(&magento_base_path)

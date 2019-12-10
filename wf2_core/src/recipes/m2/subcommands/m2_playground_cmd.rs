@@ -9,6 +9,7 @@ use crate::task::Task;
 use ansi_term::Colour::{Cyan, Green, Red};
 use clap::{App, Arg, ArgMatches};
 use futures::future::lazy;
+use std::path::Path;
 use std::sync::Arc;
 
 pub struct M2PlaygroundCmd(String);
@@ -38,9 +39,18 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
             return vec![Task::notify_error("didn't get a valid version")];
         }
 
+        let mut pg = M2Playground::from_file();
+        let from_file = pg.is_some();
+        let target_file = M2Playground::output_file();
         let version = version.expect("guarded above");
-        let username = username.expect("guarded above");
-        let password = password.expect("guarded above");
+
+        let username = username
+            .or(pg.as_ref().map(|x| x.username.as_str()))
+            .expect("guarded");
+        let password = password
+            .or(pg.as_ref().map(|x| x.password.as_str()))
+            .expect("guarded");
+
         let target_dir = cwd.join(dirname);
 
         let pg = M2Playground {
@@ -70,6 +80,26 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
             exec: Box::new(lazy(move || write_auth_json(&pg_3))),
         };
 
+        let save_creds = if !from_file {
+            Task::conditional(
+                vec![Box::new(Question::new(format!(
+                    "{}: Save username/password for next time?",
+                    Green.paint("[wf2 info]")
+                )))],
+                vec![Task::file_write(
+                    target_file.expect("target file"),
+                    "Writes the credentials to file for next time",
+                    serde_json::to_vec_pretty(&*pg.clone()).expect("serde=safe"),
+                )],
+                vec![],
+                Some(String::from("Save creds for next time")),
+            )
+        } else {
+            Task::Noop
+        };
+
+        let save_cred_iter = vec![save_creds].into_iter();
+
         let base_tasks = vec![
             Task::notify_info(format!(
                 "Getting the Magento 2 project files for version `{}` (this can take a while)",
@@ -90,7 +120,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
         if force {
             let wipe = Task::dir_remove(target_dir.clone(), "Remove an existing folder");
             let warning = format!(
-                "{} `{}` will be {} - are you {} sure about this?",
+                "{}: `{}` will be {} - are you {} sure about this?",
                 Green.paint("[wf2 info]"),
                 target_dir.clone().display(),
                 Red.paint("deleted"),
@@ -101,6 +131,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
                 vec![Task::notify_info("Deleting previous directory"), wipe]
                     .into_iter()
                     .chain(base_tasks.into_iter())
+                    .chain(save_cred_iter)
                     .collect::<Vec<Task>>(),
                 vec![Task::notify_info("Aborted... phew")],
                 Some("Verify that the folder should be deleted"),
@@ -111,7 +142,10 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
         // an existing directory
         vec![Task::conditional(
             vec![Box::new(FilePresent::new(target_dir.clone(), true))],
-            base_tasks,
+            base_tasks
+                .into_iter()
+                .chain(save_cred_iter)
+                .collect::<Vec<Task>>(),
             vec![Task::notify_error(format!(
                 "Cannot overwrite existing directory (use -f to override) `{}`",
                 target_dir.clone().display()
@@ -121,7 +155,8 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
     }
 
     fn subcommands(&self) -> Vec<App<'a, 'b>> {
-        let args_required = true;
+        let pg_file = M2Playground::from_file();
+        let args_required = pg_file.is_none();
         vec![App::new(NAME)
             .about("Create a fresh install of M2")
             .arg_from_usage("<version> 'Which magento version to use'")

@@ -48,6 +48,7 @@ pub enum Task {
         description: Option<String>,
         exec: ExecSig,
     },
+    Noop,
 }
 
 #[derive(Debug, Clone)]
@@ -253,6 +254,7 @@ impl fmt::Display for Task {
                 )
             }
             Task::Exec { description, .. } => write!(f, "Exec: {:?}", description),
+            Task::Noop => write!(f, "Noop"),
         }
     }
 }
@@ -393,5 +395,6 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                 message: e.to_string(),
             })
         }
+        Task::Noop => Ok(id),
     }))
 }
