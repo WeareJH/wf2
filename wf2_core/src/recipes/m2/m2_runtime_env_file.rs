@@ -54,6 +54,11 @@ env_vars! {
     MYSQL_USER="docker"
     MYSQL_PASSWORD="docker"
 
+    MYSQL_TEST_HOST="db"
+    MYSQL_TEST_USER="docker"
+    MYSQL_TEST_PASSWORD="docker"
+    MYSQL_TEST_DATABASE="docker_test"
+
     PHP_MEMORY_LIMIT="2G"
 
     RABBITMQ_DEFAULT_USER="docker"

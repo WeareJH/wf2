@@ -60,8 +60,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for SelfUpdate {
                     .short("y")
                     .long("yes")
                     .help("Accept all prompts and update automatically"),
-            )
-        ]
+            )]
     }
 }
 
