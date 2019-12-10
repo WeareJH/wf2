@@ -76,7 +76,11 @@ pub fn dir_create(path: PathBuf) -> FileOpResult {
 }
 
 pub fn dir_remove(path: PathBuf) -> FileOpResult {
-    fs::remove_dir_all(&path).map_err(|e| e.to_string())
+    if Path::exists(path.as_path()) {
+        fs::remove_dir_all(&path).map_err(|e| e.to_string())
+    } else {
+        Ok(())
+    }
 }
 
 pub fn inner_write(dir: PathBuf, file: PathBuf, content: Vec<u8>) -> FileOpResult {
