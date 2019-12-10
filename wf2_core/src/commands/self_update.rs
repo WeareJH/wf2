@@ -13,7 +13,7 @@ use crate::task::Task;
 use ansi_term::Color::Blue;
 use ansi_term::Color::Green;
 use ansi_term::Color::Red;
-use clap::{App, ArgMatches};
+use clap::{App, Arg, ArgMatches};
 use futures::future::lazy;
 use std::path::PathBuf;
 use std::process::Command;
@@ -42,17 +42,26 @@ impl<'a, 'b> CliCommand<'a, 'b> for SelfUpdate {
         String::from(NAME)
     }
 
-    fn exec(&self, _matches: Option<&ArgMatches>, _ctx: &Context) -> Vec<Task> {
+    fn exec(&self, matches: Option<&ArgMatches>, _ctx: &Context) -> Vec<Task> {
+        let is_auto_confirmed = matches.map_or(false, |matches| matches.is_present("yes"));
         vec![Task::Exec {
             description: Some(format!("Self update command")),
-            exec: Box::new(lazy(|| run_self_update())),
+            exec: Box::new(lazy(move || run_self_update(is_auto_confirmed))),
         }]
     }
 
     fn subcommands(&self) -> Vec<App<'a, 'b>> {
         vec![App::new(NAME)
             .display_order(8)
-            .about("Update wf2 to the latest release")]
+            .about("Update wf2 to the latest release")
+            .arg(
+                Arg::with_name("yes")
+                    .required(false)
+                    .short("y")
+                    .long("yes")
+                    .help("Accept all prompts and update automatically"),
+            )
+        ]
     }
 }
 
@@ -70,7 +79,7 @@ struct Wf2JsonAsset {
     name: String,
 }
 
-pub fn run_self_update() -> Result<(), failure::Error> {
+pub fn run_self_update(is_auto_confirmed: bool) -> Result<(), failure::Error> {
     let request_url = String::from("https://api.github.com/repos/wearejh/wf2/releases/latest");
     let mut response = reqwest::get(&request_url)?;
     let resp = response.text()?;
@@ -100,75 +109,79 @@ pub fn run_self_update() -> Result<(), failure::Error> {
         .map(|asset| asset.size.clone())
         .ok_or(SelfUpdateError::NoItems)?;
 
-    clear_terminal();
-    println!("{}", Green.paint("=====[Wf2 Self Updater]====="));
-    println!();
-    println!("File name   : {}", name);
-    println!("Description : {}", wf2.name);
-    println!("Url         : {}", url);
-    println!("Version     : {}", wf2.tag_name);
-    println!("Size        : {}kb", size / 1024);
-    println!();
-    println!(
-        "Current wf2 directory is reported as: {}",
-        Blue.paint(wf2_path)
-    );
-    println!();
-    if wf2_path != "/opt/wf2" {
-        println!(
-            "{}",
-            Red.paint("Warning! Working directory is NOT the standard directory expected.")
-        );
-        println!("{}", Red.paint("Expected directory to be /opt/wf2"));
-        println!(
-            "{}",
-            Red.paint("You can proceed with the update, but at your own risk!")
-        );
+    clear_terminal(is_auto_confirmed);
+    let mut ok_to_proceed: bool = false;
+    if !is_auto_confirmed {
+        println!("{}", Green.paint("=====[Wf2 Self Updater]====="));
+        println!();
+        println!("File name   : {}", name);
+        println!("Description : {}", wf2.name);
+        println!("Url         : {}", url);
+        println!("Version     : {}", wf2.tag_name);
+        println!("Size        : {}kb", size / 1024);
         println!();
         println!(
-            "{} {} {}",
-            Blue.paint("If you wish to fix this, exit out of this app and run 'sudo mv"),
-            Blue.paint(wf2_path),
-            Blue.paint("/opt/wf2'")
+            "Current wf2 directory is reported as: {}",
+            Blue.paint(wf2_path)
         );
-        println!(
-            "{}",
-            Blue.paint("More info here: https://github.com/WeareJH/wf2#manual")
-        );
-    } else {
-        println!("{}", Green.paint("Working directory is ok!"));
-    }
-    println!();
-
-    let mut ok_to_proceed: bool = false;
-
-    loop {
-        println!("Ok to proceed? (y/n)");
-        let mut user_input = String::new();
-
-        io::stdin()
-            .read_line(&mut user_input)
-            .expect("Failed to read line");
-
-        if let Some('\n') = user_input.chars().next_back() {
-            user_input.pop();
-        }
-        if let Some('\r') = user_input.chars().next_back() {
-            user_input.pop();
-        }
-        if user_input == "y" || user_input == "yes" {
-            ok_to_proceed = true;
-            break;
-        } else if user_input == "n" || user_input == "no" {
-            break;
+        println!();
+        if wf2_path != "/opt/wf2" {
+            println!(
+                "{}",
+                Red.paint("Warning! Working directory is NOT the standard directory expected.")
+            );
+            println!("{}", Red.paint("Expected directory to be /opt/wf2"));
+            println!(
+                "{}",
+                Red.paint("You can proceed with the update, but at your own risk!")
+            );
+            println!();
+            println!(
+                "{} {} {}",
+                Blue.paint("If you wish to fix this, exit out of this app and run 'sudo mv"),
+                Blue.paint(wf2_path),
+                Blue.paint("/opt/wf2'")
+            );
+            println!(
+                "{}",
+                Blue.paint("More info here: https://github.com/WeareJH/wf2#manual")
+            );
         } else {
-            clear_terminal();
-            println!("Unrecognised input: '{}'", user_input);
+            println!("{}", Green.paint("Working directory is ok!"));
         }
+        println!();
+
+        loop {
+            println!("Ok to proceed? (y/n)");
+            let mut user_input = String::new();
+
+            io::stdin()
+                .read_line(&mut user_input)
+                .expect("Failed to read line");
+
+            if let Some('\n') = user_input.chars().next_back() {
+                user_input.pop();
+            }
+            if let Some('\r') = user_input.chars().next_back() {
+                user_input.pop();
+            }
+            if user_input == "y" || user_input == "yes" {
+                ok_to_proceed = true;
+                break;
+            } else if user_input == "n" || user_input == "no" {
+                break;
+            } else {
+                clear_terminal(is_auto_confirmed);
+                println!("Unrecognised input: '{}'", user_input);
+            }
+        }
+    } else {
+        println!("Auto confirm flag passed, continuing...");
+        ok_to_proceed = true;
     }
 
     if ok_to_proceed {
-        clear_terminal();
+        clear_terminal(is_auto_confirmed);
         println!("Starting update...");
 
         let mut response = reqwest::get(&url)?;
@@ -180,7 +193,7 @@ pub fn run_self_update() -> Result<(), failure::Error> {
 
         copy(&mut response, &mut current_dir)?;
 
-        clear_terminal();
+        clear_terminal(is_auto_confirmed);
         let version = Command::new(wf2_path)
             .arg("-V")
             .output()
@@ -191,13 +204,15 @@ pub fn run_self_update() -> Result<(), failure::Error> {
             str::from_utf8(&version.stdout).unwrap()
         );
     } else {
-        clear_terminal();
+        clear_terminal(is_auto_confirmed);
         println!("Aborted update");
     }
 
     Ok(())
 }
 
-fn clear_terminal() {
-    print!("{}[2J", 27 as char);
+fn clear_terminal(is_auto_confirmed: bool) {
+    if !is_auto_confirmed {
+        print!("{}[2J", 27 as char);
+    }
 }
