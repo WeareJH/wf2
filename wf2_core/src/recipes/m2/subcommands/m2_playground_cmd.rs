@@ -5,6 +5,7 @@ use crate::context::Context;
 use crate::recipes::m2::subcommands::m2_playground::{
     get_composer_json, get_project_files, write_auth_json, M2Playground,
 };
+use crate::recipes::m2::subcommands::m2_playground_help;
 use crate::task::Task;
 use ansi_term::Colour::{Cyan, Green, Red};
 use clap::{App, Arg, ArgMatches};
@@ -114,6 +115,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
             Task::notify_info(format!("Creating an `{}` file", Cyan.paint("auth.json"))),
             auth_json,
             Task::notify_info(format!("{}", Green.paint("All done :)"))),
+            Task::notify_info(m2_playground_help::help(&pg)),
         ];
 
         // If -f was given just add a verification step to ensure it was intended
