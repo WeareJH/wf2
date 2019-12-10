@@ -16,7 +16,7 @@ pub struct JiraIssue {
 }
 
 impl JiraIssues {
-    pub fn from_dates(dates: &Vec<Date<Utc>>, jira: &Jira) -> Result<JiraIssues, String> {
+    pub fn from_dates(dates: &Vec<Date<Utc>>, jira: &Jira) -> Result<JiraIssues, failure::Error> {
         // Create the jira query
         let query = issue_query(&dates);
 
@@ -33,12 +33,11 @@ impl JiraIssues {
             ))
             .header(AUTHORIZATION, jira.basic_auth())
             .json(&map)
-            .send()
-            .map_err(|e| e.to_string())?;
+            .send()?;
 
-        res.text()
-            .map_err(|e| e.to_string())
-            .and_then(|string| serde_json::from_str(&string).map_err(|e| e.to_string()))
+        let as_string = res.text()?;
+        let j_issues = serde_json::from_str(&as_string)?;
+        Ok(j_issues)
     }
 }
 

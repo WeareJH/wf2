@@ -8,6 +8,7 @@ use std::io::copy;
 use std::str;
 
 use crate::commands::CliCommand;
+use crate::context::Context;
 use crate::task::Task;
 use ansi_term::Color::Blue;
 use ansi_term::Color::Green;
@@ -18,6 +19,14 @@ use std::path::PathBuf;
 use std::process::Command;
 
 const NAME: &'static str = "self-update";
+
+#[derive(Debug, Fail)]
+enum SelfUpdateError {
+    #[fail(display = "Cannot read path to executable")]
+    PermissionDenied,
+    #[fail(display = "Assets contained no items")]
+    NoItems,
+}
 
 #[derive(Debug)]
 pub struct SelfUpdate(String);
@@ -33,9 +42,10 @@ impl<'a, 'b> CliCommand<'a, 'b> for SelfUpdate {
         String::from(NAME)
     }
 
-    fn exec(&self, _matches: Option<&ArgMatches>) -> Vec<Task> {
+    fn exec(&self, _matches: Option<&ArgMatches>, _ctx: &Context) -> Vec<Task> {
         vec![Task::Exec {
-            exec: Box::new(lazy(|| run_self_update().map_err(|e| e.to_string()))),
+            description: Some(format!("Self update command")),
+            exec: Box::new(lazy(|| run_self_update())),
         }]
     }
 
@@ -60,41 +70,35 @@ struct Wf2JsonAsset {
     name: String,
 }
 
-pub fn run_self_update() -> Result<(), Box<dyn std::error::Error>> {
+pub fn run_self_update() -> Result<(), failure::Error> {
     let request_url = String::from("https://api.github.com/repos/wearejh/wf2/releases/latest");
     let mut response = reqwest::get(&request_url)?;
     let resp = response.text()?;
 
     let wf2_path_cmd = env::current_exe()?;
 
-    let wf2_path = match wf2_path_cmd.to_str() {
-        Some(path) => path,
-        None => {
-            return Err(Box::new(io::Error::new(
-                io::ErrorKind::PermissionDenied,
-                "Cannot read path to executable",
-            )));
-        }
-    };
+    let wf2_path = wf2_path_cmd
+        .to_str()
+        .ok_or(SelfUpdateError::PermissionDenied)?;
 
     let wf2: Wf2Json = serde_json::from_str(&resp)?;
     let url = wf2
         .assets
         .get(0)
         .map(|asset| asset.browser_download_url.clone())
-        .ok_or(String::from("Assets contained no items"))?;
+        .ok_or(SelfUpdateError::NoItems)?;
 
     let name = wf2
         .assets
         .get(0)
         .map(|asset| asset.name.clone())
-        .ok_or(String::from("Assets contained no items"))?;
+        .ok_or(SelfUpdateError::NoItems)?;
 
     let size = wf2
         .assets
         .get(0)
         .map(|asset| asset.size.clone())
-        .ok_or(String::from("Assets contained no items"))?;
+        .ok_or(SelfUpdateError::NoItems)?;
 
     clear_terminal();
     println!("{}", Green.paint("=====[Wf2 Self Updater]====="));

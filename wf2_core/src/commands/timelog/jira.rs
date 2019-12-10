@@ -22,6 +22,12 @@ pub struct Jira {
     pub api: String,
 }
 
+#[derive(Debug, Fail)]
+enum JiraError {
+    #[fail(display = "Fetch failed")]
+    FetchFailed(String),
+}
+
 impl Jira {
     pub fn from_matches(from_file: Option<Jira>, matches: &Option<&ArgMatches>) -> Option<Jira> {
         from_file.or_else(|| {
@@ -64,7 +70,7 @@ impl Jira {
         dates: Vec<Date<Utc>>,
         filters: Vec<WorklogDayFilter>,
         target_mins: u32,
-    ) -> Result<WorklogResult, String> {
+    ) -> Result<WorklogResult, failure::Error> {
         // make a thread-safe ref to the the jira config
         let jira = Arc::new(self.clone());
 
@@ -107,7 +113,7 @@ impl Jira {
             }))
         });
 
-        iter_ok(as_futures)
+        let out = iter_ok(as_futures)
             .and_then(|f| f)
             .collect()
             .and_then(move |worklogs| {
@@ -123,7 +129,8 @@ impl Jira {
                     target_mins,
                 })
             })
-            .map_err(|e| e.to_string())
-            .wait()
+            .map_err(|e| JiraError::FetchFailed(e.to_string()))
+            .wait()?;
+        Ok(out)
     }
 }

@@ -1,6 +1,7 @@
+use crate::commands::CliCommand;
 use crate::scripts::script::Script;
 use crate::{cmd::Cmd, context::Context, task::Task};
-use clap::{App, ArgMatches};
+use clap::ArgMatches;
 
 pub mod m2;
 pub mod m2_contrib;
@@ -8,7 +9,7 @@ pub mod recipe_kinds;
 
 pub trait Recipe<'a, 'b> {
     fn resolve_cmd(&self, ctx: &Context, cmd: Cmd) -> Option<Vec<Task>>;
-    fn subcommands(&self) -> Vec<App<'a, 'b>> {
+    fn subcommands(&self) -> Vec<Box<dyn CliCommand<'a, 'b>>> {
         vec![]
     }
     fn pass_thru_commands(&self) -> Vec<(String, String)> {

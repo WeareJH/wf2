@@ -20,7 +20,7 @@ impl Printer for AsciiPrinter {
         let prefix = Green.paint("[timelog]");
         println!("{} {}", prefix, line);
     }
-    fn print(&self, result: WorklogResult, verbose: bool) -> Result<(), String> {
+    fn print(&self, result: WorklogResult, verbose: bool) -> Result<(), failure::Error> {
         let mut table = Table::new();
         let by_day = result.group_by_day();
         let filtered = by_day.wl_filter(result.filters.to_vec());

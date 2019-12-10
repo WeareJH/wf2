@@ -6,7 +6,9 @@ use clap::ArgMatches;
 use from_file::FromFileError;
 use std::path::PathBuf;
 use wf2_core::commands::internal_commands;
+use wf2_core::recipes::m2::M2Recipe;
 use wf2_core::recipes::recipe_kinds::RecipeKinds;
+use wf2_core::recipes::Recipe;
 use wf2_core::scripts::script::Script;
 use wf2_core::util::two_col;
 use wf2_core::{
@@ -27,7 +29,7 @@ impl CLIOutput {
     ///
     pub fn from_input(input: CLIInput) -> Result<CLIOutput, CLIError> {
         let input_args: Vec<String> = input.args.clone().into_iter().map(|s| s.into()).collect();
-        let base_len = 6;
+        //        let base_len = 6;
         let cli = CLI::new();
         let ctx = cli.get_ctx(input.args.clone())?;
         let recipe = RecipeKinds::select(&ctx.recipe);
@@ -45,14 +47,20 @@ impl CLIOutput {
         let both = vec![after_help_lines, script_help_lines].join("\n\n");
 
         // append recipe subcommands
-        let app =
-            append_subcommands(cli.app, recipe.subcommands(), base_len + 1).after_help(&both[..]);
+        let app = cli.app.after_help(&both[..]);
+
+        let r = M2Recipe::new().subcommands();
+        let recipe_subcommands = r.iter();
 
         // flatten the subcommands
-        let combined_subcommands = internal_commands().iter().fold(vec![], |mut acc, item| {
-            acc.extend(item.subcommands());
-            acc
-        });
+        let combined_subcommands =
+            internal_commands()
+                .iter()
+                .chain(recipe_subcommands)
+                .fold(vec![], |mut acc, item| {
+                    acc.extend(item.subcommands());
+                    acc
+                });
 
         // append internal subcommands
         let app = append_subcommands(app, combined_subcommands, 20);
@@ -117,10 +125,13 @@ impl CLIOutput {
             ctx.merge(overrides);
         };
 
+        let recipe_subcommands = M2Recipe::new().subcommands();
+
         let internal_cmd = internal_commands()
             .iter()
+            .chain(recipe_subcommands.iter())
             .find(|cmd| matches.is_present(cmd.name()))
-            .map(|cmd| cmd.exec(matches.subcommand_matches(cmd.name())));
+            .map(|cmd| cmd.exec(matches.subcommand_matches(cmd.name()), &ctx));
 
         let output_tasks = internal_cmd.or_else(|| {
             CLIOutput::get_recipe_tasks(&matches, &ctx)
