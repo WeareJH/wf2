@@ -28,7 +28,7 @@ impl M2Playground {
             base64::encode(&format!("{}:{}", self.username, self.password))
         )
     }
-    pub fn from_matches(matches: &Option<&ArgMatches>) -> Option<M2Playground> {
+    pub fn from_matches(_matches: &Option<&ArgMatches>) -> Option<M2Playground> {
         None
     }
     pub fn output_file() -> Option<PathBuf> {

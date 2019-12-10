@@ -10,7 +10,6 @@ use crate::task::Task;
 use ansi_term::Colour::{Cyan, Green, Red};
 use clap::{App, Arg, ArgMatches};
 use futures::future::lazy;
-use std::path::Path;
 use std::sync::Arc;
 
 pub struct M2PlaygroundCmd(String);
@@ -40,7 +39,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
             return vec![Task::notify_error("didn't get a valid version")];
         }
 
-        let mut pg = M2Playground::from_file();
+        let pg = M2Playground::from_file();
         let from_file = pg.is_some();
         let target_file = M2Playground::output_file();
         let version = version.expect("guarded above");
