@@ -62,6 +62,7 @@ pub struct M2Templates {
     pub nginx: RecipeTemplate,
     pub db_conf: RecipeTemplate,
     pub db_init: RecipeTemplate,
+    pub varnish_vcl: RecipeTemplate,
 }
 
 impl Default for M2Templates {
@@ -81,6 +82,9 @@ impl Default for M2Templates {
             },
             db_init: RecipeTemplate {
                 bytes: include_bytes!("templates/db/init-db.sh").to_vec(),
+            },
+            varnish_vcl: RecipeTemplate {
+                bytes: include_bytes!("templates/varnish/varnish.vcl").to_vec(),
             },
         }
     }

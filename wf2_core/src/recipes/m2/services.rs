@@ -168,6 +168,7 @@ fn db(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService {
     DcService::new(ctx.name.clone(), name, image)
         .set_volumes(vec![
             format!("{}:/var/lib/mysql", M2Volumes::DB),
+            format!("{}:/etc/varnish", vars.content[&M2Var::VarnishConfDir]),
             format!("{}:/etc/mysql/conf.d", vars.content[&M2Var::DbConfDir]),
             format!(
                 "{}:/docker-entrypoint-initdb.d",

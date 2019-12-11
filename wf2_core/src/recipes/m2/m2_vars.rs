@@ -8,6 +8,7 @@ pub const TRAEFIK_OUTPUT_FILE: &str = "traefik/traefik.toml";
 pub const NGINX_OUTPUT_FILE: &str = "nginx/sites/site.conf";
 pub const DB_CONF_OUTPUT_FILE: &str = "mysql/mysqlconf/mysql.cnf";
 pub const DB_INIT_OUTPUT_FILE: &str = "mysql/init-scripts/init-db.sh";
+pub const VARNISH_VCL_FILE: &str = "varnish/enabled.vcl";
 pub const UNISON_OUTPUT_FILE: &str = "unison/conf/sync.prf";
 
 pub const DB_PASS: &str = "docker";
@@ -51,6 +52,10 @@ impl Vars<M2Vars> for M2Vars {
         let mut db_init_dir = ctx.file_path(DB_INIT_OUTPUT_FILE);
         db_init_dir.pop();
 
+        //
+        let mut varnish_conf_dir = ctx.file_path(VARNISH_VCL_FILE);
+        varnish_conf_dir.pop();
+
         let env: HashMap<M2Var, String> = vec![
             (M2Var::PhpImage, php_container.image.to_string()),
             (M2Var::Pwd, path_buf_to_string(&ctx.cwd)),
@@ -68,6 +73,7 @@ impl Vars<M2Vars> for M2Vars {
             (M2Var::NginxDir, path_buf_to_string(&nginx_dir)),
             (M2Var::DbConfDir, path_buf_to_string(&db_conf_dir)),
             (M2Var::DbInitDir, path_buf_to_string(&db_init_dir)),
+            (M2Var::VarnishConfDir, path_buf_to_string(&varnish_conf_dir)),
         ]
         .into_iter()
         .collect();
@@ -121,6 +127,7 @@ fn test_env_from_ctx() {
         (M2Var::NginxDir, "./.wf2_default/nginx/sites"),
         (M2Var::DbConfDir, "./.wf2_default/mysql/mysqlconf"),
         (M2Var::DbInitDir, "./.wf2_default/mysql/init-scripts"),
+        (M2Var::VarnishConfDir, "./.wf2_default/varnish"),
     ]
     .into_iter()
     .map(|(k, v)| (k, v.into()))
@@ -137,6 +144,7 @@ fn test_env_from_ctx_with_overrides() {
         NginxDir: "./overrides"
         DbConfDir: "./db-overrides"
         DbInitDir: "./db-init-overrides"
+        VarnishConfDir: "./varnish-overrides"
     "#;
     let ctx = Context {
         overrides: Some(serde_yaml::from_str(overrides).unwrap()),
@@ -155,6 +163,7 @@ fn test_env_from_ctx_with_overrides() {
         (M2Var::NginxDir, "././overrides"),
         (M2Var::DbConfDir, "././db-overrides"),
         (M2Var::DbInitDir, "././db-init-overrides"),
+        (M2Var::VarnishConfDir, "./varnish-overrides"),
     ]
     .into_iter()
     .map(|(k, v)| (k, v.into()))
@@ -174,6 +183,7 @@ pub enum M2Var {
     TraefikFile,
     NginxDir,
     DbConfDir,
+    VarnishConfDir,
     DbInitDir,
 }
 

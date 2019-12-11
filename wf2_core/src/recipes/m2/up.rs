@@ -1,3 +1,4 @@
+use crate::recipes::m2::m2_vars::VARNISH_VCL_FILE;
 use crate::recipes::m2::tasks::env_php::env_php_task;
 use crate::{
     context::Context,
@@ -72,6 +73,11 @@ pub fn exec(
             "Writes the mysql init file",
             templates.db_init.bytes,
         ),
+        Task::file_write(
+            ctx.file_path(VARNISH_VCL_FILE),
+            "Writes the varnish vcl init file",
+            templates.varnish_vcl.bytes,
+        ),
         if detached {
             dc.cmd_task(vec!["up -d".to_string()])
         } else {
@@ -124,6 +130,7 @@ mod tests {
                 "/users/shane/.wf2_default/nginx/sites/site.conf",
                 "/users/shane/.wf2_default/mysql/mysqlconf/mysql.cnf",
                 "/users/shane/.wf2_default/mysql/init-scripts/init-db.sh",
+                "/users/shane/.wf2_default/varnish/enabled.vcl",
             ]
             .into_iter()
             .map(|s| PathBuf::from(s))
@@ -152,7 +159,7 @@ mod tests {
             M2Templates::default(),
             dc,
         );
-        let last = output.get(10).unwrap();
+        let last = output.get(11).unwrap();
         match last {
             Task::Seq(tasks) => match tasks.get(1).unwrap() {
                 Task::SimpleCommand { command, .. } => assert_eq!(
@@ -187,7 +194,7 @@ mod tests {
             dc,
         );
 
-        let last = output.get(10).unwrap();
+        let last = output.get(11).unwrap();
         match last {
             Task::Seq(tasks) => match tasks.get(1).unwrap() {
                 Task::SimpleCommand { command, .. } => assert_eq!(
