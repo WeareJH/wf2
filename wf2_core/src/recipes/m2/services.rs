@@ -3,40 +3,40 @@ use crate::dc_service::DcService;
 use crate::recipes::m2::m2_vars::{M2Var, M2Vars};
 use crate::recipes::m2::volumes::M2Volumes;
 
-struct M2Services;
-struct M2ServiceImages;
+pub struct M2Services;
+pub struct M2ServiceImages;
 
 impl M2Services {
-    const UNISON: &'static str = "unison";
-    const TRAEFIK: &'static str = "traefik";
-    const VARNISH: &'static str = "varnish";
-    const NGINX: &'static str = "nginx";
-    const PHP: &'static str = "php";
-    const PHP_DEBUG: &'static str = "php-debug";
-    const NODE: &'static str = "node";
-    const DB: &'static str = "db";
-    const REDIS: &'static str = "redis";
-    const RABBITMQ: &'static str = "rabbitmq";
-    const MAIL: &'static str = "mail";
-    const BLACKFIRE: &'static str = "blackfire";
-    const ELASTICSEARCH: &'static str = "elasticsearch";
+    pub const UNISON: &'static str = "unison";
+    pub const TRAEFIK: &'static str = "traefik";
+    pub const VARNISH: &'static str = "varnish";
+    pub const NGINX: &'static str = "nginx";
+    pub const PHP: &'static str = "php";
+    pub const PHP_DEBUG: &'static str = "php-debug";
+    pub const NODE: &'static str = "node";
+    pub const DB: &'static str = "db";
+    pub const REDIS: &'static str = "redis";
+    pub const RABBITMQ: &'static str = "rabbitmq";
+    pub const MAIL: &'static str = "mail";
+    pub const BLACKFIRE: &'static str = "blackfire";
+    pub const ELASTICSEARCH: &'static str = "elasticsearch";
 
-    const TRAEFIK_LABEL: &'static str = "traefik.enable=false";
-    const ROOT: &'static str = "/var/www";
+    pub const TRAEFIK_LABEL: &'static str = "traefik.enable=false";
+    pub const ROOT: &'static str = "/var/www";
 }
 
 impl M2ServiceImages {
-    const UNISON: &'static str = "wearejh/unison";
-    const TRAEFIK: &'static str = "traefik:1.7";
-    const VARNISH: &'static str = "wearejh/magento-varnish:latest";
-    const NGINX: &'static str = "wearejh/nginx:stable-m2";
-    const NODE: &'static str = "wearejh/node:8-m2";
-    const DB: &'static str = "mysql:5.6";
-    const REDIS: &'static str = "redis:3-alpine";
-    const RABBITMQ: &'static str = "rabbitmq:3.7-management-alpine";
-    const MAIL: &'static str = "mailhog/mailhog";
-    const BLACKFIRE: &'static str = "blackfire/blackfire";
-    const ELASTICSEARCH: &'static str = "wearejh/elasticsearch:5.6-m2";
+    pub const UNISON: &'static str = "wearejh/unison";
+    pub const TRAEFIK: &'static str = "traefik:1.7";
+    pub const VARNISH: &'static str = "wearejh/magento-varnish:latest";
+    pub const NGINX: &'static str = "wearejh/nginx:stable-m2";
+    pub const NODE: &'static str = "wearejh/node:8-m2";
+    pub const DB: &'static str = "mysql:5.6";
+    pub const REDIS: &'static str = "redis:3-alpine";
+    pub const RABBITMQ: &'static str = "rabbitmq:3.7-management-alpine";
+    pub const MAIL: &'static str = "mailhog/mailhog";
+    pub const BLACKFIRE: &'static str = "blackfire/blackfire";
+    pub const ELASTICSEARCH: &'static str = "wearejh/elasticsearch:5.6-m2";
 
     // PHP images are handled elsewhere for the time being
     //    const PHP: &'static str = "php";
