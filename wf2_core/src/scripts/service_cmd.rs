@@ -1,3 +1,5 @@
+use crate::context::Context;
+use crate::dc_tasks::DcTasks;
 use crate::task::Task;
 
 #[derive(Clone, Debug, Deserialize, Default)]
@@ -10,6 +12,23 @@ pub struct ServiceCmd {
     pub user: Option<String>,
     pub dc_file: Option<String>,
     pub dc_subcommand: Option<String>,
+}
+
+impl ServiceCmd {
+    pub fn running_cmd(
+        service: impl Into<String>,
+        command: impl Into<String>,
+        ctx: &Context,
+    ) -> ServiceCmd {
+        let dct = DcTasks::from_ctx(&ctx, vec![]);
+        ServiceCmd {
+            command: Some(command.into()),
+            service: Some(service.into()),
+            dc_file: Some(dct.file.to_string_lossy().to_string()),
+            dc_subcommand: Some(String::from("exec")),
+            ..ServiceCmd::default()
+        }
+    }
 }
 
 impl From<ServiceCmd> for String {
