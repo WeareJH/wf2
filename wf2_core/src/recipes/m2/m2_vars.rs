@@ -6,6 +6,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 pub const TRAEFIK_OUTPUT_FILE: &str = "traefik/traefik.toml";
 pub const NGINX_OUTPUT_FILE: &str = "nginx/sites/site.conf";
+pub const NGINX_UPSTREAM_OUTPUT_FILE: &str = "nginx/sites/upstream.conf";
 pub const DB_CONF_OUTPUT_FILE: &str = "mysql/mysqlconf/mysql.cnf";
 pub const DB_INIT_OUTPUT_FILE: &str = "mysql/init-scripts/init-db.sh";
 pub const UNISON_OUTPUT_FILE: &str = "unison/conf/sync.prf";
@@ -24,15 +25,13 @@ pub struct M2Vars {
 /// Implement the methods to make it work with WF2
 ///
 impl Vars<M2Vars> for M2Vars {
-    fn from_ctx(ctx: &Context) -> Result<M2Vars, String> {
+    fn from_ctx(ctx: &Context) -> Result<M2Vars, failure::Error> {
         // resolve the relative path to where the .env file will be written
         let env_file_path = ctx.file_path(ENV_OUTPUT_FILE);
 
         // allow env overrides in yml format
         let overrides = match ctx.overrides.clone() {
-            Some(overrides) => {
-                Some(serde_yaml::from_value::<M2Overrides>(overrides).map_err(|e| e.to_string())?)
-            }
+            Some(overrides) => Some(serde_yaml::from_value::<M2Overrides>(overrides)?),
             None => None,
         };
 

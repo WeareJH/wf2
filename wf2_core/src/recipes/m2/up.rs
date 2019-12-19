@@ -1,3 +1,6 @@
+use crate::recipes::m2::m2_vars::NGINX_UPSTREAM_OUTPUT_FILE;
+use crate::recipes::m2::services::M2Services;
+use crate::recipes::m2::subcommands::xdebug::nginx_upstream;
 use crate::recipes::m2::tasks::env_php::env_php_task;
 use crate::{
     context::Context,
@@ -63,6 +66,11 @@ pub fn exec(
             templates.nginx.bytes,
         ),
         Task::file_write(
+            ctx.file_path(NGINX_UPSTREAM_OUTPUT_FILE),
+            "Writes the nginx upstream file",
+            nginx_upstream(M2Services::PHP, M2Services::PHP_DEBUG),
+        ),
+        Task::file_write(
             ctx.file_path(DB_CONF_OUTPUT_FILE),
             "Writes the mysql conf file",
             templates.db_conf.bytes,
@@ -122,6 +130,7 @@ mod tests {
                 "/users/shane/.wf2_default/unison/conf/sync.prf",
                 "/users/shane/.wf2_default/traefik/traefik.toml",
                 "/users/shane/.wf2_default/nginx/sites/site.conf",
+                "/users/shane/.wf2_default/nginx/sites/upstream.conf",
                 "/users/shane/.wf2_default/mysql/mysqlconf/mysql.cnf",
                 "/users/shane/.wf2_default/mysql/init-scripts/init-db.sh",
             ]
@@ -152,7 +161,7 @@ mod tests {
             M2Templates::default(),
             dc,
         );
-        let last = output.get(10).unwrap();
+        let last = output.get(11).unwrap();
         match last {
             Task::Seq(tasks) => match tasks.get(1).unwrap() {
                 Task::SimpleCommand { command, .. } => assert_eq!(
@@ -187,7 +196,7 @@ mod tests {
             dc,
         );
 
-        let last = output.get(10).unwrap();
+        let last = output.get(11).unwrap();
         match last {
             Task::Seq(tasks) => match tasks.get(1).unwrap() {
                 Task::SimpleCommand { command, .. } => assert_eq!(

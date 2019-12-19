@@ -24,8 +24,17 @@ impl DcTasks {
             trailing = trailing.into()
         )
     }
-    pub fn cmd_task(&self, trailing: Vec<String>) -> Task {
-        let cmd = self.cmd_string(trailing.join(" "));
+    pub fn cmd_task(&self, trailing: Vec<impl Into<String>>) -> Task {
+        let cmd = self.cmd_string(
+            trailing
+                .into_iter()
+                .map(|s| {
+                    let s: String = s.into();
+                    s
+                })
+                .collect::<Vec<String>>()
+                .join(" "),
+        );
         let cmd_task = Task::simple_command(cmd);
         let write_task = self.write();
         Task::Seq(vec![write_task, cmd_task])

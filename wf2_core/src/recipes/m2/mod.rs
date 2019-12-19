@@ -100,7 +100,9 @@ impl<'a, 'b> Recipe<'a, 'b> for M2Recipe {
 
         if vars.is_err() {
             return match vars {
-                Err(e) => Some(vec![Task::NotifyError { message: e }]),
+                Err(e) => Some(vec![Task::NotifyError {
+                    message: e.to_string(),
+                }]),
                 Ok(..) => unreachable!(),
             };
         }
@@ -570,6 +572,24 @@ impl M2Recipe {
                     .map(|cmd| Task::simple_command(cmd)),
             )
             .collect()
+    }
+
+    pub fn dc_tasks(ctx: &Context) -> Result<DcTasks, failure::Error> {
+        let vars = M2Vars::from_ctx(&ctx)?;
+        let dc = Dc::new()
+            .set_volumes(&get_volumes(&ctx))
+            .set_services(&get_services(&vars, &ctx))
+            .build();
+
+        Ok(DcTasks::from_ctx(&ctx, dc.to_bytes()))
+    }
+
+    pub fn dc(ctx: &Context) -> Result<Dc, failure::Error> {
+        let vars = M2Vars::from_ctx(&ctx)?;
+        Ok(Dc::new()
+            .set_volumes(&get_volumes(&ctx))
+            .set_services(&get_services(&vars, &ctx))
+            .build())
     }
 }
 
