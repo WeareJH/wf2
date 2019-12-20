@@ -1,3 +1,4 @@
+use crate::recipes::m2::services::M2Services;
 use crate::{context::Context, php::PHP};
 
 pub struct PhpContainer {
@@ -12,9 +13,9 @@ pub const PHP_7_3: &str = "wearejh/php:7.3-m2";
 impl PhpContainer {
     pub fn from_ctx(ctx: &Context) -> PhpContainer {
         let name = if ctx.debug {
-            format!("wf2__{}__php_debug", ctx.name)
+            format!("wf2__{}__{}", ctx.name, M2Services::PHP_DEBUG)
         } else {
-            format!("wf2__{}__php", ctx.name)
+            format!("wf2__{}__{}", ctx.name, M2Services::PHP)
         };
 
         let image = match ctx.php_version {
