@@ -16,7 +16,7 @@ mod tests {
     #[test]
     fn test_m_01_debug() {
         let args = vec!["prog", "--debug", "m", "app:config:import"];
-        let expected = "docker exec -it -u www-data -e COLUMNS=\"80\" -e LINES=\"30\" wf2__wf2_default__php_debug ./bin/magento app:config:import";
+        let expected = "docker exec -it -u www-data -e COLUMNS=\"80\" -e LINES=\"30\" wf2__wf2_default__php-debug ./bin/magento app:config:import";
         let cli_output = CLIOutput::from_input(CLIInput::_from_args(args));
         let cmds = _commands(cli_output.expect("test").tasks.unwrap());
         assert_eq!(vec![expected], cmds);
@@ -31,7 +31,7 @@ mod tests {
             "cron:run",
             r#"--group="selco_export""#,
         ];
-        let expected = r#"docker exec -it -u www-data -e COLUMNS="80" -e LINES="30" wf2__wf2_default__php_debug ./bin/magento cron:run --group="selco_export""#;
+        let expected = r#"docker exec -it -u www-data -e COLUMNS="80" -e LINES="30" wf2__wf2_default__php-debug ./bin/magento cron:run --group="selco_export""#;
         let cli_output = CLIOutput::from_input(CLIInput::_from_args(args));
         let cmds = _commands(cli_output.expect("test").tasks.unwrap());
         assert_eq!(vec![expected], cmds);
