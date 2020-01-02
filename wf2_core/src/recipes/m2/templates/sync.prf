@@ -1,3 +1,6 @@
+owner = true
+perms = 0
+dontchmod = true
 root = /volumes/host
 root = /volumes/internal
 prefer = /volumes/host

@@ -95,7 +95,6 @@ fn unison(name: &str, image: &str, vars: &M2Vars, ctx: &Context) -> DcService {
     DcService::new(ctx.name.clone(), name, image)
         .set_volumes(vec![
             format!("{}:/volumes/host", vars.content[&M2Var::Pwd]),
-            format!("{}:/volumes/internal", M2Volumes::APP),
             format!(
                 "{}:/home/docker/.unison/sync.prf",
                 vars.content[&M2Var::UnisonFile]
