@@ -1,0 +1,30 @@
+name: MacOS build
+on: release
+
+jobs:
+    build:
+        name: Build
+        runs-on: macos-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@master
+
+            - name: Toolchain
+              uses: actions-rs/toolchain@v1
+              with:
+                  toolchain: stable
+                  target: x86_64-apple-darwin
+                  override: true
+
+            - name: Build
+              uses: actions-rs/cargo@v1
+              with:
+                  command: build
+                  args: --target x86_64-apple-darwin --release
+
+            - name: Release
+              uses: JasonEtco/upload-to-release@master
+              with:
+                  args: target/x86_64-apple-darwin/release/wf2 application/octet-stream
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
