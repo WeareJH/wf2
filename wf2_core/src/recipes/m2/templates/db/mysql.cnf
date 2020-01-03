@@ -1,3 +1,4 @@
 [mysqld]
 innodb_buffer_pool_size = 2G
 max_allowed_packet = 512M
+innodb_log_file_size=256M
