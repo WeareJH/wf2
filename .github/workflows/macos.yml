@@ -27,7 +27,7 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               with:
-                  upload_url: ${{ github.event.url }}
+                  upload_url: ${{ github.event.upload_url }}
                   asset_path: target/x86_64-apple-darwin/release/wf2
                   asset_name: wf2
                   asset_content_type: application/octet-stream
