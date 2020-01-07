@@ -59,6 +59,7 @@ pub fn up_help(ctx: &Context) -> String {
     };
 
     let items = vec![
+        String::from(""),
         site(&ctx),
         extra_services(),
         hosts(),

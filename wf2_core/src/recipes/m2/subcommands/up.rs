@@ -92,11 +92,11 @@ pub fn up(ctx: &Context, attached: bool) -> Result<Vec<Task>, failure::Error> {
     let up_help_task = if !attached {
         if let Some(origin) = ctx.origin.as_ref() {
             match origin.as_str() {
-                "m2-playground" => Task::notify_info(m2_playground_help::up_help()),
-                _ => Task::notify_info(up_help(&ctx)),
+                "m2-playground" => Task::notify(m2_playground_help::up_help()),
+                _ => Task::notify(up_help(&ctx)),
             }
         } else {
-            Task::notify_info(up_help(&ctx))
+            Task::notify(up_help(&ctx))
         }
     } else {
         // if we're attached to the output stream, we cannot show any terminal output
