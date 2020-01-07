@@ -1,4 +1,5 @@
 use crate::condition::{Answer, Con, ConditionFuture};
+use crate::output::output;
 use core::fmt;
 use futures::future::lazy;
 use std::path::{Path, PathBuf};
@@ -19,12 +20,14 @@ impl FilePresent {
 
 impl fmt::Display for FilePresent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(
-            f,
-            "File {}Present check: {}",
-            if self.invert { "Not " } else { "" },
-            self.path.display()
-        )
+        let string = output(
+            format!(
+                "File {}present check",
+                if self.invert { "NOT " } else { "" }
+            ),
+            self.path.display().to_string(),
+        );
+        write!(f, "{}", string)
     }
 }
 
@@ -40,12 +43,10 @@ impl Con for FilePresent {
                 } else {
                     Ok(Answer::Yes)
                 }
+            } else if exists {
+                Ok(Answer::Yes)
             } else {
-                if exists {
-                    Ok(Answer::Yes)
-                } else {
-                    Ok(Answer::No)
-                }
+                Ok(Answer::No)
             }
         }))
     }

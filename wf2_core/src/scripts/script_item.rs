@@ -15,8 +15,7 @@ impl From<ScriptItem> for Task {
     fn from(item: ScriptItem) -> Task {
         match item {
             t @ ScriptItem::ShellCommand { .. } | t @ ScriptItem::DcPassThru { .. } => {
-                let s: String = t.into();
-                Task::simple_command(s)
+                Task::simple_command(t)
             }
             ScriptItem::DcRunCommand { run } => run.into(),
             ScriptItem::DcExecCommand { exec } => exec.into(),
@@ -28,10 +27,10 @@ impl From<ScriptItem> for Task {
 impl From<ScriptItem> for String {
     fn from(item: ScriptItem) -> Self {
         match item {
-            ScriptItem::ShellCommand { sh } => sh.clone(),
+            ScriptItem::ShellCommand { sh } => sh,
             ScriptItem::DcRunCommand { run } => run.into(),
             ScriptItem::DcExecCommand { exec } => exec.into(),
-            ScriptItem::DcPassThru { dc } => dc.into(),
+            ScriptItem::DcPassThru { dc } => dc,
             _ => unimplemented!(),
         }
     }

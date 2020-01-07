@@ -26,9 +26,9 @@ pub mod printer;
 pub mod printer_ascii;
 pub mod printer_json;
 
-const CLI_COMMAND_NAME: &'static str = "timelog";
+const CLI_COMMAND_NAME: &str = "timelog";
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct TimelogCmd(String);
 
 impl TimelogCmd {
@@ -48,7 +48,7 @@ impl TimelogCmd {
         // adaptor (jira supported for now)
         let jira = Jira::from_matches(from_file, &matches).ok_or(DateInputError::InvalidUser)?;
 
-        printer.info(format!("getting your account info..."));
+        printer.info("getting your account info...".to_string());
 
         let user = JiraUser::from_jira(&jira)?;
         let jira_clone = jira.clone();
@@ -78,7 +78,7 @@ impl TimelogCmd {
         });
 
         let mut tasks = vec![Task::Exec {
-            description: Some(format!("Timelog command")),
+            description: Some("Timelog command".to_string()),
             exec: Box::new(lazy(move || {
                 jira.fetch(user, dates.dates, filters, TARGET_TIME)
                     .and_then(move |worklog| printer.print(worklog, is_verbose))

@@ -50,7 +50,7 @@ impl DcService {
         let name: String = name.into();
         DcService {
             name: name.clone(),
-            container_name: format!("wf2__{}__{}", ctx_name.into(), name.clone()),
+            container_name: format!("wf2__{}__{}", ctx_name.into(), name),
             image: image.into(),
             ..DcService::default()
         }
@@ -93,6 +93,22 @@ impl DcService {
     }
     pub fn set_init(&mut self, init: bool) -> &mut Self {
         self.init = Some(init);
+        self
+    }
+    pub fn set_container_name(
+        &mut self,
+        ctx_name: impl Into<String>,
+        name: impl Into<String>,
+    ) -> &mut Self {
+        self.container_name = format!("wf2__{}__{}", ctx_name.into(), name.into());
+        self
+    }
+    pub fn set_name(&mut self, name: impl Into<String>) -> &mut Self {
+        self.name = name.into();
+        self
+    }
+    pub fn set_image(&mut self, image: impl Into<String>) -> &mut Self {
+        self.image = image.into();
         self
     }
     pub fn build(&self) -> DcService {

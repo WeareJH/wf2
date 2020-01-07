@@ -51,7 +51,7 @@ impl From<Vec<Worklog>> for WorklogTime {
     }
 }
 
-fn to_wl(wls: &Vec<Worklog>) -> WorklogTime {
+fn to_wl(wls: &[Worklog]) -> WorklogTime {
     let total = wls
         .iter()
         .fold(0, |acc, item| acc + item.time_spent_seconds);

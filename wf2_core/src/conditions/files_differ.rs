@@ -1,4 +1,5 @@
 use crate::condition::{Answer, Con, ConditionFuture};
+use crate::output::{file, output};
 use core::fmt;
 use futures::future::lazy;
 use std::fs;
@@ -20,11 +21,13 @@ impl FilesDiffer {
 
 impl fmt::Display for FilesDiffer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        let head = output("Files Differ", "");
         write!(
             f,
-            "FilesDiffer: left: {}, right: {}",
-            self.left.display(),
-            self.right.display()
+            "{}\n        left: {}\n        right: {}",
+            head,
+            file(self.left.display().to_string()),
+            file(self.right.display().to_string())
         )
     }
 }

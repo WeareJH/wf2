@@ -1,4 +1,5 @@
 use crate::condition::{Answer, Con, ConditionFuture};
+use crate::output::output;
 use core::fmt;
 use futures::future::lazy;
 use std::io;
@@ -15,7 +16,7 @@ impl Question {
 
 impl fmt::Display for Question {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(f, "Question: {}", self.question)
+        write!(f, "{}", output("Question", self.question.clone()))
     }
 }
 
@@ -27,7 +28,6 @@ impl Con for Question {
             let mut input = String::new();
             io::stdin()
                 .read_line(&mut input)
-                .ok()
                 .expect("Couldn't read line");
 
             match input.trim() {

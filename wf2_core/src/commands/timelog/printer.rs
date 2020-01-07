@@ -21,5 +21,5 @@ pub fn printer_from_matches(matches: &Option<&ArgMatches>) -> Box<dyn Printer> {
                 _ => Some(Box::new(AsciiPrinter::new())),
             }
         })
-        .unwrap_or(Box::new(AsciiPrinter::new()))
+        .unwrap_or_else(|| Box::new(AsciiPrinter::new()))
 }

@@ -48,14 +48,14 @@ impl M2Playground {
 #[derive(Debug, Fail)]
 enum M2PlaygroundError {
     #[fail(display = "Could not fetch files, status code: {}", _0)]
-    ProjectFilesFetch(StatusCode),
+    Fetch(StatusCode),
     #[fail(display = "Authentication failed, check your Magento credentials")]
-    ProjectFilesForbidden,
+    Forbidden,
     #[fail(display = "Version not found: {}", _0)]
-    ProjectFilesNotFound(String),
+    NotFound(String),
 }
 
-const TMP_DIR_NAME: &'static str = "m2-recipe";
+const TMP_DIR_NAME: &str = "m2-recipe";
 
 pub fn write_auth_json(pg: &M2Playground) -> Result<(), Error> {
     use serde_json::json;
@@ -78,14 +78,31 @@ pub fn write_auth_json(pg: &M2Playground) -> Result<(), Error> {
 
 pub fn write_wf2_file(pg: &M2Playground) -> Result<(), Error> {
     let c = Context {
-        recipe: RecipeKinds::M2,
+        recipe: Some(RecipeKinds::M2),
         domains: vec![String::from("local.m2")],
+        origin: Some(String::from("m2-playground")),
         ..Context::default()
     };
     let output = pg.dir.join("wf2.yml");
     let dir = pg.dir.clone();
     let s = serde_yaml::to_vec(&c)?;
     inner_write_err(dir, output, s)
+}
+
+#[test]
+fn test_serialize() {
+    let c = Context {
+        recipe: Some(RecipeKinds::M2),
+        domains: vec![String::from("local.m2")],
+        origin: Some(String::from("m2-playground")),
+        ..Context::default()
+    };
+    let expected = r#"---
+recipe: M2
+domains:
+  - local.m2
+origin: m2-playground"#;
+    assert_eq!(serde_yaml::to_string(&c).expect("test"), expected);
 }
 
 pub fn get_composer_json(pg: &M2Playground) -> Result<(), Error> {
@@ -106,7 +123,7 @@ pub fn get_composer_json(pg: &M2Playground) -> Result<(), Error> {
         .header(AUTHORIZATION, pg.basic_auth())
         .send()?;
 
-    let _bytes = match res.status() {
+    match res.status() {
         StatusCode::OK => {
             let _bytes = res.copy_to(&mut file_handle)?;
             Ok(())
@@ -149,7 +166,7 @@ pub fn get_project_files(pg: &M2Playground) -> Result<(), Error> {
     match res.status() {
         StatusCode::OK => {
             let _bytes = res.copy_to(&mut file_handle)?;
-            zip_utils::unzip(&file_path, &pg.dir.clone())
+            zip_utils::unzip(&file_path, &pg.dir.clone(), 0)
         }
         s => Err(status_err(s, pg)),
     }
@@ -157,9 +174,9 @@ pub fn get_project_files(pg: &M2Playground) -> Result<(), Error> {
 
 pub fn status_err(s: StatusCode, pg: &M2Playground) -> failure::Error {
     let err = match s.as_u16() {
-        401 | 402 | 403 => M2PlaygroundError::ProjectFilesForbidden,
-        404 => M2PlaygroundError::ProjectFilesNotFound(pg.version.clone()),
-        _ => M2PlaygroundError::ProjectFilesFetch(s.clone()),
+        401 | 402 | 403 => M2PlaygroundError::Forbidden,
+        404 => M2PlaygroundError::NotFound(pg.version.clone()),
+        _ => M2PlaygroundError::Fetch(s),
     };
 
     Error::from(err)

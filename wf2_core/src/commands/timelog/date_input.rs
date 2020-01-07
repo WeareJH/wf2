@@ -37,9 +37,9 @@ impl FromStr for DateInput {
 ///
 fn str_to_dates(now: &Date<Utc>, input: &str) -> Option<Vec<Date<Utc>>> {
     match input {
-        "today" => Some(vec![now.clone()]),
+        "today" => Some(vec![*now]),
         "yd" | "yesterday" => Some(vec![*now - Duration::days(1)]),
-        input => int_date_format(now, input).or(jira_date_format(input)),
+        input => int_date_format(now, input).or_else(|| jira_date_format(input)),
     }
 }
 

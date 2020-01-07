@@ -21,7 +21,7 @@ impl Dc {
             ..Dc::default()
         }
     }
-    pub fn set_volumes(&mut self, volumes: &Vec<DcVolume>) -> &mut Dc {
+    pub fn set_volumes(&mut self, volumes: &[DcVolume]) -> &mut Dc {
         let as_hashmap = volumes
             .iter()
             .map(|vol| (vol.display_name.clone(), vol.clone()))
@@ -29,7 +29,7 @@ impl Dc {
         self.volumes = Some(as_hashmap);
         self
     }
-    pub fn set_services(&mut self, services: &Vec<DcService>) -> &mut Dc {
+    pub fn set_services(&mut self, services: &[DcService]) -> &mut Dc {
         let as_hashmap = services
             .iter()
             .map(|dc_service| (dc_service.name.to_string(), dc_service.clone()))
@@ -47,5 +47,13 @@ impl Dc {
         self.services
             .as_ref()
             .map(|services| services.iter().map(|(key, _)| key.into()).collect())
+    }
+    pub fn service_img(&self) -> Vec<(String, String)> {
+        self.services.as_ref().map_or(vec![], |services| {
+            services
+                .iter()
+                .map(|(key, service)| (key.to_string(), service.image.clone()))
+                .collect()
+        })
     }
 }

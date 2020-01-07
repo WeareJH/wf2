@@ -4,43 +4,121 @@ use crate::{
     task::Task,
 };
 use ansi_term::Colour::{Cyan, Green};
+use std::path::PathBuf;
 
-const LEFT: &'static str = "app/etc/env.php";
-const RIGHT: &'static str = "app/etc/env.php.dist";
+///
+/// This represents tasks related to the env.php file.
+///
+pub struct EnvPhp {
+    pub env: PathBuf,
+    pub env_dist: PathBuf,
+}
 
-pub fn env_php_task(ctx: &Context) -> Task {
-    let left_abs = ctx.cwd.join(LEFT);
-    let right_abs = ctx.cwd.join(RIGHT);
-    let prefix = Green.paint("[wf2 info]");
-    let question = format!(
-        "{prefix}: Your local {left} doesn't match {right}, override?",
-        prefix = prefix,
-        left = Cyan.paint(LEFT),
-        right = Cyan.paint(RIGHT)
-    );
-    let warning = format!(
-        "{prefix}: You will need to run `{cmd}` once everything has started",
-        prefix = prefix,
-        cmd = Cyan.paint("wf2 m app:config:import")
-    );
-    Task::conditional(
-        vec![
-            Box::new(FilePresent::new(left_abs.clone(), false)),
-            Box::new(FilePresent::new(right_abs.clone(), false)),
-            Box::new(FilesDiffer::new(left_abs.clone(), right_abs.clone())),
-            Box::new(Question::new(question)),
-        ],
-        vec![
-            Task::file_clone(right_abs, left_abs),
-            Task::notify(format!(
-                "{}: Copied {} to {}",
-                prefix,
-                Cyan.paint(RIGHT),
-                Cyan.paint(LEFT)
-            )),
-            Task::notify(format!("{}", warning)),
-        ],
-        vec![],
-        Some("env.php.dist comparison with env.php"),
-    )
+impl EnvPhp {
+    ///
+    /// This is the path that's required for magento to run correctly
+    ///
+    pub const ENV: &'static str = "app/etc/env.php";
+    ///
+    /// This is the file that *should* be part of the project repo
+    ///
+    pub const ENV_DIST: &'static str = "app/etc/env.php.dist";
+    ///
+    /// Generate file paths based on the CWD
+    ///
+    pub fn from_ctx(ctx: &Context) -> EnvPhp {
+        EnvPhp {
+            env: ctx.cwd.join(EnvPhp::ENV),
+            env_dist: ctx.cwd.join(EnvPhp::ENV_DIST),
+        }
+    }
+    ///
+    /// This task first checks if the following conditions are met
+    ///     1. is env.php missing
+    ///     2. is env.php.dist present
+    ///
+    /// If both are 'true', it will copy env.php.dist -> env.php
+    ///
+    /// If either evaluate to false, (eg: if both files are present)
+    /// then it will instead run the comparison check if the files
+    /// have different content by deferring to [`EnvPhp::env_php_comparison_task`]
+    ///
+    pub fn missing_task(ctx: &Context) -> Task {
+        let env = EnvPhp::from_ctx(ctx);
+        Task::conditional(
+            vec![
+                Box::new(FilePresent::new(env.env.clone(), true)),
+                Box::new(FilePresent::new(env.env_dist.clone(), false)),
+            ],
+            vec![env.copy_dist(), env.copy_dist_msg()],
+            vec![EnvPhp::comparison_task(&ctx)],
+            Some("copy env.php.dist -> env.php"),
+        )
+    }
+    ///
+    /// Check if the env.php.dist differs from an existing
+    /// env.php file.
+    ///
+    /// This can happen when changes are made to env.php.dist
+    /// which is a file that's part of version control and
+    /// it needs rolling out to users
+    ///
+    pub fn comparison_task(ctx: &Context) -> Task {
+        let env = EnvPhp::from_ctx(ctx);
+        Task::conditional(
+            vec![
+                /// Does the env.php file exist?
+                Box::new(FilePresent::new(env.env.clone(), false)),
+                /// Does the env.php.dist file exist?
+                Box::new(FilePresent::new(env.env_dist.clone(), false)),
+                /// Do those files differ?
+                Box::new(FilesDiffer::new(env.env.clone(), env.env_dist.clone())),
+                /// Does the user want to copy env.php.dist -> env.php
+                Box::new(env.copy_confirm()),
+            ],
+            vec![env.copy_dist(), env.copy_dist_msg(), env.copy_warning()],
+            vec![],
+            Some("env.php.dist comparison with env.php"),
+        )
+    }
+    ///
+    /// Perform the copy
+    ///
+    pub fn copy_dist(&self) -> Task {
+        Task::file_clone(&self.env_dist, &self.env)
+    }
+    ///
+    /// Print the message about the copy
+    ///
+    pub fn copy_dist_msg(&self) -> Task {
+        Task::notify_prefixed(format!(
+            "Copied {} to {}",
+            Cyan.paint(EnvPhp::ENV_DIST),
+            Cyan.paint(EnvPhp::ENV)
+        ))
+    }
+    ///
+    /// Present a warning about the need for
+    /// running app:config:import
+    ///
+    pub fn copy_warning(&self) -> Task {
+        let warning = format!(
+            "You will need to run `{cmd}` once everything has started",
+            cmd = Cyan.paint("wf2 m app:config:import")
+        );
+        Task::notify_prefixed(warning)
+    }
+    ///
+    /// Confirm if the user actually wants to override the file
+    ///
+    pub fn copy_confirm(&self) -> Question {
+        let prefix = Green.paint("[wf2 info]");
+        let question = format!(
+            "{prefix}: Your local {left} doesn't match {right}, override?",
+            prefix = prefix,
+            left = Cyan.paint(EnvPhp::ENV),
+            right = Cyan.paint(EnvPhp::ENV_DIST)
+        );
+        Question::new(question)
+    }
 }

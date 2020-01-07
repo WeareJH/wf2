@@ -1,3 +1,5 @@
+use crate::output::{file, output};
+use ansi_term::Colour::{Cyan, Green};
 use core::fmt;
 use failure::Error;
 use std::fs;
@@ -7,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 pub type FileOpResult = Result<(), String>;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum FileOp {
     Write { path: PathBuf, content: Vec<u8> },
     Clone { left: PathBuf, right: PathBuf },
@@ -30,22 +32,50 @@ impl FileOp {
 
 impl fmt::Display for FileOp {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        match self {
-            FileOp::Write { path, content } => {
-                write!(f, "Write file: {}, {} bytes", path.display(), content.len())
+        let output = display_string(&self, false);
+        write!(f, "{}", output)
+    }
+}
+
+impl fmt::Debug for FileOp {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        let output = display_string(&self, true);
+        write!(f, "{}", output)
+    }
+}
+
+fn display_string(fo: &FileOp, show_content: bool) -> String {
+    match fo {
+        FileOp::Write { path, content } => {
+            let path = Cyan.paint(format!("{}", path.display()));
+            let len = Green.paint(format!("{} bytes", content.len()));
+
+            if show_content {
+                let head = output("Write file", format!("{}, {}", path, len));
+                format!(
+                    "{}\n{}",
+                    head,
+                    std::str::from_utf8(content).expect("content is utf8")
+                )
+            } else {
+                output("Write file", format!("{}, {}", path, len))
             }
-            FileOp::Clone { left, right } => {
-                write!(f, "Clone file {} to {}", left.display(), right.display())
-            }
-            FileOp::Exists { path } => write!(f, "File exists check: {}", path.display()),
-            FileOp::DirCreate { path } => write!(
-                f,
-                "Directory creation (delete if exists): {}",
-                path.display()
+        }
+        FileOp::Clone { left, right } => output(
+            "Clone file",
+            format!(
+                "{} to {}",
+                left.display().to_string(),
+                right.display().to_string()
             ),
-            FileOp::DirRemove { path } => {
-                write!(f, "Remove a File or Directory: {}", path.display())
-            }
+        ),
+        FileOp::Exists { path } => output("File exists check", path.display().to_string()),
+        FileOp::DirCreate { path } => output(
+            "Directory creation (delete if exists)",
+            path.display().to_string(),
+        ),
+        FileOp::DirRemove { path } => {
+            output("Remove a File or Directory: {}", path.display().to_string())
         }
     }
 }
@@ -67,7 +97,10 @@ pub fn exists(path: PathBuf) -> FileOpResult {
     if Path::exists(path.as_path()) {
         Ok(())
     } else {
-        Err(format!("Required file does not exist: {}", path.display()))
+        Err(format!(
+            "Required file does not exist: {}",
+            file(path.display().to_string())
+        ))
     }
 }
 
@@ -94,7 +127,7 @@ pub fn inner_write(dir: PathBuf, file: PathBuf, content: Vec<u8>) -> FileOpResul
 }
 
 pub fn inner_write_err(dir: PathBuf, file: PathBuf, content: Vec<u8>) -> Result<(), Error> {
-    let _d = fs::create_dir_all(dir)?;
+    fs::create_dir_all(dir)?;
     let mut f = File::create(&file)?;
     f.write_all(&content)?;
     Ok(())

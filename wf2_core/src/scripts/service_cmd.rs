@@ -73,7 +73,7 @@ impl From<ServiceCmd> for Task {
             // take each string and convert it into a ServiceCmd
             // preserving all fields of the original other than 'command' + 'commands'
             let as_cmds: Vec<ServiceCmd> = commands
-                .into_iter()
+                .iter()
                 .map(|command| ServiceCmd {
                     command: Some(command.clone()),
                     commands: None,
@@ -97,6 +97,6 @@ impl From<ServiceCmd> for Task {
         // To return a Task we use
         single
             .or(multi)
-            .unwrap_or(Task::notify_error("Nothing found!"))
+            .unwrap_or_else(|| Task::notify_error("Nothing found!"))
     }
 }

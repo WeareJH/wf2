@@ -1,3 +1,4 @@
+use crate::file::File;
 use crate::{context::Context, task::Task};
 use std::path::PathBuf;
 
@@ -7,13 +8,11 @@ pub struct DcTasks {
     pub bytes: Vec<u8>,
 }
 
-pub const DC_OUTPUT_FILE: &str = "docker-compose.yml";
-
 impl DcTasks {
     pub fn from_ctx(ctx: &Context, dc_bytes: Vec<u8>) -> DcTasks {
         DcTasks {
-            file: ctx.cwd.join(&ctx.file_prefix).join(DC_OUTPUT_FILE),
-            eject_file: ctx.cwd.join(DC_OUTPUT_FILE),
+            file: ctx.file_path(Self::OUTPUT_PATH),
+            eject_file: ctx.cwd.join(Self::OUTPUT_PATH),
             bytes: dc_bytes,
         }
     }
@@ -36,21 +35,24 @@ impl DcTasks {
                 .join(" "),
         );
         let cmd_task = Task::simple_command(cmd);
-        let write_task = self.write();
+        let write_task = self.write_task();
         Task::Seq(vec![write_task, cmd_task])
     }
-    pub fn write(&self) -> Task {
-        Task::file_write(
-            self.file.clone(),
-            "Writes the docker-compose file",
-            self.bytes.to_vec(),
-        )
+}
+
+impl File<DcTasks> for DcTasks {
+    const DESCRIPTION: &'static str = "Writes the docker-compose file";
+    const OUTPUT_PATH: &'static str = "docker-compose.yml";
+
+    fn from_ctx(ctx: &Context) -> Result<DcTasks, failure::Error> {
+        Ok(DcTasks::from_ctx(&ctx, vec![]))
     }
-    pub fn eject(&self) -> Task {
-        Task::file_write(
-            self.eject_file.clone(),
-            "Writes the docker-compose file",
-            self.bytes.to_vec(),
-        )
+
+    fn file_path(&self) -> PathBuf {
+        self.file.clone()
+    }
+
+    fn bytes(&self) -> Vec<u8> {
+        self.bytes.to_vec()
     }
 }

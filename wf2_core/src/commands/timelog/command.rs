@@ -11,12 +11,15 @@ impl<'a, 'b> CliCommand<'a, 'b> for TimelogCmd {
         String::from(CLI_COMMAND_NAME)
     }
 
-    fn exec(&self, matches: Option<&ArgMatches>, _ctx: &Context) -> Vec<Task> {
-        self.get_tasks(matches)
-            .unwrap_or_else(|e| vec![Task::notify_error(e.to_string())])
+    fn exec(&self, matches: Option<&ArgMatches>, _ctx: &Context) -> Option<Vec<Task>> {
+        let tasks = self.get_tasks(matches);
+        match tasks {
+            Ok(tasks) => Some(tasks),
+            Err(e) => Some(vec![Task::notify_error(e.to_string())]),
+        }
     }
 
-    fn subcommands(&self) -> Vec<App<'a, 'b>> {
+    fn subcommands(&self, _ctx: &Context) -> Vec<App<'a, 'b>> {
         let args_required = Jira::from_file().is_none();
         vec![App::new(CLI_COMMAND_NAME)
             .about("time log summaries")
@@ -51,7 +54,8 @@ impl<'a, 'b> CliCommand<'a, 'b> for TimelogCmd {
                     .long("printer")
                     .takes_value(true)
                     .required(false)
-                    .help("output format (`ascii-table` or `json`)"),
+                    .possible_values(&["ascii-table", "json"])
+                    .help("output format"),
             )
             .arg(
                 Arg::with_name("verbose")
@@ -74,7 +78,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for TimelogCmd {
                         WorklogDayFilter::NORMAL_NAME,
                         WorklogDayFilter::LOW_NAME,
                     ])
-                    .help("make the output more verbose"),
+                    .help("filter the dates"),
             )]
     }
 }

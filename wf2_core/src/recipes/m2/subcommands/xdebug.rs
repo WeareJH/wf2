@@ -1,31 +1,31 @@
 use crate::commands::CliCommand;
 use crate::context::Context;
-use crate::recipes::m2::m2_vars::NGINX_UPSTREAM_OUTPUT_FILE;
-use crate::recipes::m2::services::M2Services;
+
 use crate::recipes::m2::M2Recipe;
 
+use crate::file::File;
 use crate::task::Task;
 use clap::{App, ArgMatches, SubCommand};
 
-pub struct XdebugCmd(String);
+use crate::recipes::m2::templates::nginx_upstream::NginxUpstream;
 
-const NAME: &'static str = "xdebug";
+#[derive(Default)]
+pub struct XdebugCmd;
 
 impl XdebugCmd {
+    const NAME: &'static str = "xdebug";
+    const ABOUT: &'static str = "[m2] Enable or disable XDebug for M2";
+
     const ENABLE: &'static str = "enable";
     const DISABLE: &'static str = "disable";
-
-    pub fn new() -> XdebugCmd {
-        XdebugCmd(String::from(NAME))
-    }
 }
 
 impl<'a, 'b> CliCommand<'a, 'b> for XdebugCmd {
     fn name(&self) -> String {
-        String::from(NAME)
+        String::from(XdebugCmd::NAME)
     }
 
-    fn exec(&self, matches: Option<&ArgMatches>, ctx: &Context) -> Vec<Task> {
+    fn exec(&self, matches: Option<&ArgMatches>, ctx: &Context) -> Option<Vec<Task>> {
         let enabled = matches.map(|m| m.subcommand_name()).and_then(|n| match n {
             Some(XdebugCmd::ENABLE) => Some(true),
             Some(XdebugCmd::DISABLE) => Some(false),
@@ -33,43 +33,47 @@ impl<'a, 'b> CliCommand<'a, 'b> for XdebugCmd {
         });
 
         if enabled.is_none() {
-            return vec![Task::notify_error("missing `enable` or `disable`")];
+            return Some(vec![Task::notify_error("missing `enable` or `disable`")]);
         }
 
         let enabled = enabled.expect("guarded");
-        let main = if enabled {
-            M2Services::PHP_DEBUG
-        } else {
-            M2Services::PHP
-        };
-        let string = nginx_upstream(main, M2Services::PHP_DEBUG);
+
         let msg = if enabled {
             "XDebug Enabled"
         } else {
             "XDebug Disabled"
         };
+
+        let nginx_upstream = NginxUpstream::from_ctx(ctx);
+
+        if let Err(e) = nginx_upstream {
+            return Some(Task::task_err_vec(e));
+        }
+
+        let mut nginx_upstream = nginx_upstream.expect("guarded");
+
         let dc = M2Recipe::dc_tasks(ctx);
 
         if let Err(_e) = dc {
-            return vec![Task::notify_error(
+            return Some(vec![Task::notify_error(
                 "couldn't create the docker-compose task",
-            )];
+            )]);
         }
 
         let dc = dc.expect("guarded above");
 
-        vec![
+        Some(vec![
             Task::notify_info("updating upstream.conf"),
-            write_file(ctx, string),
+            nginx_upstream.toggle_xdebug(enabled).write_task(),
             Task::notify_info("reloading nginx conf"),
             dc.cmd_task(vec!["exec", "nginx", "nginx", "-s", "reload"]),
             Task::notify_info(msg),
-        ]
+        ])
     }
 
-    fn subcommands(&self) -> Vec<App<'a, 'b>> {
-        vec![App::new(NAME)
-            .about("Enable or disable XDebug for M2")
+    fn subcommands(&self, _ctx: &Context) -> Vec<App<'a, 'b>> {
+        vec![App::new(XdebugCmd::NAME)
+            .about(XdebugCmd::ABOUT)
             .after_help("Enable: `wf2 xdebug enable`. Disable: `wf2 xdebug disable`.")
             .subcommands(vec![
                 SubCommand::with_name(XdebugCmd::ENABLE)
@@ -80,30 +84,4 @@ impl<'a, 'b> CliCommand<'a, 'b> for XdebugCmd {
                     .about("Disable XDebug"),
             ])]
     }
-}
-
-fn write_file(ctx: &Context, content: String) -> Task {
-    Task::file_write(
-        ctx.file_prefix.join(NGINX_UPSTREAM_OUTPUT_FILE),
-        "write the upstream file",
-        content,
-    )
-}
-
-pub fn nginx_upstream<S>(backend: S, backend_debug: S) -> String
-where
-    S: Into<String>,
-{
-    format!(
-        r#"upstream fastcgi_backend {{
-  server {}:9000;
-}}
-
-upstream fastcgi_backend_debug {{
-  server {}:9000;
-}}
-    "#,
-        backend.into(),
-        backend_debug.into()
-    )
 }

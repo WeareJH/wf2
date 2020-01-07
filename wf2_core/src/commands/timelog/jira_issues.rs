@@ -16,13 +16,13 @@ pub struct JiraIssue {
 }
 
 impl JiraIssues {
-    pub fn from_dates(dates: &Vec<Date<Utc>>, jira: &Jira) -> Result<JiraIssues, failure::Error> {
+    pub fn from_dates(dates: &[Date<Utc>], jira: &Jira) -> Result<JiraIssues, failure::Error> {
         // Create the jira query
         let query = issue_query(&dates);
 
         // fetch the issues JSON
         let mut map = HashMap::new();
-        map.insert("jql", query.to_string());
+        map.insert("jql", query);
         map.insert("maxResults", String::from("200"));
 
         let client = reqwest::Client::new();
@@ -41,14 +41,14 @@ impl JiraIssues {
     }
 }
 
-fn issue_query(dates: &Vec<Date<Utc>>) -> String {
+fn issue_query(dates: &[Date<Utc>]) -> String {
     format!(
         r#"worklogDate in ({}) AND worklogAuthor = currentUser()"#,
         date_string(dates)
     )
 }
 
-fn date_string(dates: &Vec<Date<Utc>>) -> String {
+fn date_string(dates: &[Date<Utc>]) -> String {
     dates
         .iter()
         .map(|date| date.format(JIRA_DATE_FORMAT).to_string())

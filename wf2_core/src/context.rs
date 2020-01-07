@@ -22,7 +22,7 @@ pub const DEFAULT_DOMAIN: &str = "local.m2";
 ///
 /// let ctx = Context::default();
 ///
-/// assert_eq!(ctx.recipe, RecipeKinds::M2);
+/// assert_eq!(ctx.recipe, None);
 /// assert_eq!(ctx.php_version, PHP::SevenThree);
 /// ```
 ///
@@ -37,7 +37,7 @@ pub const DEFAULT_DOMAIN: &str = "local.m2";
 /// # use wf2_core::php::PHP;
 /// let ctx = Context::new_from_file("../fixtures/config_01.yaml")?;
 ///
-/// assert_eq!(ctx.recipe, RecipeKinds::M2);
+/// assert_eq!(ctx.recipe, Some(RecipeKinds::M2));
 /// assert_eq!(ctx.php_version, PHP::SevenThree);
 /// assert_eq!(ctx.domains, vec![String::from("acme.m2")]);
 /// assert_eq!(ctx.npm_path, PathBuf::from("app/code/frontend/Acme/design"));
@@ -47,8 +47,7 @@ pub const DEFAULT_DOMAIN: &str = "local.m2";
 ///
 #[derive(Debug, Clone, Deserialize, Serialize, FromFile)]
 pub struct Context {
-    #[serde(default = "default_recipe")]
-    pub recipe: RecipeKinds,
+    pub recipe: Option<RecipeKinds>,
 
     #[serde(skip_serializing, default = "default_cwd")]
     pub cwd: PathBuf,
@@ -101,6 +100,9 @@ pub struct Context {
 
     #[serde(skip_serializing, default)]
     pub scripts: Option<Scripts>,
+
+    #[serde(default)]
+    pub origin: Option<String>,
 }
 
 ///
@@ -109,7 +111,6 @@ pub struct Context {
 #[derive(Debug)]
 pub struct ContextOverrides {
     pub run_mode: RunMode,
-    pub php_version: PHP,
     pub cwd: PathBuf,
     pub name: String,
     pub pv: Option<String>,
@@ -124,7 +125,7 @@ pub const DEFAULT_NAME: &str = "wf2_default";
 impl Default for Context {
     fn default() -> Self {
         Context {
-            recipe: default_recipe(),
+            recipe: None,
             cwd: default_cwd(),
             run_mode: default_run_mode(),
             name: default_name(),
@@ -141,6 +142,7 @@ impl Default for Context {
             gid: 0,
             env: None,
             scripts: None,
+            origin: None,
         }
     }
 }
@@ -170,11 +172,10 @@ impl Context {
     pub fn get_context_name(cwd: &PathBuf) -> String {
         cwd.file_name()
             .map(|os_str| os_str.to_string_lossy().to_string())
-            .unwrap_or(DEFAULT_NAME.into())
+            .unwrap_or_else(|| DEFAULT_NAME.into())
     }
     pub fn merge(&mut self, other: ContextOverrides) -> &mut Self {
         self.run_mode = other.run_mode;
-        self.php_version = other.php_version;
         self.cwd = other.cwd;
         self.name = other.name;
         self.term = other.term;
@@ -182,11 +183,16 @@ impl Context {
         self.debug = other.debug;
         self.uid = other.uid;
         self.gid = other.gid;
-        self.file_prefix = PathBuf::from(&self.cwd).join(format!(
-            ".wf2_{recipe}_{name}",
-            recipe = self.recipe,
-            name = self.name
-        ));
+
+        // If a recipe exists, ensure the 'file_prefix' has the recipe
+        // name in it
+        if let Some(recipe) = self.recipe {
+            self.file_prefix = PathBuf::from(&self.cwd).join(format!(
+                ".wf2_{recipe}_{name}",
+                recipe = recipe,
+                name = self.name
+            ));
+        }
         self
     }
     pub fn file_path(&self, filename: &str) -> PathBuf {
@@ -199,9 +205,6 @@ fn default_domains() -> Vec<String> {
 }
 fn default_file_prefix() -> PathBuf {
     PathBuf::from(format!(".{}", DEFAULT_NAME))
-}
-fn default_recipe() -> RecipeKinds {
-    RecipeKinds::M2
 }
 fn default_cwd() -> PathBuf {
     PathBuf::from(".")

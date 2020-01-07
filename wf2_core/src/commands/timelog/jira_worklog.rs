@@ -36,7 +36,7 @@ impl Worklog {
                 return WorkType::Overtime;
             }
         }
-        return WorkType::Normal;
+        WorkType::Normal
     }
     pub fn items_from_jira(
         jira: Arc<Jira>,
