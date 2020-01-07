@@ -4,16 +4,12 @@ pub fn help(wp: &WpPlayground) -> String {
     format!(
         r#"Next steps:
 
-    Stop existing docker containers:
-
-       docker stop $(docker ps -qa) && docker rm $(docker ps -qa)
-
     Now start wf2 in the new directory:
 
        cd {}
-       wf2 up
+       wf2 up --clean
 
-    Then, once it's up an running, in a new tab, run the following:
+    Then run the following:
 
        wf2 composer install
 

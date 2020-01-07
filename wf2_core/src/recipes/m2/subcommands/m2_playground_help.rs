@@ -4,14 +4,10 @@ pub fn help(pg: &M2Playground) -> String {
     format!(
         r#"Next steps:
 
-    Stop existing docker containers:
-
-       docker stop $(docker ps -qa) && docker rm $(docker ps -qa)
-
     Now start wf2 in the new directory:
 
        cd {}
-       wf2 up
+       wf2 up --clean
 
     {}"#,
         pg.dir.file_name().unwrap().to_string_lossy(),

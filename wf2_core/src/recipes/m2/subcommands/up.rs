@@ -7,6 +7,7 @@ use crate::recipes::m2::subcommands::m2_playground_help;
 use crate::recipes::m2::subcommands::up_help::up_help;
 use crate::recipes::m2::M2Recipe;
 use crate::recipes::Recipe;
+use crate::tasks::docker_clean::docker_clean;
 use crate::{context::Context, task::Task};
 use ansi_term::Colour::Green;
 use clap::{App, ArgMatches};
@@ -22,6 +23,7 @@ impl M2Up {
 #[derive(StructOpt)]
 struct Opts {
     attached: bool,
+    clean: bool,
 }
 
 impl<'a, 'b> CliCommand<'a, 'b> for M2Up {
@@ -30,19 +32,20 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2Up {
     }
     fn exec(&self, matches: Option<&ArgMatches>, ctx: &Context) -> Option<Vec<Task>> {
         let opts: Opts = matches.map(Opts::from_clap).expect("guarded by Clap");
-        Some(up(&ctx, opts.attached).unwrap_or_else(Task::task_err_vec))
+        Some(up(&ctx, opts.clean, opts.attached).unwrap_or_else(Task::task_err_vec))
     }
     fn subcommands(&self, _ctx: &Context) -> Vec<App<'a, 'b>> {
         vec![App::new(M2Up::NAME)
             .about(M2Up::ABOUT)
-            .arg_from_usage("-a --attached 'Run in attached mode (streaming logs)'")]
+            .arg_from_usage("-a --attached 'Run in attached mode (streaming logs)'")
+            .arg_from_usage("-c --clean 'stop & remove other containers before starting new ones'")]
     }
 }
 
 ///
 /// Bring the project up using given templates
 ///
-pub fn up(ctx: &Context, attached: bool) -> Result<Vec<Task>, failure::Error> {
+pub fn up(ctx: &Context, clean: bool, attached: bool) -> Result<Vec<Task>, failure::Error> {
     //
     // Display which config file (if any) is being used.
     //
@@ -77,6 +80,11 @@ pub fn up(ctx: &Context, attached: bool) -> Result<Vec<Task>, failure::Error> {
     let dc_tasks = M2Recipe::dc_tasks(&ctx)?;
 
     //
+    // Stop & remove docker containers before starting new ones
+    //
+    let clean_task = if clean { docker_clean() } else { vec![] };
+
+    //
     // The final DC task, either in detached mode (default)
     // or 'attached' if '-a' given.
     //
@@ -109,6 +117,7 @@ pub fn up(ctx: &Context, attached: bool) -> Result<Vec<Task>, failure::Error> {
         .chain(notify.into_iter())
         .chain(missing_env.into_iter())
         .chain(templates.into_iter())
+        .chain(clean_task.into_iter())
         .chain(vec![up].into_iter())
         .chain(vec![up_help_task].into_iter())
         .collect())
@@ -125,7 +134,7 @@ mod tests {
             cwd: PathBuf::from("/users/shane"),
             ..Context::default()
         };
-        let output = up(&ctx, false).expect("test");
+        let output = up(&ctx, false, false).expect("test");
         let file_ops = Task::file_op_paths(output);
         assert_eq!(
             vec![
