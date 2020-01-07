@@ -7,19 +7,11 @@ mod tests {
 
     #[test]
     fn test_php_version_in_config() {
-        let args = vec!["prog", "--config", "../fixtures/config_php_71.yaml", "up"];
-        let cli_output = CLIOutput::from_input(CLIInput::_from_args(args));
-        assert_eq!(cli_output.unwrap().ctx.php_version, PHP::SevenOne);
-    }
-
-    #[test]
-    fn test_php_version_in_flag() {
         let args = vec![
             "prog",
+            "--recipe=M2",
             "--config",
-            "../fixtures/config_01.yaml",
-            "--php",
-            "7.1",
+            "../fixtures/config_php_71.yaml",
             "up",
         ];
         let cli_output = CLIOutput::from_input(CLIInput::_from_args(args));

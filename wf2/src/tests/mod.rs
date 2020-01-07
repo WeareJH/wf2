@@ -10,12 +10,12 @@ mod down_cmd;
 mod exec_cmd;
 mod flags_cmd;
 mod list_images_cmd;
-mod m2_contrib_recipe_cmd;
 mod m_cmd;
 mod npm_cmd;
 mod pull_cmd;
 mod push_cmd;
 mod scripts;
+mod sql_cmd;
 mod up_cmd;
 mod update_images_cmd;
 
@@ -26,7 +26,7 @@ mod update_images_cmd;
 pub fn _commands(tasks: Vec<Task>) -> Vec<String> {
     tasks.into_iter().fold(vec![], |mut acc, t| match t {
         Task::SimpleCommand { command, .. } | Task::Command { command, .. } => {
-            acc.push(command.to_string());
+            acc.push(command);
             acc
         }
         Task::Seq(tasks) => {

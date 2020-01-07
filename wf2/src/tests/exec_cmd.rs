@@ -6,7 +6,7 @@ mod tests {
 
     #[test]
     fn exec_command() {
-        let args = vec!["prog", "exec", "ls"];
+        let args = vec!["prog", "--recipe=M2", "exec", "ls"];
         let cli_output = CLIOutput::from_input(CLIInput::_from_args(args));
         let expected = "docker exec -it -u www-data -e COLUMNS=\"80\" -e LINES=\"30\" wf2__wf2_default__php ls";
         let cmds = _commands(cli_output.expect("test").tasks.unwrap());

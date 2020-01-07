@@ -3,6 +3,7 @@ use crate::cli_output::CLIOutput;
 use crate::error::CLIError;
 use clap::{App, AppSettings, Arg, SubCommand};
 use wf2_core::context::Context;
+use wf2_core::recipes::recipe_kinds::RecipeKinds;
 
 pub struct CLI<'a, 'b> {
     pub app: clap::App<'a, 'b>,
@@ -31,6 +32,12 @@ impl<'a, 'b> CLI<'a, 'b> {
                     .short("v")
                     .help("Sets the level of verbosity")
                     .multiple(true),
+                Arg::with_name("recipe")
+                    .short("r")
+                    .help("Select a recipe manually")
+                    .long("recipe")
+                    .takes_value(true)
+                    .possible_values(&RecipeKinds::names()),
                 Arg::with_name("dryrun").long("dryrun").help(
                     "Output descriptions of the sequence of tasks, without actually executing them",
                 ),
