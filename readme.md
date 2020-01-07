@@ -1,4 +1,4 @@
-# wf2 [![Build Status](https://travis-ci.org/WeareJH/wf2.svg?branch=master)](https://travis-ci.org/WeareJH/wf2)
+# wf2 ![](https://github.com/WeareJH/wf2/workflows/.github/workflows/test.yml/badge.svg)
 
 ## Express Install
 
