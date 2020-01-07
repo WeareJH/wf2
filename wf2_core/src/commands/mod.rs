@@ -9,10 +9,13 @@ pub mod timelog;
 
 pub trait CliCommand<'a, 'b> {
     fn name(&self) -> String;
-    fn exec(&self, _matches: Option<&ArgMatches>, _ctx: &Context) -> Vec<Task> {
-        vec![]
+    fn about(&self) -> String {
+        self.name()
     }
-    fn subcommands(&self) -> Vec<App<'a, 'b>> {
+    fn exec(&self, _matches: Option<&ArgMatches>, _ctx: &Context) -> Option<Vec<Task>> {
+        None
+    }
+    fn subcommands(&self, _ctx: &Context) -> Vec<App<'a, 'b>> {
         vec![]
     }
 }

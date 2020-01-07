@@ -10,7 +10,7 @@ mod tests {
 
     #[test]
     fn test_pull_single_top_level() {
-        let args = vec!["prog", "pull", "vendor"];
+        let args = vec!["prog", "--recipe=M2", "pull", "vendor"];
         let cwd = "/users/acme";
         let expected_commands = vec![
             "docker exec wf2__acme__php test -e /var/www/vendor",
@@ -21,7 +21,7 @@ mod tests {
 
     #[test]
     fn test_pull_single_nested() {
-        let args = vec!["prog", "pull", "vendor/wearejh"];
+        let args = vec!["prog", "--recipe=M2", "pull", "vendor/wearejh"];
         let cwd = "/users/acme";
         let expected_commands = vec![
             "docker exec wf2__acme__php test -e /var/www/vendor/wearejh",
@@ -33,7 +33,7 @@ mod tests {
 
     #[test]
     fn test_pull_multi() {
-        let args = vec!["prog", "pull", "file1", "var/log"];
+        let args = vec!["prog", "--recipe=M2", "pull", "file1", "var/log"];
         let cwd = "/users/acme";
         test_pull(
             args,
@@ -50,7 +50,12 @@ mod tests {
 
     #[test]
     fn test_pull_file() {
-        let args = vec!["prog", "pull", "fixtures/wf2_overrides/site.conf"];
+        let args = vec![
+            "prog",
+            "--recipe=M2",
+            "pull",
+            "fixtures/wf2_overrides/site.conf",
+        ];
         let cwd = current_dir().expect("works");
         let parent = cwd.join("fixtures/wf2_overrides");
         let cp_cmd = format!(
@@ -71,7 +76,7 @@ mod tests {
 
     #[test]
     fn test_pull_folder_with_delete() {
-        let args = vec!["prog", "pull", "fixtures/wf2_overrides"];
+        let args = vec!["prog", "--recipe=M2", "pull", "fixtures/wf2_overrides"];
         let cwd = current_dir().expect("works").clone();
         let wf2_dir = cwd.parent().expect("root");
         let full_path = wf2_dir.join("fixtures/wf2_overrides");

@@ -1,4 +1,4 @@
-# wf2 [![Build Status](https://travis-ci.org/WeareJH/wf2.svg?branch=master)](https://travis-ci.org/WeareJH/wf2)
+# wf2 ![](https://github.com/WeareJH/wf2/workflows/.github/workflows/test.yml/badge.svg)
 
 ## Express Install
 
@@ -47,46 +47,33 @@ this means you *do not* need PHP or Composer installed on your machine.
 
 9. You should see the same output as below (in features):
 
+## Help
 
+For help on the commands available, run the following: 
 
-## Features (assuming you are using `M2` recipe)
-
+```shell script
+wf2 --help
 ```
-wf2 0.14.0
 
-USAGE:
-    wf2 [FLAGS] [OPTIONS] [SUBCOMMAND]
+`--help` is recipe specific. So if you're in a M2 project, you'll only see
+commands that are relevant to M2 sites.
 
-FLAGS:
-        --debug      Route all PHP requests to the container with XDEBUG
-        --dryrun     Output descriptions of the sequence of tasks, without actually executing them
-    -h, --help       Prints help information
-    -V, --version    Prints version information
-    -v               Sets the level of verbosity
+If you just want to explore what the the wf2 tool can do in each recipe, just use
+the `--recipe` command
 
-OPTIONS:
-        --config <config>    path to a wf2.yml config file
-        --cwd <cwd>          Sets the CWD for all docker commands
-        --php <php>          path to a wf2.yml config file [possible values: 7.1, 7.2, 7.3]
+```shell script
+# See M2 help
+wf2 --recipe M2 --help
 
-SUBCOMMANDS:
-    up               Bring up containers
-    stop             Take down containers & retain data
-    down             Take down containers & delete everything
-    pull             Pull files or folders from the main container to the host
-    push             Push files or folders into the main container
-    doctor           Try to fix common issues with a recipe
-    eject            Dump all files into the local directory for manual running
-    update-images    Update images used in the current recipe
-    db-dump          Dump the current database to dump.sql
-    db-import        Import a DB file
-    exec             Execute commands in the main container
-    help             Prints this message or the help of the given subcommand(s)
+# See Wp help
+wf2 --recipe Wp --help
+```
 
-PASS THRU COMMANDS:
-    composer    [M2] Run composer commands with the correct user
-    npm         [M2] Run npm commands
-    dc          [M2] Run docker-compose commands
-    node        [M2] Run commands in the node container
-    m           [M2] Execute ./bin/magento commands inside the PHP container
+## Contributing.
+
+Before pushing any code, run the following to ensure you catch
+problems before they get to CI
+
+```shell script
+bash pre-push.sh
 ```

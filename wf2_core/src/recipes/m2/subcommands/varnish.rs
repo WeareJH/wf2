@@ -1,32 +1,30 @@
 use crate::commands::CliCommand;
 use crate::context::Context;
-use crate::recipes::m2::services::M2Services;
+use crate::recipes::m2::services::varnish::VarnishService;
+use crate::recipes::m2::services::M2Service;
 use crate::scripts::service_cmd::ServiceCmd;
 use crate::task::Task;
 use clap::{App, ArgMatches, SubCommand};
 
-pub struct VarnishCmd(String);
-
-const NAME: &'static str = "varnish";
+pub struct VarnishCmd;
 
 impl VarnishCmd {
+    const NAME: &'static str = "varnish";
+    const ABOUT: &'static str = "[m2] Enable or disable Varnish for M2";
+
     const ENABLE: &'static str = "enable";
     const DISABLE: &'static str = "disable";
 
     const ENABLE_CMD: &'static str = "varnishadm vcl.use boot0";
     const DISABLE_CMD: &'static str = "varnishadm vcl.use boot";
-
-    pub fn new() -> VarnishCmd {
-        VarnishCmd(String::from(NAME))
-    }
 }
 
 impl<'a, 'b> CliCommand<'a, 'b> for VarnishCmd {
     fn name(&self) -> String {
-        String::from(NAME)
+        String::from(VarnishCmd::NAME)
     }
 
-    fn exec(&self, matches: Option<&ArgMatches>, ctx: &Context) -> Vec<Task> {
+    fn exec(&self, matches: Option<&ArgMatches>, ctx: &Context) -> Option<Vec<Task>> {
         matches
             .map(|m| m.subcommand_name())
             .and_then(|n| match n {
@@ -35,18 +33,18 @@ impl<'a, 'b> CliCommand<'a, 'b> for VarnishCmd {
                 _ => None,
             })
             .map(|cmd| -> Task {
-                let as_cmd = ServiceCmd::running_cmd(M2Services::VARNISH, cmd, ctx);
+                let as_cmd = ServiceCmd::running_cmd(VarnishService::NAME, cmd, ctx);
                 as_cmd.into()
             })
             .map_or(
-                vec![Task::notify_error("missing `enable` or `disable`")],
-                |t| vec![t],
+                Some(vec![Task::notify_error("missing `enable` or `disable`")]),
+                |t| Some(vec![t]),
             )
     }
 
-    fn subcommands(&self) -> Vec<App<'a, 'b>> {
-        vec![App::new(NAME)
-            .about("Enable or disable Varnish for M2")
+    fn subcommands(&self, _ctx: &Context) -> Vec<App<'a, 'b>> {
+        vec![App::new(VarnishCmd::NAME)
+            .about(VarnishCmd::ABOUT)
             .after_help("Enable: `wf2 varnish enable`. Disable: `wf2 varnish disable`.")
             .subcommands(vec![
                 SubCommand::with_name(VarnishCmd::ENABLE)

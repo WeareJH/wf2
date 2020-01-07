@@ -82,7 +82,7 @@ pub fn weekend_filter(item: &WorklogDay) -> bool {
 /// there are both 0 hours & 0 minutes
 ///
 fn empty_filter(item: &WorklogDay) -> bool {
-    item.spent.total_minutes < 15 as f64
+    item.spent.total_minutes < 15_f64
 }
 
 ///

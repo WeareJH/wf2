@@ -7,7 +7,7 @@ mod tests {
 
     #[test]
     fn test_pass_through_composer() {
-        let args = vec!["prog", "composer", "install", "-vvv"];
+        let args = vec!["prog", "--recipe=M2", "composer", "install", "-vvv"];
         let cli_output = CLIOutput::from_input(CLIInput {
             args: args.into_iter().map(String::from).collect(),
             cwd: PathBuf::from("/users/sites/crafters"),

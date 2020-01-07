@@ -8,7 +8,7 @@ mod tests {
 
     #[test]
     fn test_push_dir() {
-        let args = vec!["prog", "push", "vendor/shane"];
+        let args = vec!["prog", "--recipe=M2", "push", "vendor/shane"];
         let cwd = "/users/acme";
         let expected_commands = vec![
             "docker exec wf2__acme__php rm -rf /var/www/vendor/shane",
@@ -20,7 +20,7 @@ mod tests {
 
     #[test]
     fn test_push_single_file() {
-        let args = vec!["prog", "push", "composer.json"];
+        let args = vec!["prog", "--recipe=M2", "push", "composer.json"];
         let cwd = "/users/acme";
         let expected_commands = vec![
             "docker exec wf2__acme__php rm -rf /var/www/composer.json",
@@ -31,19 +31,25 @@ mod tests {
 
     #[test]
     fn test_push_invalid_files() {
-        let args = vec!["prog", "push", "app/"];
+        let args = vec!["prog", "--recipe=M2", "push", "app/"];
         test_push_invalid(args);
-        let args = vec!["prog", "push", "app/code"];
+        let args = vec!["prog", "--recipe=M2", "push", "app/code"];
         test_push_invalid(args);
-        let args = vec!["prog", "push", "app/code/Acme/Lib/File"];
+        let args = vec!["prog", "--recipe=M2", "push", "app/code/Acme/Lib/File"];
         test_push_invalid(args);
-        let args = vec!["prog", "push", "vendor/magento", "app/code"];
+        let args = vec!["prog", "--recipe=M2", "push", "vendor/magento", "app/code"];
         test_push_invalid(args);
     }
 
     #[test]
     fn test_push_invalid_files_with_force() {
-        let args = vec!["prog", "push", "app/code/Acme/Lib/File", "-f"];
+        let args = vec![
+            "prog",
+            "--recipe=M2",
+            "push",
+            "app/code/Acme/Lib/File",
+            "-f",
+        ];
         let cwd = "/users/acme";
         let expected_commands = vec![
             "docker cp /users/acme/app/code/Acme/Lib/File wf2__acme__php:/var/www/app/code/Acme/Lib",

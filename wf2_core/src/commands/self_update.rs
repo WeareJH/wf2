@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json;
+use structopt::StructOpt;
 
 use std::env;
 use std::fs::File;
@@ -18,7 +19,7 @@ use futures::future::lazy;
 use std::path::PathBuf;
 use std::process::Command;
 
-const NAME: &'static str = "self-update";
+const NAME: &str = "self-update";
 
 #[derive(Debug, Fail)]
 enum SelfUpdateError {
@@ -28,7 +29,7 @@ enum SelfUpdateError {
     NoItems,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SelfUpdate(String);
 
 impl SelfUpdate {
@@ -37,20 +38,25 @@ impl SelfUpdate {
     }
 }
 
+#[derive(StructOpt)]
+struct Opts {
+    yes: bool,
+}
+
 impl<'a, 'b> CliCommand<'a, 'b> for SelfUpdate {
     fn name(&self) -> String {
         String::from(NAME)
     }
 
-    fn exec(&self, matches: Option<&ArgMatches>, _ctx: &Context) -> Vec<Task> {
-        let is_auto_confirmed = matches.map_or(false, |matches| matches.is_present("yes"));
-        vec![Task::Exec {
-            description: Some(format!("Self update command")),
-            exec: Box::new(lazy(move || run_self_update(is_auto_confirmed))),
-        }]
+    fn exec(&self, matches: Option<&ArgMatches>, _ctx: &Context) -> Option<Vec<Task>> {
+        let opts: Opts = matches.map(Opts::from_clap).expect("guarded by Clap");
+        Some(vec![Task::Exec {
+            description: Some("Self update command".to_string()),
+            exec: Box::new(lazy(move || run_self_update(opts.yes))),
+        }])
     }
 
-    fn subcommands(&self) -> Vec<App<'a, 'b>> {
+    fn subcommands(&self, _ctx: &Context) -> Vec<App<'a, 'b>> {
         vec![App::new(NAME)
             .display_order(8)
             .about("Update wf2 to the latest release")
@@ -105,7 +111,7 @@ pub fn run_self_update(is_auto_confirmed: bool) -> Result<(), failure::Error> {
     let size = wf2
         .assets
         .get(0)
-        .map(|asset| asset.size.clone())
+        .map(|asset| asset.size)
         .ok_or(SelfUpdateError::NoItems)?;
 
     clear_terminal(is_auto_confirmed);

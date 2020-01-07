@@ -1,3 +1,10 @@
+#![allow(
+    clippy::trivially_copy_pass_by_ref,
+    clippy::float_cmp,
+    clippy::needless_doctest_main,
+    clippy::module_inception
+)]
+
 #[macro_use]
 extern crate prettytable;
 
@@ -22,6 +29,7 @@ pub mod dc_tasks;
 pub mod dc_volume;
 pub mod file;
 pub mod file_op;
+pub mod output;
 pub mod php;
 pub mod recipes;
 pub mod scripts;
@@ -82,14 +90,17 @@ impl WF2 {
                 c.exec().then(|a| match a {
                     Ok(Answer::Yes) => Ok(Answer::Yes),
                     Ok(Answer::No) => Err(Reason::Bail),
-                    Err(e) => Err(Reason::Error { e: e.to_string() }),
+                    Err(e) => Err(Reason::Error { e }),
                 })
             });
             futures::collect(as_futures).then(|res| match res {
-                Ok(answers) => match Answer::all_yes(answers) {
-                    true => Ok(Answer::Yes),
-                    false => Ok(Answer::No),
-                },
+                Ok(answers) => {
+                    if Answer::all_yes(answers) {
+                        Ok(Answer::Yes)
+                    } else {
+                        Ok(Answer::No)
+                    }
+                }
                 Err(reason) => match reason {
                     Reason::Bail => Ok(Answer::No),
                     Reason::Error { e } => Err(e),

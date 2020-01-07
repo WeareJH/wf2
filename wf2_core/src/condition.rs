@@ -7,6 +7,9 @@ use std::fmt::Debug;
 ///
 pub trait Con: Send + Sync + fmt::Display {
     fn exec(&self) -> ConditionFuture;
+    fn fmt_string(&self) -> String {
+        format!("{}", self)
+    }
 }
 
 impl Debug for dyn Con {

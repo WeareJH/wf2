@@ -1,24 +1,20 @@
-use super::php_container::PhpContainer;
-use crate::recipes::m2::m2_runtime_env_file::ENV_OUTPUT_FILE;
+use crate::file::File;
+use crate::recipes::m2::m2_runtime_env_file::M2RuntimeEnvFile;
+use crate::recipes::m2::templates::nginx_site::NginxSite;
+use crate::recipes::m2::templates::traefik::TraefikFile;
+use crate::recipes::m2::templates::unison::UnisonFile;
 pub use crate::vars::Vars;
 use crate::{context::Context, util::path_buf_to_string};
-use std::{collections::HashMap, path::PathBuf};
+use std::collections::HashMap;
 
-pub const TRAEFIK_OUTPUT_FILE: &str = "traefik/traefik.toml";
-pub const NGINX_OUTPUT_FILE: &str = "nginx/sites/site.conf";
-pub const NGINX_UPSTREAM_OUTPUT_FILE: &str = "nginx/sites/upstream.conf";
-pub const DB_CONF_OUTPUT_FILE: &str = "mysql/mysqlconf/mysql.cnf";
-pub const DB_INIT_OUTPUT_FILE: &str = "mysql/init-scripts/init-db.sh";
-pub const UNISON_OUTPUT_FILE: &str = "unison/conf/sync.prf";
-
-pub const DB_PASS: &str = "docker";
-pub const DB_USER: &str = "docker";
-pub const DB_NAME: &str = "docker";
+use crate::recipes::m2::services::php::PhpService;
+use crate::recipes::m2::services::M2Service;
+use crate::recipes::m2::templates::db_conf::DbConf;
+use crate::recipes::m2::templates::db_init::DbInit;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct M2Vars {
     pub content: HashMap<M2Var, String>,
-    pub file_path: PathBuf,
 }
 
 ///
@@ -27,7 +23,12 @@ pub struct M2Vars {
 impl Vars<M2Vars> for M2Vars {
     fn from_ctx(ctx: &Context) -> Result<M2Vars, failure::Error> {
         // resolve the relative path to where the .env file will be written
-        let env_file_path = ctx.file_path(ENV_OUTPUT_FILE);
+        let env_file = M2RuntimeEnvFile::from_ctx(&ctx)?;
+        let unison_file = UnisonFile::from_ctx(&ctx)?;
+        let traefik_file = TraefikFile::from_ctx(&ctx)?;
+        let nginx_site = NginxSite::from_ctx(&ctx)?;
+        let db_conf = DbConf::from_ctx(&ctx)?;
+        let db_init = DbInit::from_ctx(&ctx)?;
 
         // allow env overrides in yml format
         let overrides = match ctx.overrides.clone() {
@@ -35,38 +36,17 @@ impl Vars<M2Vars> for M2Vars {
             None => None,
         };
 
-        // convert the PHP value to a usable image
-        let php_container = PhpContainer::from_ctx(&ctx);
-
-        //
-        let mut nginx_dir = ctx.file_path(NGINX_OUTPUT_FILE);
-        nginx_dir.pop();
-
-        //
-        let mut db_conf_dir = ctx.file_path(DB_CONF_OUTPUT_FILE);
-        db_conf_dir.pop();
-
-        //
-        let mut db_init_dir = ctx.file_path(DB_INIT_OUTPUT_FILE);
-        db_init_dir.pop();
-
         let env: HashMap<M2Var, String> = vec![
-            (M2Var::PhpImage, php_container.image.to_string()),
+            (M2Var::PhpImage, (PhpService).select_image(&ctx)),
             (M2Var::Pwd, path_buf_to_string(&ctx.cwd)),
             (M2Var::ContextName, ctx.name.clone()),
-            (M2Var::EnvFile, path_buf_to_string(&env_file_path)),
-            (M2Var::Domain, ctx.domains()),
-            (
-                M2Var::UnisonFile,
-                path_buf_to_string(&ctx.file_path(UNISON_OUTPUT_FILE)),
-            ),
-            (
-                M2Var::TraefikFile,
-                path_buf_to_string(&ctx.file_path(TRAEFIK_OUTPUT_FILE)),
-            ),
-            (M2Var::NginxDir, path_buf_to_string(&nginx_dir)),
-            (M2Var::DbConfDir, path_buf_to_string(&db_conf_dir)),
-            (M2Var::DbInitDir, path_buf_to_string(&db_init_dir)),
+            (M2Var::EnvFile, env_file.file_path_string()),
+            (M2Var::Domains, ctx.domains()),
+            (M2Var::UnisonFile, unison_file.file_path_string()),
+            (M2Var::TraefikFile, traefik_file.file_path_string()),
+            (M2Var::NginxDir, nginx_site.dir_string()),
+            (M2Var::DbConfDir, db_conf.dir_string()),
+            (M2Var::DbInitDir, db_init.dir_string()),
         ]
         .into_iter()
         .collect();
@@ -83,7 +63,7 @@ impl Vars<M2Vars> for M2Vars {
                             .into_iter()
                             .map(|(key, value)| match key {
                                 M2Var::NginxDir | M2Var::DbConfDir | M2Var::DbInitDir => {
-                                    if value.starts_with("/") {
+                                    if value.starts_with('/') {
                                         (key, value)
                                     } else {
                                         (key, path_buf_to_string(&ctx.cwd.join(value)))
@@ -100,7 +80,6 @@ impl Vars<M2Vars> for M2Vars {
 
         Ok(M2Vars {
             content: merged_env,
-            file_path: env_file_path,
         })
     }
 }
@@ -112,7 +91,7 @@ fn test_env_from_ctx() {
     let hm: HashMap<M2Var, String> = vec![
         (M2Var::Pwd, "."),
         (M2Var::PhpImage, "wearejh/php:7.3-m2"),
-        (M2Var::Domain, DEFAULT_DOMAIN),
+        (M2Var::Domains, DEFAULT_DOMAIN),
         (M2Var::ContextName, DEFAULT_NAME),
         (M2Var::EnvFile, "./.wf2_default/.docker.env"),
         (M2Var::UnisonFile, "./.wf2_default/unison/conf/sync.prf"),
@@ -146,7 +125,7 @@ fn test_env_from_ctx_with_overrides() {
     let hm: HashMap<M2Var, String> = vec![
         (M2Var::Pwd, "."),
         (M2Var::PhpImage, "wearejh/php:7.3-m2"),
-        (M2Var::Domain, "local.m2,ce.local.m2"),
+        (M2Var::Domains, "local.m2,ce.local.m2"),
         (M2Var::ContextName, DEFAULT_NAME),
         (M2Var::EnvFile, "./.wf2_default/.docker.env"),
         (M2Var::UnisonFile, "./.wf2_default/unison/conf/sync.prf"),
@@ -166,7 +145,8 @@ fn test_env_from_ctx_with_overrides() {
 pub enum M2Var {
     Pwd,
     PhpImage,
-    Domain,
+    /// comma-separated domains without protocol
+    Domains,
     ContextName,
     EnvFile,
     UnisonFile,

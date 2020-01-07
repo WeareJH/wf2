@@ -13,7 +13,16 @@ pub fn help(pg: &M2Playground) -> String {
        cd {}
        wf2 up
 
-    Then, once it's up an running, in a new tab, run the following:
+    {}"#,
+        pg.dir.file_name().unwrap().to_string_lossy(),
+        up_help()
+    )
+}
+
+pub fn up_help() -> String {
+    String::from(
+        "If this is your first time running this site - you
+    should now run the following:
 
        wf2 doctor
        wf2 composer install
@@ -30,7 +39,18 @@ pub fn help(pg: &M2Playground) -> String {
 
     Have fun :)
 
-    "#,
-        pg.dir.file_name().unwrap().to_string_lossy()
+    ",
     )
+}
+
+#[test]
+fn test_help() {
+    let pg = M2Playground {
+        dir: std::path::PathBuf::from("/user/shakyshane"),
+        version: String::from("2.3.4"),
+        username: "".to_string(),
+        password: "".to_string(),
+    };
+    let _h = help(&pg);
+    //    println!("{}", h);
 }

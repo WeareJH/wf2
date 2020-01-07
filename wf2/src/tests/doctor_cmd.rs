@@ -6,7 +6,7 @@ mod tests {
 
     #[test]
     fn test_doctor_cmd() {
-        let args = vec!["prog", "doctor"];
+        let args = vec!["prog", "--recipe=M2", "doctor"];
         let expected =
             "docker exec -it wf2__wf2_default__unison chown -R docker:docker /volumes/internal";
         let cli_output = CLIOutput::from_input(CLIInput::_from_args(args));

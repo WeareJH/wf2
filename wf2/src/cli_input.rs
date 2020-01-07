@@ -56,13 +56,13 @@ impl CLIInput {
     }
 
     pub fn _with_args(&mut self, args: Vec<&str>) -> &mut Self {
-        self.args = args.iter().map(|s| s.to_string()).collect();
+        self.args = args.iter().map(|s| (*s).to_string()).collect();
         self
     }
 
     pub fn _from_args(args: Vec<&str>) -> CLIInput {
         CLIInput {
-            args: args.iter().map(|s| s.to_string()).collect(),
+            args: args.iter().map(|s| (*s).to_string()).collect(),
             ..CLIInput::default()
         }
     }

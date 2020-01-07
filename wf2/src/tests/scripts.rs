@@ -7,14 +7,26 @@ mod tests {
 
     #[test]
     fn test_scripts_multiple() {
-        let args = vec!["prog", "--config", "../fixtures/config_01.yaml", "bundle"];
+        let args = vec![
+            "prog",
+            "--recipe=M2",
+            "--config",
+            "../fixtures/config_01.yaml",
+            "bundle",
+        ];
         let cmds = _test(args);
         assert_eq!(cmds.len(), 5);
     }
 
     #[test]
     fn test_dc_run_script() {
-        let args = vec!["prog", "--config", "../fixtures/config_01.yaml", "dc_run"];
+        let args = vec![
+            "prog",
+            "--recipe=M2",
+            "--config",
+            "../fixtures/config_01.yaml",
+            "dc_run",
+        ];
         let cmds = _test(args);
         let expected = r#"docker-compose -f /users/acme/.wf2_m2_acme/docker-compose.yml run --user root node echo hello"#;
         assert_eq!(expected, cmds.get(0).expect("test"));
@@ -22,7 +34,13 @@ mod tests {
 
     #[test]
     fn test_dc_exec_script() {
-        let args = vec!["prog", "--config", "../fixtures/config_01.yaml", "dc_exec"];
+        let args = vec![
+            "prog",
+            "--recipe=M2",
+            "--config",
+            "../fixtures/config_01.yaml",
+            "dc_exec",
+        ];
         let cmds = _test(args);
         let expected = r#"docker-compose -f /users/acme/.wf2_m2_acme/docker-compose.yml exec --user root node echo hello"#;
         assert_eq!(expected, cmds.get(0).expect("test"));

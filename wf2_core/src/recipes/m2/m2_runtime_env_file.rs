@@ -5,16 +5,22 @@ use snailquote::escape;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-pub const ENV_OUTPUT_FILE: &str = ".docker.env";
-
+///
+/// The [`M2RuntimeEnvFile`] file is the environment file that containers will
+/// share. It will contain things such as database credentials, API keys,
+/// xdebug configuration etc.
+///
 pub struct M2RuntimeEnvFile {
     pub file_path: PathBuf,
     pub bytes: Vec<u8>,
 }
 
 impl File<M2RuntimeEnvFile> for M2RuntimeEnvFile {
-    fn from_ctx(ctx: &Context) -> Result<M2RuntimeEnvFile, String> {
-        let env_file_path = ctx.file_path(ENV_OUTPUT_FILE);
+    const DESCRIPTION: &'static str = "Writes the .env file to disk";
+    const OUTPUT_PATH: &'static str = ".docker.env";
+
+    fn from_ctx(ctx: &Context) -> Result<M2RuntimeEnvFile, failure::Error> {
+        let env_file_path = ctx.file_path(Self::OUTPUT_PATH);
         let bytes = create_runtime_env(&ctx, &ctx.env, &ctx.default_domain())?;
         Ok(M2RuntimeEnvFile {
             file_path: env_file_path,
@@ -87,11 +93,10 @@ pub fn create_runtime_env(
     ctx: &Context,
     input: &Option<serde_yaml::Value>,
     domain: &str,
-) -> Result<Vec<u8>, String> {
+) -> Result<Vec<u8>, failure::Error> {
     let mut merged = match input.clone() {
         Some(input_from_ctx) => {
-            let from_ctx: M2EnvVars =
-                serde_yaml::from_value(input_from_ctx).map_err(|e| e.to_string())?;
+            let from_ctx: M2EnvVars = serde_yaml::from_value(input_from_ctx)?;
             HmEnv::default().merge(from_ctx.0).0
         }
         None => HmEnv::default().0,

@@ -32,7 +32,7 @@ mod tests {
 
     #[test]
     fn test_pass_through_npm_no_config() {
-        let args = vec!["prog", "npm", "run", "watch", "-vvv"];
+        let args = vec!["prog", "--recipe=M2", "npm", "run", "watch", "-vvv"];
         let cli_output = CLIOutput::from_input(CLIInput {
             args: args.into_iter().map(String::from).collect(),
             cwd: PathBuf::from("/users/acme"),

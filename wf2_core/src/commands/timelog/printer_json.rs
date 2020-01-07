@@ -2,6 +2,7 @@ use crate::commands::timelog::jira_worklog_result::WorklogResult;
 use crate::commands::timelog::printer::Printer;
 use failure::Error;
 
+#[derive(Default)]
 pub struct JsonPrinter(String);
 impl JsonPrinter {
     pub fn new() -> JsonPrinter {

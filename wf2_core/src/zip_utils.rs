@@ -3,13 +3,14 @@ use std::fs::File;
 use std::path::PathBuf;
 use std::{fs, io};
 
-pub fn unzip(input_file: &PathBuf, output_dir: &PathBuf) -> Result<(), Error> {
+pub fn unzip(input_file: &PathBuf, output_dir: &PathBuf, start_level: usize) -> Result<(), Error> {
     let zipfile_pointer = File::open(&input_file)?;
     let mut archive = zip::ZipArchive::new(zipfile_pointer)?;
 
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)?;
         let outpath = file.sanitized_name();
+        let outpath = outpath.iter().skip(start_level).collect::<PathBuf>();
 
         {
             let comment = file.comment();

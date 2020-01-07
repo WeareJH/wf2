@@ -1,3 +1,4 @@
+#![allow(clippy::needless_doctest_main)]
 #![recursion_limit = "128"]
 extern crate inflector;
 extern crate proc_macro;
@@ -99,7 +100,7 @@ pub fn env_vars(item: TokenStream) -> TokenStream {
         })
         .collect::<Vec<EnvItem>>();
 
-    if errors.len() > 0 {
+    if !errors.is_empty() {
         return syn::Error::new(errors[0], r#"Expected a bool or string, eg: "12" or true"#)
             .to_compile_error()
             .into();

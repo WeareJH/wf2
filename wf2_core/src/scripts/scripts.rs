@@ -14,7 +14,10 @@ impl Scripts {
             .map(|(name, script)| {
                 (
                     name.to_owned(),
-                    script.description.clone().unwrap_or(String::from("")),
+                    script
+                        .description
+                        .clone()
+                        .unwrap_or_else(|| String::from("")),
                 )
             })
             .collect()

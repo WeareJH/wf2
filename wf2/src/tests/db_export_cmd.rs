@@ -6,7 +6,7 @@ mod tests {
 
     #[test]
     fn test_db_export() {
-        let args = vec!["prog", "db-dump"];
+        let args = vec!["prog", "--recipe=M2", "db-dump"];
         let expected =
             "docker exec -i wf2__wf2_default__db mysqldump -udocker -pdocker docker > dump.sql";
         let cli_output = CLIOutput::from_input(CLIInput::_from_args(args));

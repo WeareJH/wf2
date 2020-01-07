@@ -1,5 +1,6 @@
 use crate::condition::{Answer, Con};
 use crate::file_op::FileOp;
+use crate::output::{output, output_left};
 use crate::WF2;
 use ansi_term::Colour::{Green, Red, Yellow};
 use futures::{future::lazy, future::Future};
@@ -68,6 +69,12 @@ impl fmt::Display for TaskError {
 /// Helper methods for easier creation of a Task
 ///
 impl Task {
+    pub fn from(t: impl Into<Task>) -> Task {
+        t.into()
+    }
+    pub fn task_err_vec(e: failure::Error) -> Vec<Task> {
+        vec![Task::notify_error(e.to_string())]
+    }
     pub fn file_write(
         path: impl Into<PathBuf>,
         description: impl Into<String>,
@@ -92,7 +99,7 @@ impl Task {
         Task::File {
             description: String::from("File->clone"),
             op: FileOp::Clone {
-                left: left_c.clone(),
+                left: left_c,
                 right: right.into(),
             },
         }
@@ -111,6 +118,11 @@ impl Task {
     pub fn notify(message: impl Into<String>) -> Task {
         Task::Notify {
             message: message.into(),
+        }
+    }
+    pub fn notify_prefixed(message: impl Into<String>) -> Task {
+        Task::Notify {
+            message: format!("{} {}", Green.paint("[wf2 info]"), message.into()),
         }
     }
     pub fn notify_error(message: impl Into<String>) -> Task {
@@ -175,87 +187,105 @@ impl Task {
     }
 }
 
-///
-/// Display stuff
-///
-impl fmt::Display for Task {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        match self {
-            Task::File { op, .. } => write!(f, "{}", op),
-            Task::Command { command, env } => write!(f, "Command: {}\nEnv: {:#?}", command, env),
-            Task::SimpleCommand { command, .. } => write!(f, "Command: {}", command),
-            Task::Notify { message } => write!(f, "Notify: {}", message),
-            Task::NotifyWarn { message } => write!(f, "NotifyWarn: {}", message),
-            Task::NotifyInfo { message } => write!(f, "NotifyInfo: {}", message),
-            Task::NotifyError { .. } => write!(f, "Notify Error: see above for error message"),
-            Task::Seq(tasks) => write!(
-                f,
-                "Task Sequence: \n{}",
+pub fn fmt_string(t: &Task) -> String {
+    match t {
+        Task::File { op, .. } => format!("{:?}", op),
+        Task::Command { command, env } => format!("Command: {}\nEnv: {:#?}", command, env),
+        Task::SimpleCommand { command, .. } => output("Command", command),
+        Task::Notify { message } => output_left("Notify", message),
+        Task::NotifyWarn { message } => output_left("Notify Warn", message),
+        Task::NotifyInfo { message } => output_left("Notify Info", message),
+        Task::NotifyError { .. } => "Notify Error: see above for error message".to_string(),
+        Task::Seq(tasks) => {
+            let len = tasks.len();
+            let head = output("Task Sequence", format!("{} tasks", len));
+            let output = format!(
+                "{}\n{}",
+                head,
                 tasks
                     .iter()
                     .enumerate()
-                    .map(|(index, task)| format!(
-                        "{:indent$} [{index}] {task}",
+                    .map(|(i, task)| format!(
+                        "{:indent$}[{i}] {task}",
                         "",
                         indent = 4,
-                        index = index,
+                        i = i,
                         task = task
                     ))
                     .collect::<Vec<String>>()
                     .join("\n")
-            ),
-            Task::Cond {
-                conditions,
-                tasks,
-                description,
-                or_else,
-            } => {
-                let cond_list = conditions
+            );
+            output
+        }
+        Task::Cond {
+            conditions,
+            tasks,
+            description,
+            or_else,
+        } => {
+            let cond_list = conditions
+                .iter()
+                .enumerate()
+                .map(|(i, condition)| {
+                    format!(
+                        "{:indent$}[{i}] {condition}",
+                        "",
+                        indent = 4,
+                        //                        index = index,
+                        i = i,
+                        condition = condition
+                    )
+                })
+                .collect::<Vec<String>>()
+                .join("\n");
+            let tl = |tasks: &Vec<Task>| {
+                tasks
                     .iter()
                     .enumerate()
-                    .map(|(index, condition)| {
-                        format!(
-                            "{:indent$} [{index}] {condition}",
-                            "",
-                            indent = 4,
-                            index = index,
-                            condition = condition
-                        )
-                    })
+                    .map(|(_i, task)| format!("            {}", task))
                     .collect::<Vec<String>>()
-                    .join("\n");
-                let tl = |tasks: &Vec<Task>| {
-                    tasks
-                        .iter()
-                        .enumerate()
-                        .map(|(index, task)| {
-                            format!(
-                                "{:indent$} [{index}] {task}",
-                                "",
-                                indent = 8,
-                                index = index,
-                                task = task
-                            )
-                        })
-                        .collect::<Vec<String>>()
-                        .join("\n")
-                };
-                let task_list = tl(tasks);
-                let or_else_list = tl(or_else);
-                write!(
-                    f,
-                    "Conditional Task: {}\n{}\n     Yes Tasks:\n{}\n     No: Tasks:\n{}",
-                    description
-                        .clone()
-                        .unwrap_or(String::from("Conditional Task:")),
-                    cond_list,
-                    task_list,
-                    or_else_list
-                )
-            }
-            Task::Exec { description, .. } => write!(f, "Exec: {:?}", description),
-            Task::Noop => write!(f, "Noop"),
+                    .join("\n")
+            };
+            let task_list = tl(tasks);
+            let or_else_list = tl(or_else);
+            let desc = description
+                .clone()
+                .unwrap_or_else(|| String::from("Conditional Task:"));
+            let head = output("Conditional Task", desc);
+            format!(
+                "{}\n{}\n        Yes Tasks:\n{}\n{}",
+                head,
+                cond_list,
+                task_list,
+                if !or_else.is_empty() {
+                    format!("        No Tasks:\n{}", or_else_list)
+                } else {
+                    String::from("")
+                }
+            )
         }
+        Task::Exec { description, .. } => output_left("Exec", format!("{:?}", description)),
+        Task::Noop => String::from(""),
+    }
+}
+
+///
+/// Display
+///
+impl fmt::Display for Task {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        let output_str = fmt_string(&self);
+        write!(f, "{}", output_str)
+    }
+}
+
+///
+/// Debug
+///
+impl fmt::Debug for Task {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        let output_str = fmt_string(&self);
+        write!(f, "{}", output_str)
     }
 }
 
@@ -268,7 +298,7 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
     Box::new(lazy(move || match task {
         Task::File { op, .. } => op.exec().map(|_| id).map_err(|e| TaskError {
             index: id,
-            message: format!("FileOp error e={}", e),
+            message: e,
             exit_code: None,
         }),
         Task::SimpleCommand { command } => {
@@ -284,14 +314,14 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                     } else {
                         Err(TaskError {
                             index: id,
-                            message: format!("None-zero exit code"),
+                            message: "None-zero exit code".to_string(),
                             exit_code: s.code(),
                         })
                     }
                 }
                 Err(e) => Err(TaskError {
                     index: id,
-                    message: format!("Could not run simple command, e={}", e),
+                    message: format!("{}", e),
                     exit_code: None,
                 }),
             }
@@ -310,14 +340,14 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                     } else {
                         Err(TaskError {
                             index: id,
-                            message: format!("None-zero exit code"),
+                            message: "None-zero exit code".to_string(),
                             exit_code: s.code(),
                         })
                     }
                 }
                 Err(e) => Err(TaskError {
                     index: id,
-                    message: format!("Could not run simple command, e={}", e),
+                    message: format!("{}", e),
                     exit_code: None,
                 }),
             }
@@ -369,7 +399,7 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                         }
                     }
                     Answer::No => {
-                        if or_else.len() > 0 {
+                        if !or_else.is_empty() {
                             let or_else_sequence = WF2::sequence(or_else);
                             let output = or_else_sequence.wait();
                             match output {
@@ -383,7 +413,7 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
                 })
                 .map_err(|e| TaskError {
                     index: id,
-                    message: e.to_string(),
+                    message: e,
                     exit_code: None,
                 })
         }

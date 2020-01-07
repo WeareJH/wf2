@@ -12,43 +12,37 @@ use clap::{App, Arg, ArgMatches};
 use futures::future::lazy;
 use std::sync::Arc;
 
-pub struct M2PlaygroundCmd(String);
-
-const NAME: &'static str = "m2-playground";
+pub struct M2PlaygroundCmd;
 
 impl M2PlaygroundCmd {
-    pub fn new() -> M2PlaygroundCmd {
-        M2PlaygroundCmd(String::from(NAME))
-    }
+    const NAME: &'static str = "m2-playground";
+    const ABOUT: &'static str = "Create a fresh install of M2";
 }
 
 impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
     fn name(&self) -> String {
-        String::from(NAME)
+        String::from(M2PlaygroundCmd::NAME)
     }
 
-    fn exec(&self, matches: Option<&ArgMatches>, ctx: &Context) -> Vec<Task> {
+    fn exec(&self, matches: Option<&ArgMatches>, ctx: &Context) -> Option<Vec<Task>> {
         let cwd = ctx.cwd.clone();
-        let version = matches.and_then(|m| m.value_of("version"));
+        let version = matches.and_then(|m| m.value_of("version"))?;
         let username = matches.and_then(|m| m.value_of("username"));
         let password = matches.and_then(|m| m.value_of("password"));
-        let dirname = matches.and_then(|m| m.value_of("output")).unwrap_or(NAME);
+        let dirname = matches
+            .and_then(|m| m.value_of("output"))
+            .unwrap_or(M2PlaygroundCmd::NAME);
         let force = matches.map(|m| m.is_present("force")).unwrap_or(false);
-
-        if let None = version {
-            return vec![Task::notify_error("didn't get a valid version")];
-        }
 
         let pg = M2Playground::from_file();
         let from_file = pg.is_some();
         let target_file = M2Playground::output_file();
-        let version = version.expect("guarded above");
 
         let username = username
-            .or(pg.as_ref().map(|x| x.username.as_str()))
+            .or_else(|| pg.as_ref().map(|x| x.username.as_str()))
             .expect("guarded");
         let password = password
-            .or(pg.as_ref().map(|x| x.password.as_str()))
+            .or_else(|| pg.as_ref().map(|x| x.password.as_str()))
             .expect("guarded");
 
         let target_dir = cwd.join(dirname);
@@ -68,22 +62,22 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
         let pg_4 = pg.clone();
 
         let get_files = Task::Exec {
-            description: Some(format!("Get M2 project files")),
+            description: Some("Get M2 project files".to_string()),
             exec: Box::new(lazy(move || get_project_files(&pg_1))),
         };
 
         let get_composer_json = Task::Exec {
-            description: Some(format!("Get M2 composer.json file ")),
+            description: Some("Get M2 composer.json file".to_string()),
             exec: Box::new(lazy(move || get_composer_json(&pg_2))),
         };
 
         let auth_json = Task::Exec {
-            description: Some(format!("Write auth.json")),
+            description: Some("Write auth.json".to_string()),
             exec: Box::new(lazy(move || write_auth_json(&pg_3))),
         };
 
         let wf2_file = Task::Exec {
-            description: Some(format!("Write wf2.yaml")),
+            description: Some("Write wf2.yaml".to_string()),
             exec: Box::new(lazy(move || write_wf2_file(&pg_4))),
         };
 
@@ -132,11 +126,11 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
             let warning = format!(
                 "{}: `{}` will be {} - are you {} sure about this?",
                 Green.paint("[wf2 info]"),
-                target_dir.clone().display(),
+                target_dir.display(),
                 Red.paint("deleted"),
                 Cyan.paint("REALLY")
             );
-            return vec![Task::conditional(
+            return Some(vec![Task::conditional(
                 vec![Box::new(Question::new(warning))],
                 vec![Task::notify_info("Deleting previous directory"), wipe]
                     .into_iter()
@@ -145,12 +139,12 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
                     .collect::<Vec<Task>>(),
                 vec![Task::notify_info("Aborted... phew")],
                 Some("Verify that the folder should be deleted"),
-            )];
+            )]);
         }
 
         // if we get here, it's the 'safe' version where we wouldn't override
         // an existing directory
-        vec![Task::conditional(
+        Some(vec![Task::conditional(
             vec![Box::new(FilePresent::new(target_dir.clone(), true))],
             base_tasks
                 .into_iter()
@@ -158,17 +152,17 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
                 .collect::<Vec<Task>>(),
             vec![Task::notify_error(format!(
                 "Cannot overwrite existing directory (use -f to override) `{}`",
-                target_dir.clone().display()
+                target_dir.display()
             ))],
             Some("Verify the folder is absent before downloading anything"),
-        )]
+        )])
     }
 
-    fn subcommands(&self) -> Vec<App<'a, 'b>> {
+    fn subcommands(&self, _ctx: &Context) -> Vec<App<'a, 'b>> {
         let pg_file = M2Playground::from_file();
         let args_required = pg_file.is_none();
-        vec![App::new(NAME)
-            .about("Create a fresh install of M2")
+        vec![App::new(M2PlaygroundCmd::NAME)
+            .about(M2PlaygroundCmd::ABOUT)
             .arg_from_usage("<version> 'Which magento version to use'")
             .after_help("Example: wf2 playground 2.3.3")
             .arg(

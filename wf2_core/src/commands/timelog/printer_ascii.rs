@@ -6,8 +6,9 @@ use ansi_term::Style;
 use prettytable::format;
 use prettytable::Table;
 
-pub const OUTPUT_FORMAT: &'static str = "%a, %d %b, %Y";
+pub const OUTPUT_FORMAT: &str = "%a, %d %b, %Y";
 
+#[derive(Default)]
 pub struct AsciiPrinter(String);
 impl AsciiPrinter {
     pub fn new() -> AsciiPrinter {
@@ -25,8 +26,8 @@ impl Printer for AsciiPrinter {
         let by_day = result.group_by_day();
         let filtered = by_day.wl_filter(result.filters.to_vec());
 
-        if filtered.len() == 0 {
-            self.info(format!("0 results after applying filters"));
+        if filtered.is_empty() {
+            self.info("0 results after applying filters".to_string());
             return Ok(());
         }
 
@@ -146,8 +147,8 @@ impl Printer for AsciiPrinter {
 }
 
 fn mins_to_hour_mins(mins: f64) -> (i32, i32) {
-    let h = math::round::floor((mins / 60 as f64) as f64, 1);
-    let m = math::round::floor((mins % 60 as f64) as f64, 1);
+    let h = math::round::floor(mins / 60_f64, 1);
+    let m = math::round::floor(mins % 60_f64, 1);
     (h as i32, m as i32)
 }
 

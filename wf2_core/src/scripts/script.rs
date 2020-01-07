@@ -17,10 +17,10 @@ impl From<Script> for Vec<Task> {
 
 impl Script {
     pub fn flatten(
-        steps: &Vec<ScriptItem>,
+        steps: &[ScriptItem],
         _curr: &str,
         scripts: &Scripts,
-        path: &Vec<String>,
+        path: &[String],
     ) -> Result<Vec<ScriptItem>, String> {
         let mut matches = vec![];
         for item in steps {
@@ -38,7 +38,7 @@ impl Script {
                     }
                     let exists = scripts.0.get(name).ok_or_else(||{
                         let possible_names = scripts.keys();
-                        let filtered_names: Vec<String> =  possible_names.clone().into_iter().filter(|n| {
+                        let filtered_names: Vec<String> =  possible_names.into_iter().filter(|n| {
                             !path.contains(n)
                         }).collect();
                         format!(
@@ -52,7 +52,7 @@ impl Script {
                             )
                         )
                     })?;
-                    let mut next_path = path.clone();
+                    let mut next_path = path.to_owned();
                     next_path.push(name.to_owned());
                     let rec = Script::flatten(&exists.steps, name, scripts, &next_path)?;
                     matches.extend(rec);
@@ -65,7 +65,7 @@ impl Script {
         Ok(matches)
     }
 
-    pub fn has_dc_tasks(steps: &Vec<ScriptItem>) -> bool {
+    pub fn has_dc_tasks(steps: &[ScriptItem]) -> bool {
         steps.iter().any(|step| match step {
             ScriptItem::DcRunCommand { .. }
             | ScriptItem::DcExecCommand { .. }
@@ -74,7 +74,7 @@ impl Script {
         })
     }
 
-    pub fn service_names(steps: &Vec<ScriptItem>) -> Option<Vec<String>> {
+    pub fn service_names(steps: &[ScriptItem]) -> Option<Vec<String>> {
         let names: Vec<String> = steps
             .iter()
             .filter_map(|script| match script {
@@ -83,7 +83,7 @@ impl Script {
                 _ => None,
             })
             .collect();
-        if names.len() > 0 {
+        if !names.is_empty() {
             Some(names)
         } else {
             None
@@ -102,20 +102,20 @@ impl Script {
                         run: ServiceCmd {
                             dc_subcommand: Some(String::from("run")),
                             dc_file: Some(dc_file.clone()),
-                            ..run.clone()
+                            ..run
                         },
                     },
                     ScriptItem::DcExecCommand { exec } => ScriptItem::DcExecCommand {
                         exec: ServiceCmd {
                             dc_subcommand: Some(String::from("exec")),
                             dc_file: Some(dc_file.clone()),
-                            ..exec.clone()
+                            ..exec
                         },
                     },
                     ScriptItem::DcPassThru { dc } => ScriptItem::DcRunCommand {
                         run: ServiceCmd {
                             dc_file: Some(dc_file.clone()),
-                            command: Some(dc.clone()),
+                            command: Some(dc),
                             ..ServiceCmd::default()
                         },
                     },

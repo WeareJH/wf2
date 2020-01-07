@@ -13,7 +13,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::oneshot;
 
-pub const JIRA_DATE_FORMAT: &'static str = "%Y-%m-%d";
+pub const JIRA_DATE_FORMAT: &str = "%Y-%m-%d";
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct Jira {
@@ -54,7 +54,7 @@ impl Jira {
 
     pub fn output_file() -> Result<PathBuf, String> {
         dirs::home_dir()
-            .ok_or(String::from("Could not read"))
+            .ok_or_else(|| String::from("Could not read"))
             .map(|home| home.join(".wf2").join("jira.json"))
     }
 
@@ -83,7 +83,7 @@ impl Jira {
             Box::new(lazy(move || {
                 let jira = jira.clone();
 
-                let futures = issues.into_iter().map(move |issue| {
+                let futures = issues.iter().map(move |issue| {
                     let jira = jira.clone();
                     let key = issue.key.clone();
                     let status_name = issue.fields.status.name.clone();
