@@ -34,6 +34,7 @@ pub mod php;
 pub mod recipes;
 pub mod scripts;
 pub mod task;
+pub mod tasks;
 pub mod util;
 pub mod vars;
 pub mod zip_utils;
