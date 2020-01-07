@@ -44,11 +44,14 @@ fn main() {
     // if --dryrun was given, just print the commands and return
     //
     if cli_output.ctx.run_mode == RunMode::DryRun {
-        cli_output.tasks.map(|ts| {
-            ts.iter()
+        if let Some(ts) = cli_output.tasks {
+            let items = ts
+                .iter()
                 .enumerate()
-                .for_each(|(index, t)| println!("[{}]: {}", index, t))
-        });
+                .map(|(_index, t)| format!("{}", t))
+                .collect::<Vec<String>>();
+            items.into_iter().for_each(|task| println!("{}", task));
+        }
         return;
     }
 
@@ -61,7 +64,6 @@ fn main() {
 
         // using the Context, Recipe & Task List, generate a
         // future that runs each task in sequence
-        let _tasks_len = tasks.len();
         let task_sequence = WF2::sequence(tasks);
 
         //
@@ -69,7 +71,7 @@ fn main() {
         //
         task_sequence
             .then(|res| match res {
-                Ok(id) => tx.send(Ok(id)),
+                Ok(..) => tx.send(Ok(())),
                 Err(err) => tx.send(Err(err)),
             })
             .map(|_| ())

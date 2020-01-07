@@ -2,19 +2,17 @@ use crate::cli::{append_subcommands, CLI};
 use crate::cli_input::CLIInput;
 use crate::error::CLIError;
 
-use clap::ArgMatches;
+use clap::{App, ArgMatches};
 use from_file::FromFileError;
 use std::path::PathBuf;
-use wf2_core::commands::internal_commands;
-use wf2_core::recipes::m2::M2Recipe;
+use wf2_core::commands::{internal_commands, CliCommand};
+
+use wf2_core::recipes::available_recipes;
 use wf2_core::recipes::recipe_kinds::RecipeKinds;
-use wf2_core::recipes::Recipe;
 use wf2_core::scripts::script::Script;
 use wf2_core::util::two_col;
 use wf2_core::{
-    cmd::Cmd,
     context::{Context, ContextOverrides, RunMode},
-    php::PHP,
     task::Task,
 };
 
@@ -28,39 +26,39 @@ impl CLIOutput {
     /// Create CLIOutput from CLIInput
     ///
     pub fn from_input(input: CLIInput) -> Result<CLIOutput, CLIError> {
-        let input_args: Vec<String> = input.args.clone().into_iter().map(|s| s.into()).collect();
+        let input_args: Vec<String> = input.args.clone().into_iter().map(|s| s).collect();
         //        let base_len = 6;
         let cli = CLI::new();
         let ctx = cli.get_ctx(input.args.clone())?;
-        let recipe = RecipeKinds::select(&ctx.recipe);
+        let mut help_text = vec![];
 
-        // Get
-        let after_help_lines = format!(
-            "PASS THRU COMMANDS:\n{}",
-            two_col(recipe.pass_thru_commands())
-        );
+        // Add recipe pass thru & scripts if present
+        if let Some(recipe) = ctx.recipe {
+            // recipe pass-thru commands first
+            let recipe = RecipeKinds::select(recipe);
+            let recipe_pass_thru = recipe.pass_thru_commands();
+            if !recipe_pass_thru.is_empty() {
+                help_text.push(format!(
+                    "PASS THRU COMMANDS:\n{}",
+                    two_col(recipe_pass_thru)
+                ));
+            }
+            // custom scripts come next
+            let script_pairs: Vec<(String, String)> =
+                ctx.scripts.clone().map_or(vec![], |s| s.pairs());
+            if !script_pairs.is_empty() {
+                let script_help_lines = format!("PROJECT COMMANDS\n{}", two_col(script_pairs));
+                help_text.push(script_help_lines);
+            }
+        }
 
-        // custom scripts come next
-        let script_pairs: Vec<(String, String)> = ctx.scripts.clone().map_or(vec![], |s| s.pairs());
-        let script_help_lines = format!("PROJECT COMMANDS\n{}", two_col(script_pairs));
-
-        let both = vec![after_help_lines, script_help_lines].join("\n\n");
+        let both = help_text.join("\n\n");
 
         // append recipe subcommands
         let app = cli.app.after_help(&both[..]);
 
-        let r = M2Recipe::new().subcommands();
-        let recipe_subcommands = r.iter();
-
         // flatten the subcommands
-        let combined_subcommands =
-            internal_commands()
-                .iter()
-                .chain(recipe_subcommands)
-                .fold(vec![], |mut acc, item| {
-                    acc.extend(item.subcommands());
-                    acc
-                });
+        let combined_subcommands = collect_apps(&ctx);
 
         // append internal subcommands
         let app = append_subcommands(app, combined_subcommands, 20);
@@ -118,24 +116,31 @@ impl CLIOutput {
         let mut ctx = ctx.clone();
 
         // Overrides because of CLI flags
-        let overrides = CLIOutput::matches_to_context_overrides(&matches, &ctx, input);
+        let overrides = CLIOutput::matches_to_context_overrides(&matches, input);
 
         // Now merge the base context (file or default) with any CLI overrides
         {
             ctx.merge(overrides);
         };
 
-        let recipe_subcommands = M2Recipe::new().subcommands();
+        let recipe_subcommands = ctx
+            .recipe
+            .map(RecipeKinds::select)
+            .map(|r| r.subcommands())
+            .unwrap_or_else(|| vec![]);
 
         let internal_cmd = internal_commands()
             .iter()
+            .chain(collect_recipe_global_commands().iter())
             .chain(recipe_subcommands.iter())
             .find(|cmd| matches.is_present(cmd.name()))
-            .map(|cmd| cmd.exec(matches.subcommand_matches(cmd.name()), &ctx));
+            .and_then(|cmd| cmd.exec(matches.subcommand_matches(cmd.name()), &ctx));
 
         let output_tasks = internal_cmd.or_else(|| {
-            CLIOutput::get_recipe_tasks(&matches, &ctx)
-                .or_else(|| CLIOutput::get_project_tasks(&matches, &ctx))
+            CLIOutput::get_recipe_pass_thru(&matches, &ctx).or_else(|| match ctx.recipe {
+                Some(..) => CLIOutput::get_project_tasks(&matches, &ctx),
+                None => None,
+            })
         });
 
         Ok(CLIOutput {
@@ -146,7 +151,6 @@ impl CLIOutput {
 
     pub fn matches_to_context_overrides(
         matches: &clap::ArgMatches,
-        ctx: &Context,
         input: CLIInput,
     ) -> ContextOverrides {
         // cli-provided CWD overrides file-context
@@ -154,15 +158,6 @@ impl CLIOutput {
             Some(p) => p,
             _ => input.cwd.clone(),
         };
-
-        // php as a flag was supported on initial launch, so keep this for now
-        // but add a deprecated message
-        let php_version = matches
-            .value_of("php")
-            .map_or(ctx.php_version.clone(), |input| match input {
-                "7.1" => PHP::SevenOne,
-                _ => PHP::SevenTwo,
-            });
 
         // run-mode is always Exec unless 'dryrun' is given on CLI
         let run_mode = if !matches.is_present("dryrun") {
@@ -173,15 +168,10 @@ impl CLIOutput {
 
         let name = Context::get_context_name(&cwd);
 
-        let debug = if matches.is_present("debug") {
-            true
-        } else {
-            false
-        };
+        let debug = matches.is_present("debug");
 
         ContextOverrides {
             cwd,
-            php_version,
             run_mode,
             name,
             term: input.term,
@@ -203,7 +193,7 @@ impl CLIOutput {
             &matching_script.steps,
             name,
             ctx.scripts.as_ref()?,
-            &vec![name.to_string()],
+            &[name.to_string()],
         );
 
         if steps.is_err() {
@@ -213,7 +203,7 @@ impl CLIOutput {
             }
         }
 
-        let recipe = RecipeKinds::select(&ctx.recipe);
+        let recipe = RecipeKinds::select(ctx.recipe?);
 
         let flattened = Script {
             description: desc,
@@ -223,80 +213,13 @@ impl CLIOutput {
         recipe.resolve_script(&ctx, &flattened)
     }
 
-    pub fn get_recipe_tasks(matches: &ArgMatches, ctx: &Context) -> Option<Vec<Task>> {
-        let recipe = RecipeKinds::select(&ctx.recipe);
-
+    pub fn get_recipe_pass_thru(matches: &ArgMatches, ctx: &Context) -> Option<Vec<Task>> {
+        let recipe = RecipeKinds::select(ctx.recipe?);
         //
         // Get the task list by checking which sub-command was used
         //
         let cmd = match matches.subcommand() {
-            ("doctor", ..) => Some(Cmd::Doctor),
-            ("up", Some(sub_matches)) => Some(Cmd::Up {
-                detached: sub_matches.is_present("detached"),
-            }),
-            ("down", ..) => Some(Cmd::Down),
-            ("stop", ..) => Some(Cmd::Stop),
-            ("list-images", ..) => Some(Cmd::ListImages),
-            ("update-images", Some(sub_matches)) => {
-                let trailing = match sub_matches.values_of("service_names") {
-                    Some(services) => services
-                        .collect::<Vec<&str>>()
-                        .into_iter()
-                        .map(|s| s.to_string())
-                        .collect(),
-                    None => vec![],
-                };
-                Some(Cmd::UpdateImages { trailing })
-            }
-            ("eject", ..) => Some(Cmd::Eject),
-            ("pull", Some(sub_matches)) => {
-                let trailing = match sub_matches.values_of("paths") {
-                    Some(cmd) => cmd
-                        .collect::<Vec<&str>>()
-                        .into_iter()
-                        .map(|s| s.to_string())
-                        .collect(),
-                    None => vec![],
-                };
-                Some(Cmd::Pull { trailing })
-            }
-            ("push", Some(sub_matches)) => {
-                let trailing = match sub_matches.values_of("paths") {
-                    Some(cmd) => cmd
-                        .collect::<Vec<&str>>()
-                        .into_iter()
-                        .map(|s| s.to_string())
-                        .collect(),
-                    None => vec![],
-                };
-                Some(Cmd::Push {
-                    trailing,
-                    force: sub_matches.is_present("force"),
-                })
-            }
-            ("db-import", Some(sub_matches)) => {
-                // .unwrap() is safe here since Clap will exit before this if it's absent
-                let trailing = sub_matches.value_of("file").map(|x| x.to_string()).unwrap();
-                Some(Cmd::DBImport {
-                    path: PathBuf::from(trailing),
-                })
-            }
-            ("db-dump", ..) => Some(Cmd::DBDump),
-            ("exec", Some(sub_matches)) => {
-                let trailing = get_trailing(sub_matches);
-                let user = if sub_matches.is_present("root") {
-                    "root"
-                } else {
-                    "www-data"
-                };
-                Some(Cmd::Exec {
-                    trailing,
-                    user: user.to_string(),
-                })
-            }
-            (cmd, Some(sub_matches)) => {
-                RecipeKinds::select(&ctx.recipe).select_command((cmd, Some(sub_matches)))
-            }
+            (cmd, Some(sub_matches)) => recipe.select_command((cmd, Some(sub_matches))),
             _ => None,
         };
 
@@ -304,17 +227,38 @@ impl CLIOutput {
     }
 }
 
-//
-// Extract sub-command trailing arguments, eg:
-//
-//                  captured
-//             |-----------------|
-//    wf2 exec  ./bin/magento c:f
-//
-fn get_trailing(sub_matches: &ArgMatches) -> Vec<String> {
-    let output = match sub_matches.values_of("cmd") {
-        Some(cmd) => cmd.collect::<Vec<&str>>(),
-        None => vec![],
-    };
-    output.into_iter().map(|x| x.to_string()).collect()
+fn collect_apps(ctx: &Context) -> Vec<App> {
+    // All current recipe sub-commands
+    // like `up`, `stop` etc
+    let recipe_subcommands = ctx
+        .recipe
+        .map(RecipeKinds::select)
+        .map(|r| r.subcommands())
+        .unwrap_or_else(|| vec![]);
+
+    // this is all of the individual recipe 'global' commands
+    // global meaning that the recipe can register a command
+    // that doesn't need to run in an actual project
+    let recipe_global = collect_recipe_global_commands();
+
+    // flatten the subcommands
+    internal_commands()
+        .iter()
+        .chain(recipe_global.iter())
+        .chain(recipe_subcommands.iter())
+        .fold(vec![], |mut acc, item| {
+            acc.extend(item.subcommands(&ctx));
+            acc
+        })
+}
+
+fn collect_recipe_global_commands<'a, 'b>() -> Vec<Box<dyn CliCommand<'a, 'b>>> {
+    // all available recipes
+    let recipes = available_recipes();
+
+    // this is all of the individual recipe 'global' commands
+    recipes.iter().fold(vec![], |mut acc, r| {
+        acc.extend(r.global_subcommands());
+        acc
+    })
 }

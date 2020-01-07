@@ -32,7 +32,7 @@ impl fmt::Display for CLIError {
             ),
             //            CLIError::Config(clap::Error { message, .. }) => format!("{}", message),
             //            CLIError::Unknown => format!("{}", Red.paint("[wf2] [ERROR] CLIError::Unknown")),
-            CLIError::VersionDisplayed(version) => format!("{}", version),
+            CLIError::VersionDisplayed(version) => version.to_string(),
         };
         write!(f, "{}", output)
     }
