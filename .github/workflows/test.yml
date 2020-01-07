@@ -6,8 +6,6 @@
 
 on: [push, pull_request]
 
-name: Quickstart
-
 jobs:
   check:
     name: Check
