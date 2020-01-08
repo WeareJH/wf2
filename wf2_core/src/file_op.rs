@@ -110,7 +110,7 @@ pub fn exists(path: PathBuf) -> FileOpResult {
 }
 
 pub fn dir_create(path: PathBuf) -> FileOpResult {
-    let _ = fs::create_dir_all(&path)?;
+    fs::create_dir_all(&path)?;
     Ok(())
 }
 
@@ -122,8 +122,8 @@ pub fn dir_remove(path: PathBuf) -> FileOpResult {
 }
 
 pub fn inner_write(dir: PathBuf, file: PathBuf, content: Vec<u8>) -> FileOpResult {
-    let _ = fs::create_dir_all(dir)?;
-    let _file = File::create(&file).and_then(|mut f| f.write_all(&content))?;
+    fs::create_dir_all(dir)?;
+    File::create(&file).and_then(|mut f| f.write_all(&content))?;
     Ok(())
 }
 
