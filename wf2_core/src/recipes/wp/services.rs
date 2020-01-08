@@ -51,20 +51,18 @@ pub fn get_services(ctx: &Context) -> Vec<DcService> {
 
 fn nginx(name: &str, image: &str, ctx: &Context) -> DcService {
     let host_port = WpRecipe::ctx_port(&ctx);
-    DcService::new(ctx.name.clone(), name, image)
+    DcService::new(ctx.name(), name, image)
         .set_depends_on(vec![WpServices::PHP])
         .set_volumes(vec![
             format!("{}:{}", ctx.cwd.display(), WpServices::ROOT),
             format!(
                 "{}:{}",
-                ctx.file_prefix.join(WpVolumeMounts::NGINX_CONF).display(),
+                ctx.file_path(WpVolumeMounts::NGINX_CONF).display(),
                 WpVolumeMounts::NGINX_CONF_REMOTE
             ),
             format!(
                 "{}:{}",
-                ctx.file_prefix
-                    .join(WpVolumeMounts::NGINX_DEFAULT_HOST)
-                    .display(),
+                ctx.file_path(WpVolumeMounts::NGINX_DEFAULT_HOST).display(),
                 WpVolumeMounts::NGINX_DEFAULT_REMOTE
             ),
         ])
@@ -75,7 +73,7 @@ fn nginx(name: &str, image: &str, ctx: &Context) -> DcService {
 
 fn php(name: &str, image: &str, ctx: &Context) -> DcService {
     let domain = WpRecipe::ctx_domain(&ctx);
-    DcService::new(ctx.name.clone(), name, image)
+    DcService::new(ctx.name(), name, image)
         .set_volumes(vec![format!("{}:{}", ctx.cwd.display(), WpServices::ROOT)])
         .set_depends_on(vec![WpServices::DB])
         .set_working_dir(WpServices::ROOT)
@@ -101,14 +99,14 @@ fn php_debug(name: &str, image: &str, ctx: &Context) -> DcService {
 }
 
 //fn node(name: &str, image: &str, ctx: &Context) -> DcService {
-//    DcService::new(ctx.name.clone(), name, image)
+//    DcService::new(ctx.name(), name, image)
 //        .set_working_dir(WpServices::ROOT)
 //        .set_init(true)
 //        .set_volumes(vec![format!("{}:{}", M2Volumes::APP, WpServices::ROOT)])
 //        .build()
 //}
 fn wp_cli(name: &str, image: &str, ctx: &Context) -> DcService {
-    DcService::new(ctx.name.clone(), name, image)
+    DcService::new(ctx.name(), name, image)
         .set_working_dir(WpServices::ROOT)
         .set_init(true)
         .set_depends_on(vec![WpServices::PHP])
@@ -119,7 +117,7 @@ fn wp_cli(name: &str, image: &str, ctx: &Context) -> DcService {
 }
 
 fn db(name: &str, image: &str, ctx: &Context) -> DcService {
-    DcService::new(ctx.name.clone(), name, image)
+    DcService::new(ctx.name(), name, image)
         .set_volumes(vec![
             format!("{}:/var/lib/mysql", WpVolumes::DB),
             //            format!(

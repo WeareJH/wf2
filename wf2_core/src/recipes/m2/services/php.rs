@@ -13,6 +13,7 @@ impl PhpService {
     pub const IMAGE_7_1: &'static str = "wearejh/php:7.1-m2";
     pub const IMAGE_7_2: &'static str = "wearejh/php:7.2-m2";
     pub const IMAGE_7_3: &'static str = "wearejh/php:7.3-m2";
+    pub const COMPOSER_CACHE_PATH: &'static str = "/home/www-data/.composer/cache";
 
     pub fn select(ctx: &Context) -> Result<DcService, failure::Error> {
         match M2Vars::from_ctx(&ctx) {
@@ -34,12 +35,13 @@ impl M2Service for PhpService {
 
     fn dc_service(&self, ctx: &Context, vars: &M2Vars) -> DcService {
         let image = &vars.content[&M2Var::PhpImage].clone();
-        DcService::new(ctx.name.clone(), Self::NAME, image)
+        DcService::new(ctx.name(), Self::NAME, image)
             .set_volumes(vec![
                 format!("{}:{}", M2Volumes::APP, Self::ROOT),
                 format!(
-                    "{}:/home/www-data/.composer/cache",
-                    M2Volumes::COMPOSER_CACHE
+                    "{}:{}",
+                    M2Volumes::COMPOSER_CACHE,
+                    PhpService::COMPOSER_CACHE_PATH,
                 ),
             ])
             .set_depends_on(vec![(DbService::NAME)])
@@ -70,13 +72,13 @@ mod tests {
     #[test]
     fn test_php_service() -> Result<(), failure::Error> {
         let ctx = Context {
-            cwd: std::path::PathBuf::from("/users/shane"),
+            cwd: std::path::PathBuf::from("/users/shane/acme"),
             php_version: PHP::SevenTwo,
             ..Context::default()
         };
         let vars = M2Vars::from_ctx(&ctx)?;
         let php = (PhpService).dc_service(&ctx, &vars);
-        assert_eq!(php.container_name, "wf2__wf2_default__php");
+        assert_eq!(php.container_name, "wf2__acme__php");
         assert_eq!(php.name, PhpService::NAME);
         assert_eq!(php.image, PhpService::IMAGE_7_2);
         Ok(())

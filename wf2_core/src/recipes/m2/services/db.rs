@@ -1,6 +1,6 @@
 use crate::context::Context;
 use crate::dc_service::DcService;
-use crate::recipes::m2::m2_vars::{M2Var, M2Vars};
+use crate::recipes::m2::m2_vars::{M2Var, M2Vars, Vars};
 use crate::recipes::m2::services::M2Service;
 use crate::recipes::m2::volumes::M2Volumes;
 
@@ -10,6 +10,10 @@ impl DbService {
     pub const DB_PASS: &'static str = "docker";
     pub const DB_USER: &'static str = "docker";
     pub const DB_NAME: &'static str = "docker";
+
+    pub const VOLUME_DATA: &'static str = "/var/lib/mysql";
+    pub const VOLUME_CONF: &'static str = "/etc/mysql/conf.d";
+    pub const VOLUME_ENTRY: &'static str = "/docker-entrypoint-initdb.d";
 }
 
 impl M2Service for DbService {
@@ -17,13 +21,18 @@ impl M2Service for DbService {
     const IMAGE: &'static str = "mysql:5.6";
 
     fn dc_service(&self, ctx: &Context, vars: &M2Vars) -> DcService {
-        DcService::new(ctx.name.clone(), Self::NAME, Self::IMAGE)
+        DcService::new(ctx.name(), Self::NAME, Self::IMAGE)
             .set_volumes(vec![
-                format!("{}:/var/lib/mysql", M2Volumes::DB),
-                format!("{}:/etc/mysql/conf.d", vars.content[&M2Var::DbConfDir]),
+                format!("{}:{}", M2Volumes::DB, DbService::VOLUME_DATA),
                 format!(
-                    "{}:/docker-entrypoint-initdb.d",
-                    vars.content[&M2Var::DbInitDir]
+                    "{}:{}",
+                    vars.content[&M2Var::DbConfDir],
+                    DbService::VOLUME_CONF
+                ),
+                format!(
+                    "{}:{}",
+                    vars.content[&M2Var::DbInitDir],
+                    DbService::VOLUME_ENTRY
                 ),
             ])
             .set_ports(vec!["3306:3306"])
@@ -31,5 +40,9 @@ impl M2Service for DbService {
             .set_env_file(vec![vars.content[&M2Var::EnvFile].to_string()])
             .set_labels(vec![Self::TRAEFIK_DISABLE_LABEL.to_string()])
             .build()
+    }
+
+    fn from_ctx(ctx: &Context) -> Result<DcService, failure::Error> {
+        M2Vars::from_ctx(&ctx).map(|vars| (DbService).dc_service(&ctx, &vars))
     }
 }

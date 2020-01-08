@@ -70,9 +70,17 @@ pub fn up(ctx: &Context, clean: bool, attached: bool) -> Result<Vec<Task>, failu
     let missing_env = vec![EnvPhp::missing_task(&ctx)];
 
     //
+    // Clean the output folder
+    //
+    let clean_dir = vec![Task::dir_remove(
+        ctx.output_dir(),
+        "clean the output directory",
+    )];
+
+    //
     // Template files (such as nginx, mysql conf)
     //
-    let templates = M2Templates::output_files(&ctx)?;
+    let output_files = M2Templates::output_files(&ctx)?;
 
     //
     // Docker compose tasks for this recipe
@@ -82,7 +90,7 @@ pub fn up(ctx: &Context, clean: bool, attached: bool) -> Result<Vec<Task>, failu
     //
     // Stop & remove docker containers before starting new ones
     //
-    let clean_task = if clean { docker_clean() } else { vec![] };
+    let clean_docker_containers_task = if clean { docker_clean() } else { vec![] };
 
     //
     // The final DC task, either in detached mode (default)
@@ -116,8 +124,9 @@ pub fn up(ctx: &Context, clean: bool, attached: bool) -> Result<Vec<Task>, failu
         .chain(validate.into_iter())
         .chain(notify.into_iter())
         .chain(missing_env.into_iter())
-        .chain(templates.into_iter())
-        .chain(clean_task.into_iter())
+        .chain(clean_dir.into_iter())
+        .chain(output_files.into_iter())
+        .chain(clean_docker_containers_task.into_iter())
         .chain(vec![up].into_iter())
         .chain(vec![up_help_task].into_iter())
         .collect())
@@ -126,30 +135,32 @@ pub fn up(ctx: &Context, clean: bool, attached: bool) -> Result<Vec<Task>, failu
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::recipes::recipe_kinds::RecipeKinds;
 
     #[test]
     fn test_up_exec() {
         use std::path::PathBuf;
         let ctx = Context {
             cwd: PathBuf::from("/users/shane"),
+            recipe: Some(RecipeKinds::M2),
             ..Context::default()
         };
         let output = up(&ctx, false, false).expect("test");
-        let file_ops = Task::file_op_paths(output);
+        let (_read, write, delete) = Task::file_op_paths(output);
+
         assert_eq!(
+            write,
             vec![
-                "/users/shane/.wf2_default/.docker.env",
-                "/users/shane/.wf2_default/unison/conf/sync.prf",
-                "/users/shane/.wf2_default/traefik/traefik.toml",
-                "/users/shane/.wf2_default/nginx/sites/upstream.conf",
-                "/users/shane/.wf2_default/nginx/sites/site.conf",
-                "/users/shane/.wf2_default/mysql/mysqlconf/mysql.cnf",
-                "/users/shane/.wf2_default/mysql/init-scripts/init-db.sh",
+                "/users/shane/.wf2_m2_shane/.docker.env",
+                "/users/shane/.wf2_m2_shane/unison/conf/sync.prf",
+                "/users/shane/.wf2_m2_shane/traefik/traefik.toml",
+                "/users/shane/.wf2_m2_shane/nginx/sites/upstream.conf",
+                "/users/shane/.wf2_m2_shane/nginx/sites/site.conf",
+                "/users/shane/.wf2_m2_shane/mysql/mysqlconf/mysql.cnf",
+                "/users/shane/.wf2_m2_shane/mysql/init-scripts/init-db.sh",
             ]
-            .into_iter()
-            .map(|s| PathBuf::from(s))
-            .collect::<Vec<PathBuf>>(),
-            file_ops
         );
+
+        assert_eq!(delete, vec!["/users/shane/.wf2_m2_shane",]);
     }
 }

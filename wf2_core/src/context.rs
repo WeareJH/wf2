@@ -55,9 +55,6 @@ pub struct Context {
     #[serde(skip_serializing, default = "default_run_mode")]
     pub run_mode: RunMode,
 
-    #[serde(skip_serializing, default = "default_name")]
-    pub name: String,
-
     #[serde(default)]
     pub domains: Vec<String>,
 
@@ -82,9 +79,6 @@ pub struct Context {
 
     #[serde(skip_serializing, default)]
     pub env: Option<serde_yaml::Value>,
-
-    #[serde(skip_serializing, default = "default_file_prefix")]
-    pub file_prefix: PathBuf,
 
     #[serde(skip_serializing, default)]
     pub overrides: Option<serde_yaml::Value>,
@@ -128,14 +122,12 @@ impl Default for Context {
             recipe: None,
             cwd: default_cwd(),
             run_mode: default_run_mode(),
-            name: default_name(),
             domains: default_domains(),
             term: default_term(),
             pv: None,
             npm_path: default_cwd(),
             php_version: PHP::SevenThree,
             config_path: None,
-            file_prefix: default_file_prefix(),
             overrides: None,
             debug: default_debug(),
             uid: 0,
@@ -148,6 +140,12 @@ impl Default for Context {
 }
 
 impl Context {
+    pub fn new(cwd: impl Into<PathBuf>) -> Context {
+        Context {
+            cwd: cwd.into(),
+            ..Default::default()
+        }
+    }
     pub fn new_from_file(path: impl Into<String>) -> Result<Context, FromFileError> {
         let path = &path.into();
         Context::from_file(path).and_then(|mut ctx: Context| {
@@ -177,26 +175,29 @@ impl Context {
     pub fn merge(&mut self, other: ContextOverrides) -> &mut Self {
         self.run_mode = other.run_mode;
         self.cwd = other.cwd;
-        self.name = other.name;
         self.term = other.term;
         self.pv = other.pv;
         self.debug = other.debug;
         self.uid = other.uid;
         self.gid = other.gid;
-
-        // If a recipe exists, ensure the 'file_prefix' has the recipe
-        // name in it
-        if let Some(recipe) = self.recipe {
-            self.file_prefix = PathBuf::from(&self.cwd).join(format!(
-                ".wf2_{recipe}_{name}",
-                recipe = recipe,
-                name = self.name
-            ));
-        }
         self
     }
-    pub fn file_path(&self, filename: &str) -> PathBuf {
-        self.cwd.join(&self.file_prefix).join(&filename)
+    pub fn name(&self) -> String {
+        Context::get_context_name(&self.cwd)
+    }
+    pub(crate) fn output_dir(&self) -> PathBuf {
+        if let Some(recipe) = self.recipe {
+            self.cwd.join(format!(
+                ".wf2_{recipe}_{name}",
+                recipe = recipe,
+                name = Context::get_context_name(&self.cwd)
+            ))
+        } else {
+            self.cwd.join(default_file_prefix())
+        }
+    }
+    pub fn file_path(&self, filename: impl Into<PathBuf>) -> PathBuf {
+        self.output_dir().join(filename.into())
     }
 }
 
@@ -211,9 +212,6 @@ fn default_cwd() -> PathBuf {
 }
 fn default_run_mode() -> RunMode {
     RunMode::DryRun
-}
-fn default_name() -> String {
-    String::from(DEFAULT_NAME)
 }
 fn default_term() -> Term {
     Term {

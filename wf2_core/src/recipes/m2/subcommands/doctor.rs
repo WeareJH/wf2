@@ -2,6 +2,8 @@ use crate::commands::CliCommand;
 use crate::context::Context;
 use crate::recipes::m2::tasks::env_php::EnvPhp;
 
+use crate::recipes::m2::services::unison::UnisonService;
+use crate::recipes::m2::services::M2Service;
 use crate::task::Task;
 use clap::{App, ArgMatches};
 
@@ -29,12 +31,27 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2Doctor {
 /// Try to fix common issues, for now just the unison thing
 ///
 fn doctor(ctx: &Context) -> Vec<Task> {
-    vec![
-        EnvPhp::comparison_task(&ctx),
-        Task::simple_command(format!(
-            "docker exec -it wf2__{}__unison chown -R docker:docker /volumes/internal",
-            ctx.name
-        )),
-        Task::notify("Fixed a known permissions error in the unison container"),
-    ]
+    let unison = unison_fix(&ctx);
+    let php_env = vec![EnvPhp::comparison_task(&ctx)];
+    let notify = vec![Task::notify(
+        "Fixed a known permissions error in the unison container",
+    )];
+
+    vec![]
+        .into_iter()
+        .chain(unison.into_iter())
+        .chain(php_env.into_iter())
+        .chain(notify.into_iter())
+        .collect()
+}
+
+fn unison_fix(ctx: &Context) -> Vec<Task> {
+    UnisonService::from_ctx(&ctx)
+        .map(|service| {
+            vec![Task::simple_command(format!(
+                "docker exec -it {container_name} chown -R docker:docker /volumes/internal",
+                container_name = service.container_name
+            ))]
+        })
+        .unwrap_or_else(Task::task_err_vec)
 }

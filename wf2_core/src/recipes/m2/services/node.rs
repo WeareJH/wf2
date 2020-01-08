@@ -11,7 +11,7 @@ impl M2Service for NodeService {
     const IMAGE: &'static str = "wearejh/node:8-m2";
 
     fn dc_service(&self, ctx: &Context, vars: &M2Vars) -> DcService {
-        DcService::new(ctx.name.clone(), Self::NAME, Self::IMAGE)
+        DcService::new(ctx.name(), Self::NAME, Self::IMAGE)
             .set_working_dir(M2_ROOT)
             .set_init(true)
             .set_volumes(vec![format!("{}:{}", M2Volumes::APP, Self::ROOT)])

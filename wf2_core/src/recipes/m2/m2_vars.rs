@@ -39,7 +39,7 @@ impl Vars<M2Vars> for M2Vars {
         let env: HashMap<M2Var, String> = vec![
             (M2Var::PhpImage, (PhpService).select_image(&ctx)),
             (M2Var::Pwd, path_buf_to_string(&ctx.cwd)),
-            (M2Var::ContextName, ctx.name.clone()),
+            (M2Var::ContextName, ctx.name()),
             (M2Var::EnvFile, env_file.file_path_string()),
             (M2Var::Domains, ctx.domains()),
             (M2Var::UnisonFile, unison_file.file_path_string()),

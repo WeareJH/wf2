@@ -169,21 +169,41 @@ impl Task {
     /// Helper for filtering tasks for only those
     /// that operate on files
     ///
-    pub fn file_op_paths(tasks: Vec<Task>) -> Vec<PathBuf> {
-        tasks
-            .into_iter()
-            .filter_map(|t| match t {
+    pub fn file_op_paths(tasks: Vec<Task>) -> (Vec<String>, Vec<String>, Vec<String>) {
+        let mut read: Vec<String> = vec![];
+        let mut write: Vec<String> = vec![];
+        let mut delete: Vec<String> = vec![];
+        tasks.into_iter().for_each(|t| {
+            let push = |p: &PathBuf, v: &mut Vec<String>| v.push(p.to_string_lossy().to_string());
+            match t {
                 Task::File {
                     op: FileOp::Write { path, .. },
                     ..
-                } => Some(path),
+                } => push(&path, &mut write),
                 Task::File {
                     op: FileOp::Exists { path, .. },
                     ..
-                } => Some(path),
-                _ => None,
-            })
-            .collect()
+                } => push(&path, &mut read),
+                Task::File {
+                    op: FileOp::DirRemove { path, .. },
+                    ..
+                } => push(&path, &mut delete),
+                Task::File {
+                    op: FileOp::DirCreate { path, .. },
+                    ..
+                } => push(&path, &mut write),
+                Task::Seq(tasks) => {
+                    let (_read, _write, _delete) = Task::file_op_paths(tasks);
+                    read.extend(_read);
+                    read.extend(_write);
+                    read.extend(_delete);
+                }
+                _ => {
+                    // noop
+                }
+            };
+        });
+        (read, write, delete)
     }
 }
 
@@ -195,7 +215,7 @@ pub fn fmt_string(t: &Task) -> String {
         Task::Notify { message } => output_left("Notify", message),
         Task::NotifyWarn { message } => output_left("Notify Warn", message),
         Task::NotifyInfo { message } => output_left("Notify Info", message),
-        Task::NotifyError { .. } => "Notify Error: see above for error message".to_string(),
+        Task::NotifyError { message, .. } => message.clone(),
         Task::Seq(tasks) => {
             let len = tasks.len();
             let head = output("Task Sequence", format!("{} tasks", len));
@@ -298,7 +318,7 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
     Box::new(lazy(move || match task {
         Task::File { op, .. } => op.exec().map(|_| id).map_err(|e| TaskError {
             index: id,
-            message: e,
+            message: e.to_string(),
             exit_code: None,
         }),
         Task::SimpleCommand { command } => {

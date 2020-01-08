@@ -21,7 +21,7 @@ impl M2Service for PhpDebugService {
     fn dc_service(&self, ctx: &Context, vars: &M2Vars) -> DcService {
         (PhpService)
             .dc_service(ctx, vars)
-            .set_container_name(ctx.name.clone(), Self::NAME)
+            .set_container_name(ctx.name(), Self::NAME)
             .set_name(Self::NAME)
             .set_environment(vec!["XDEBUG_ENABLE=true"])
             .build()
@@ -37,13 +37,13 @@ mod tests {
     #[test]
     fn test_php_debug() -> Result<(), failure::Error> {
         let ctx = Context {
-            cwd: std::path::PathBuf::from("/users/shane"),
+            cwd: std::path::PathBuf::from("/users/shane/acme"),
             php_version: PHP::SevenTwo,
             ..Context::default()
         };
         let vars = M2Vars::from_ctx(&ctx)?;
         let php_debug = (PhpDebugService).dc_service(&ctx, &vars);
-        assert_eq!(php_debug.container_name, "wf2__wf2_default__php-debug");
+        assert_eq!(php_debug.container_name, "wf2__acme__php-debug");
         assert_eq!(php_debug.name, PhpDebugService::NAME);
         assert_eq!(php_debug.image, PhpService::IMAGE_7_2);
         Ok(())

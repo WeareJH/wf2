@@ -18,6 +18,12 @@ use crate::recipes::m2::services::redis::RedisService;
 
 pub const M2_ROOT: &str = "/var/www";
 
+#[derive(Debug, Fail)]
+pub enum M2ServiceError {
+    #[fail(display = "{} method not implemented", _0)]
+    NotImplemented(String),
+}
+
 pub trait M2Service {
     const TRAEFIK_DISABLE_LABEL: &'static str = "traefik.enable=false";
     const ROOT: &'static str = M2_ROOT;
@@ -25,6 +31,11 @@ pub trait M2Service {
     const NAME: &'static str;
     const IMAGE: &'static str;
     fn dc_service(&self, ctx: &Context, vars: &M2Vars) -> DcService;
+    fn from_ctx(_ctx: &Context) -> Result<DcService, failure::Error> {
+        Err(failure::Error::from(M2ServiceError::NotImplemented(
+            format!("{}::from_ctx", Self::NAME),
+        )))
+    }
     fn select_image(&self, _ctx: &Context) -> String {
         Self::IMAGE.to_string()
     }
