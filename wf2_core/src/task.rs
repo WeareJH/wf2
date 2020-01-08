@@ -318,7 +318,7 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
     Box::new(lazy(move || match task {
         Task::File { op, .. } => op.exec().map(|_| id).map_err(|e| TaskError {
             index: id,
-            message: e,
+            message: e.to_string(),
             exit_code: None,
         }),
         Task::SimpleCommand { command } => {

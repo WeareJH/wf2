@@ -1,7 +1,6 @@
 use crate::commands::CliCommand;
 use crate::context::Context;
 use crate::dc_service::DcService;
-use crate::recipes::m2::m2_vars::Vars;
 use crate::recipes::m2::services::db::DbService;
 use crate::recipes::m2::services::M2Service;
 use crate::task::Task;
