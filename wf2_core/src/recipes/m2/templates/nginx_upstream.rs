@@ -63,10 +63,7 @@ impl NginxUpstream {
 
 #[test]
 fn test_nginxupstream_xdebug_disabled() -> Result<(), failure::Error> {
-    let ctx = Context {
-        cwd: PathBuf::from("/Users/shane/acme"),
-        ..Context::default()
-    };
+    let ctx = Context::new("/Users/shane/acme");
     let us = NginxUpstream::from_ctx(&ctx)?;
     let expected = "upstream fastcgi_backend {
   server php:9000;
@@ -81,10 +78,7 @@ upstream fastcgi_backend_debug {
 
 #[test]
 fn test_nginxupstream_xdebug_enabled() -> Result<(), failure::Error> {
-    let ctx = Context {
-        cwd: PathBuf::from("/Users/shane/acme"),
-        ..Context::default()
-    };
+    let ctx = Context::new("/Users/shane/acme");
     let us = NginxUpstream::from_ctx(&ctx)?.toggle_xdebug(true).build();
     let expected = "upstream fastcgi_backend {
   server php-debug:9000;

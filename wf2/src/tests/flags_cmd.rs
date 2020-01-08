@@ -27,7 +27,7 @@ mod tests {
             ..CLIInput::default()
         })
         .unwrap();
-        assert_eq!("acme-site", cli_output.ctx.name);
+        assert_eq!("acme-site", cli_output.ctx.name());
         assert_eq!(PathBuf::from("/users/sites/acme-site"), cli_output.ctx.cwd);
     }
 }

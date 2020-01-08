@@ -3,6 +3,8 @@ use crate::context::Context;
 use crate::recipes::m2::services::db::DbService;
 use crate::task::Task;
 
+use crate::dc_service::DcService;
+use crate::recipes::m2::services::M2Service;
 use clap::{App, ArgMatches};
 
 pub struct M2DbDump;
@@ -17,7 +19,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2DbDump {
         String::from(M2DbDump::NAME)
     }
     fn exec(&self, _matches: Option<&ArgMatches>, ctx: &Context) -> Option<Vec<Task>> {
-        Some(db_dump(&ctx))
+        Some(from_ctx(&ctx))
     }
     fn subcommands(&self, _ctx: &Context) -> Vec<App<'a, 'b>> {
         let cmd = App::new(M2DbDump::NAME).about(M2DbDump::ABOUT);
@@ -26,14 +28,22 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2DbDump {
 }
 
 ///
+/// Create the tasks from a ctx
+///
+fn from_ctx(ctx: &Context) -> Vec<Task> {
+    DbService::from_ctx(&ctx)
+        .map(db_dump)
+        .unwrap_or_else(Task::task_err_vec)
+}
+
+///
 /// Dumps the Database to `dump.sql` in the project root. The filename
 /// is not configurable.
 ///
-pub fn db_dump(ctx: &Context) -> Vec<Task> {
-    let container_name = format!("wf2__{}__db", ctx.name);
+pub fn db_dump(service: DcService) -> Vec<Task> {
     let db_dump_command = format!(
-        r#"docker exec -i {container} mysqldump -u{user} -p{pass} {db} > dump.sql"#,
-        container = container_name,
+        r#"docker exec -i {container_name} mysqldump -u{user} -p{pass} {db} > dump.sql"#,
+        container_name = service.container_name,
         user = DbService::DB_USER,
         pass = DbService::DB_PASS,
         db = DbService::DB_NAME,
@@ -42,4 +52,25 @@ pub fn db_dump(ctx: &Context) -> Vec<Task> {
         Task::simple_command(db_dump_command),
         Task::notify_prefixed("Written to file dump.sql"),
     ]
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_db_dump() {
+        let ctx = Context::new("/users/shane/acme");
+        let ts = from_ctx(&ctx);
+        let t1 = ts.get(0).expect("command");
+        if let Task::SimpleCommand { command, .. } = t1 {
+            assert_eq!(
+                command,
+                "docker exec -i wf2__acme__db mysqldump -udocker -pdocker docker > dump.sql"
+            )
+        } else {
+            dbg!(t1);
+            unreachable!()
+        }
+    }
 }

@@ -12,7 +12,7 @@ impl M2Service for NginxService {
     const IMAGE: &'static str = "wearejh/nginx:stable-m2";
 
     fn dc_service(&self, ctx: &Context, vars: &M2Vars) -> DcService {
-        DcService::new(ctx.name.clone(), Self::NAME, Self::IMAGE)
+        DcService::new(ctx.name(), Self::NAME, Self::IMAGE)
             .set_depends_on(vec![PhpService::NAME])
             .set_volumes(vec![
                 format!("{}:{}", M2Volumes::APP, Self::ROOT),

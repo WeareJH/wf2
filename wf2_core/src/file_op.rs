@@ -75,7 +75,7 @@ fn display_string(fo: &FileOp, show_content: bool) -> String {
             path.display().to_string(),
         ),
         FileOp::DirRemove { path } => {
-            output("Remove a File or Directory: {}", path.display().to_string())
+            output("Remove a File or Directory", path.display().to_string())
         }
     }
 }

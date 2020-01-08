@@ -8,5 +8,5 @@ impl WpVolumes {
 }
 
 pub fn get_volumes(ctx: &Context) -> Vec<DcVolume> {
-    vec![DcVolume::new(ctx.name.clone(), WpVolumes::DB)]
+    vec![DcVolume::new(ctx.name(), WpVolumes::DB)]
 }

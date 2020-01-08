@@ -1,6 +1,7 @@
 use crate::context::Context;
 use crate::dc_service::DcService;
 use crate::recipes::m2::m2_vars::M2Vars;
+use crate::recipes::m2::services::traefik::TraefikService;
 use crate::recipes::m2::services::M2Service;
 use std::fmt;
 
@@ -21,12 +22,12 @@ impl M2Service for MailService {
     const IMAGE: &'static str = "mailhog/mailhog";
 
     fn dc_service(&self, ctx: &Context, _vars: &M2Vars) -> DcService {
-        DcService::new(ctx.name.clone(), Self::NAME, Self::IMAGE)
+        DcService::new(ctx.name(), Self::NAME, Self::IMAGE)
             .set_ports(vec!["1025"])
-            .set_labels(vec![
-                format!("traefik.frontend.rule=Host:{}", MailService::DOMAIN),
-                String::from("traefik.port=8025"),
-            ])
+            .set_labels(TraefikService::host_entry_label(
+                MailService::DOMAIN,
+                8025_u32,
+            ))
             .build()
     }
 }

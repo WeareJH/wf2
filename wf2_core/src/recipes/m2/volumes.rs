@@ -12,9 +12,9 @@ impl M2Volumes {
 
 pub fn get_volumes(ctx: &Context) -> Vec<DcVolume> {
     vec![
-        DcVolume::new(ctx.name.clone(), M2Volumes::DB),
-        DcVolume::new(ctx.name.clone(), M2Volumes::APP),
-        DcVolume::new(ctx.name.clone(), M2Volumes::COMPOSER_CACHE),
-        DcVolume::new(ctx.name.clone(), M2Volumes::ELASTICSEARCH),
+        DcVolume::new(ctx.name(), M2Volumes::DB),
+        DcVolume::new(ctx.name(), M2Volumes::APP),
+        DcVolume::new(ctx.name(), M2Volumes::COMPOSER_CACHE),
+        DcVolume::new(ctx.name(), M2Volumes::ELASTICSEARCH),
     ]
 }
