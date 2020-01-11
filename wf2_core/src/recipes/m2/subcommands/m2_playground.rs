@@ -18,6 +18,8 @@ pub struct M2Playground {
     pub version: String,
     #[serde(skip)]
     pub dir: PathBuf,
+    #[serde(skip)]
+    pub edition: String,
 
     pub username: String,
     pub password: String,
@@ -107,7 +109,9 @@ origin: m2-playground"#;
 
 pub fn get_composer_json(pg: &M2Playground) -> Result<(), Error> {
     let composer_project_path = format!(
-        "https://repo.magento.com/archives/magento/project-community-edition/magento-project-community-edition-{}.0.zip",
+        "https://repo.magento.com/archives/magento/project-{}-edition/magento-project-{}-edition-{}.0.zip",
+        pg.edition,
+        pg.edition,
         pg.version
     );
 

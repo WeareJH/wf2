@@ -33,6 +33,13 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
             .and_then(|m| m.value_of("output"))
             .unwrap_or(M2PlaygroundCmd::NAME);
         let force = matches.map(|m| m.is_present("force")).unwrap_or(false);
+        let is_ee = matches.map(|m| m.is_present("ee")).unwrap_or(false);
+
+        let edition = if is_ee {
+            "enterprise"
+        } else {
+            "community"
+        };
 
         let pg = M2Playground::from_file();
         let from_file = pg.is_some();
@@ -52,6 +59,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
             dir: target_dir.clone(),
             username: String::from(username),
             password: String::from(password),
+            edition: String::from(edition)
         };
 
         // I assume there's a better way to share these
@@ -180,6 +188,8 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
                     .help("magento password"),
             )
             .arg_from_usage("-f --force 'wipe an existing folder before starting'")
-            .arg_from_usage("-o --output [dirname] 'name of the directory to create'")]
+            .arg_from_usage("-o --output [dirname] 'name of the directory to create'")
+            .arg_from_usage("--ee 'create enterprise version of project'")
+        ]
     }
 }
