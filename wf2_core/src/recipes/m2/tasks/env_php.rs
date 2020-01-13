@@ -1,3 +1,4 @@
+use crate::output::git_diff_output;
 use crate::{
     conditions::{file_present::FilePresent, files_differ::FilesDiffer, question::Question},
     context::Context,
@@ -68,11 +69,11 @@ impl EnvPhp {
         Task::conditional(
             vec![
                 /// Does the env.php file exist?
-                Box::new(FilePresent::new(env.env.clone(), false)),
+                Box::new(FilePresent::new(&env.env, false)),
                 /// Does the env.php.dist file exist?
-                Box::new(FilePresent::new(env.env_dist.clone(), false)),
+                Box::new(FilePresent::new(&env.env_dist, false)),
                 /// Do those files differ?
-                Box::new(FilesDiffer::new(env.env.clone(), env.env_dist.clone())),
+                Box::new(FilesDiffer::new(&env.env, &env.env_dist)),
                 /// Does the user want to copy env.php.dist -> env.php
                 Box::new(env.copy_confirm()),
             ],
@@ -113,12 +114,25 @@ impl EnvPhp {
     ///
     pub fn copy_confirm(&self) -> Question {
         let prefix = Green.paint("[wf2 info]");
-        let question = format!(
-            "{prefix}: Your local {left} doesn't match {right}, override?",
-            prefix = prefix,
-            left = Cyan.paint(EnvPhp::ENV),
-            right = Cyan.paint(EnvPhp::ENV_DIST)
-        );
+        let left = Cyan.paint(EnvPhp::ENV);
+        let right = Cyan.paint(EnvPhp::ENV_DIST);
+        let question = git_diff_output(EnvPhp::ENV_DIST, EnvPhp::ENV)
+            .map(|diff| {
+                format!(
+                    "{diff}\n\n{prefix}: Your local {left} doesn't match {right} (diff above), override?",
+                    prefix = prefix,
+                    diff = diff,
+                    left = left,
+                    right = right,
+                )
+            })
+            .unwrap_or_else(|_| format!(
+                "{prefix}: Your local {left} doesn't match {right}, override?",
+                prefix = prefix,
+                left = left,
+                right = right,
+            ));
+
         Question::new(question)
     }
 }
