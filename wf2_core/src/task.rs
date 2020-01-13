@@ -394,9 +394,9 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
             let output = task_sequence.wait();
             output
                 .and_then(|_| Ok(id))
-                .map_err(|(error_id, task_error)| TaskError {
+                .map_err(|(_error_id, task_error)| TaskError {
                     index: id,
-                    message: format!("Task Seq error: {}", error_id),
+                    message: task_error.message,
                     exit_code: task_error.exit_code,
                 })
         }
