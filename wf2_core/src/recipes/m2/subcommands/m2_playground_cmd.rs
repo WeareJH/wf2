@@ -3,7 +3,7 @@ use crate::conditions::file_present::FilePresent;
 use crate::conditions::question::Question;
 use crate::context::Context;
 use crate::recipes::m2::subcommands::m2_playground::{
-    get_composer_json, get_project_files, write_auth_json, write_wf2_file, M2Playground,
+    get_composer_json, get_project_files, write_auth_json, write_wf2_file, M2Edition, M2Playground,
 };
 use crate::recipes::m2::subcommands::m2_playground_help;
 use crate::task::Task;
@@ -11,6 +11,7 @@ use ansi_term::Colour::{Cyan, Green, Red};
 use clap::{App, Arg, ArgMatches};
 use futures::future::lazy;
 use std::sync::Arc;
+use structopt::StructOpt;
 
 pub struct M2PlaygroundCmd;
 
@@ -19,40 +20,67 @@ impl M2PlaygroundCmd {
     const ABOUT: &'static str = "Create a fresh install of M2";
 }
 
+#[derive(StructOpt)]
+struct Opts {
+    version: String,
+    username: Option<String>,
+    password: Option<String>,
+    output: Option<String>,
+    enterprise: bool,
+    force: bool,
+}
+
 impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
     fn name(&self) -> String {
         String::from(M2PlaygroundCmd::NAME)
     }
 
     fn exec(&self, matches: Option<&ArgMatches>, ctx: &Context) -> Option<Vec<Task>> {
-        let cwd = ctx.cwd.clone();
-        let version = matches.and_then(|m| m.value_of("version"))?;
-        let username = matches.and_then(|m| m.value_of("username"));
-        let password = matches.and_then(|m| m.value_of("password"));
-        let dirname = matches
-            .and_then(|m| m.value_of("output"))
-            .unwrap_or(M2PlaygroundCmd::NAME);
-        let force = matches.map(|m| m.is_present("force")).unwrap_or(false);
+        let opts: Opts = matches.map(Opts::from_clap).expect("guarded by Clap");
 
         let pg = M2Playground::from_file();
         let from_file = pg.is_some();
         let target_file = M2Playground::output_file();
 
-        let username = username
-            .or_else(|| pg.as_ref().map(|x| x.username.as_str()))
-            .expect("guarded");
-        let password = password
-            .or_else(|| pg.as_ref().map(|x| x.password.as_str()))
+        //
+        // If credentials were provided as arguments
+        // + were read from file, check if they differ
+        // so that we can ask the user to save later
+        //
+        let diff_creds = match (&opts.username, &opts.password, &pg) {
+            (Some(u), Some(p), Some(pg)) => (u, p) != (&pg.username, &pg.password),
+            _ => false,
+        };
+
+        let dirname = opts
+            .output
+            .unwrap_or_else(|| String::from(M2PlaygroundCmd::NAME));
+
+        let username = opts
+            .username
+            .or_else(|| pg.as_ref().map(|x| x.username.to_string()))
             .expect("guarded");
 
-        let target_dir = cwd.join(dirname);
+        let password = opts
+            .password
+            .or_else(|| pg.as_ref().map(|x| x.password.to_string()))
+            .expect("guarded");
+
+        let target_dir = ctx.cwd.join(dirname);
 
         let pg = M2Playground {
-            version: String::from(version),
+            version: opts.version.clone(),
             dir: target_dir.clone(),
-            username: String::from(username),
-            password: String::from(password),
+            edition: if opts.enterprise {
+                M2Edition::Enterprise
+            } else {
+                M2Edition::Community
+            },
+            username,
+            password,
         };
+
+        dbg!(&pg);
 
         // I assume there's a better way to share these
         let pg = Arc::new(pg);
@@ -81,7 +109,15 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
             exec: Box::new(lazy(move || write_wf2_file(&pg_4))),
         };
 
-        let save_creds = if !from_file {
+        //
+        // Ask to save credentials in the following 2 situations:
+        //  1. credentials were NOT loaded from file (meaning it's first run)
+        //  2. credentials WERE loaded from file, but arguments given were different.
+        //
+        // This solves the case where you have personal keys saved for a long period
+        // but you want to use a client or demo keys as a 1-off install
+        //
+        let save_creds = if !from_file || diff_creds {
             Task::conditional(
                 vec![Box::new(Question::new(format!(
                     "{}: Save username/password for next time?",
@@ -121,7 +157,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
         ];
 
         // If -f was given just add a verification step to ensure it was intended
-        if force {
+        if opts.force {
             let wipe = Task::dir_remove(target_dir.clone(), "Remove an existing folder");
             let warning = format!(
                 "{}: `{}` will be {} - are you {} sure about this?",
@@ -180,6 +216,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
                     .help("magento password"),
             )
             .arg_from_usage("-f --force 'wipe an existing folder before starting'")
-            .arg_from_usage("-o --output [dirname] 'name of the directory to create'")]
+            .arg_from_usage("-o --output [dirname] 'name of the directory to create'")
+            .arg_from_usage("-e --enterprise 'create an enterprise edition project'")]
     }
 }

@@ -7,9 +7,9 @@ use failure::Error;
 use hyper::http::header::ACCEPT_ENCODING;
 use reqwest::header::{AUTHORIZATION, USER_AGENT};
 use reqwest::StatusCode;
-use std::fs;
 use std::io::Read;
 use std::path::PathBuf;
+use std::{fmt, fs};
 use tempdir::TempDir;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -18,6 +18,9 @@ pub struct M2Playground {
     pub version: String,
     #[serde(skip)]
     pub dir: PathBuf,
+
+    #[serde(skip)]
+    pub edition: M2Edition,
 
     pub username: String,
     pub password: String,
@@ -43,6 +46,19 @@ impl M2Playground {
         let pg = serde_json::from_slice::<M2Playground>(&bytes).ok()?;
         Some(pg)
     }
+    pub fn project_path(&self) -> String {
+        format!(
+            "https://repo.magento.com/archives/magento/project-{edition}-edition/magento-project-{edition}-edition-{version}.0.zip",
+            edition = self.edition.to_string(),
+            version = self.version
+        )
+    }
+    pub fn base_path(&self) -> String {
+        format!(
+            "https://repo.magento.com/archives/magento/magento2-base/magento-magento2-base-{}.0.zip",
+            self.version
+        )
+    }
 }
 
 #[derive(Debug, Fail)]
@@ -53,6 +69,28 @@ enum M2PlaygroundError {
     Forbidden,
     #[fail(display = "Version not found: {}", _0)]
     NotFound(String),
+}
+
+#[derive(Debug)]
+pub enum M2Edition {
+    Community,
+    Enterprise,
+}
+
+impl Default for M2Edition {
+    fn default() -> Self {
+        Self::Community
+    }
+}
+
+impl fmt::Display for M2Edition {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let s = match self {
+            Self::Community => "community",
+            Self::Enterprise => "enterprise",
+        };
+        write!(f, "{}", s)
+    }
 }
 
 const TMP_DIR_NAME: &str = "m2-recipe";
@@ -106,18 +144,13 @@ origin: m2-playground"#;
 }
 
 pub fn get_composer_json(pg: &M2Playground) -> Result<(), Error> {
-    let composer_project_path = format!(
-        "https://repo.magento.com/archives/magento/project-community-edition/magento-project-community-edition-{}.0.zip",
-        pg.version
-    );
-
     let client = reqwest::Client::new();
     let tmp_dir = TempDir::new(TMP_DIR_NAME)?;
     let file_path = tmp_dir.path().join("composer.json");
     let mut file_handle = fs::File::create(&file_path)?;
 
     let mut res = client
-        .get(&composer_project_path)
+        .get(&pg.project_path())
         .header(USER_AGENT, "composer")
         .header(ACCEPT_ENCODING, "gzip,br")
         .header(AUTHORIZATION, pg.basic_auth())
@@ -146,18 +179,13 @@ pub fn get_composer_json(pg: &M2Playground) -> Result<(), Error> {
 }
 
 pub fn get_project_files(pg: &M2Playground) -> Result<(), Error> {
-    let magento_base_path = format!(
-        "https://repo.magento.com/archives/magento/magento2-base/magento-magento2-base-{}.0.zip",
-        pg.version
-    );
-
     let client = reqwest::Client::new();
     let tmp_dir = TempDir::new(TMP_DIR_NAME)?;
     let file_path = tmp_dir.path().join("m2-base.zip");
     let mut file_handle = fs::File::create(&file_path)?;
 
     let mut res = client
-        .get(&magento_base_path)
+        .get(&pg.base_path())
         .header(USER_AGENT, "composer")
         .header(ACCEPT_ENCODING, "gzip,br")
         .header(AUTHORIZATION, pg.basic_auth())
