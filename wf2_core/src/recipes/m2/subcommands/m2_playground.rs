@@ -26,6 +26,12 @@ pub struct M2Playground {
     pub password: String,
 }
 
+impl fmt::Display for M2Playground {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:#?}", self)
+    }
+}
+
 impl M2Playground {
     pub fn basic_auth(&self) -> String {
         format!(
