@@ -3,7 +3,7 @@ use crate::conditions::file_present::FilePresent;
 use crate::conditions::question::Question;
 use crate::context::Context;
 use crate::recipes::m2::subcommands::m2_playground::{
-    get_composer_json, get_project_files, write_auth_json, write_wf2_file, M2Playground,
+    get_composer_json, get_project_files, write_auth_json, write_wf2_file, M2Edition, M2Playground,
 };
 use crate::recipes::m2::subcommands::m2_playground_help;
 use crate::task::Task;
@@ -11,6 +11,7 @@ use ansi_term::Colour::{Cyan, Green, Red};
 use clap::{App, Arg, ArgMatches};
 use futures::future::lazy;
 use std::sync::Arc;
+use structopt::StructOpt;
 
 pub struct M2PlaygroundCmd;
 
@@ -19,39 +20,64 @@ impl M2PlaygroundCmd {
     const ABOUT: &'static str = "Create a fresh install of M2";
 }
 
+#[derive(StructOpt)]
+struct Opts {
+    version: String,
+    username: Option<String>,
+    password: Option<String>,
+    output: Option<String>,
+    enterprise: bool,
+    force: bool,
+}
+
 impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
     fn name(&self) -> String {
         String::from(M2PlaygroundCmd::NAME)
     }
 
     fn exec(&self, matches: Option<&ArgMatches>, ctx: &Context) -> Option<Vec<Task>> {
-        let cwd = ctx.cwd.clone();
-        let version = matches.and_then(|m| m.value_of("version"))?;
-        let username = matches.and_then(|m| m.value_of("username"));
-        let password = matches.and_then(|m| m.value_of("password"));
-        let dirname = matches
-            .and_then(|m| m.value_of("output"))
-            .unwrap_or(M2PlaygroundCmd::NAME);
-        let force = matches.map(|m| m.is_present("force")).unwrap_or(false);
+        let opts: Opts = matches.map(Opts::from_clap).expect("guarded by Clap");
 
         let pg = M2Playground::from_file();
         let from_file = pg.is_some();
         let target_file = M2Playground::output_file();
 
-        let username = username
-            .or_else(|| pg.as_ref().map(|x| x.username.as_str()))
-            .expect("guarded");
-        let password = password
-            .or_else(|| pg.as_ref().map(|x| x.password.as_str()))
+        //
+        // If credentials were provided as arguments
+        // + were read from file, check if they differ
+        // so that we can ask the user to save later
+        //
+        let diff_creds = match (&opts.username, &opts.password, &pg) {
+            (Some(u), Some(p), Some(pg)) => (u, p) != (&pg.username, &pg.password),
+            _ => false,
+        };
+
+        let dirname = opts
+            .output
+            .unwrap_or_else(|| String::from(M2PlaygroundCmd::NAME));
+
+        let username = opts
+            .username
+            .or_else(|| pg.as_ref().map(|x| x.username.to_string()))
             .expect("guarded");
 
-        let target_dir = cwd.join(dirname);
+        let password = opts
+            .password
+            .or_else(|| pg.as_ref().map(|x| x.password.to_string()))
+            .expect("guarded");
+
+        let target_dir = ctx.cwd.join(dirname);
 
         let pg = M2Playground {
-            version: String::from(version),
+            version: opts.version.clone(),
             dir: target_dir.clone(),
-            username: String::from(username),
-            password: String::from(password),
+            edition: if opts.enterprise {
+                M2Edition::Enterprise
+            } else {
+                M2Edition::Community
+            },
+            username,
+            password,
         };
 
         // I assume there's a better way to share these
@@ -81,26 +107,39 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
             exec: Box::new(lazy(move || write_wf2_file(&pg_4))),
         };
 
-        let save_creds = if !from_file {
+        //
+        // Ask to save credentials in the following 2 situations:
+        //  1. credentials were NOT loaded from file (meaning it's first run)
+        //  2. credentials WERE loaded from file, but arguments given were different.
+        //
+        // This solves the case where you have personal keys saved for a long period
+        // but you want to use a client or demo keys as a 1-off install
+        //
+        let save_creds = if !from_file || diff_creds {
+            // Ask if we should save creds
+            let question = Box::new(Question::new(format!(
+                "{}: Save username/password for next time?",
+                Green.paint("[wf2 info]")
+            )));
+
+            // The task for writing the credentials to disk
+            let write = Task::file_write(
+                target_file.expect("target file"),
+                "Writes the credentials to file for next time",
+                serde_json::to_vec_pretty(&*pg.clone()).expect("serde=safe"),
+            );
+
             Task::conditional(
-                vec![Box::new(Question::new(format!(
-                    "{}: Save username/password for next time?",
-                    Green.paint("[wf2 info]")
-                )))],
-                vec![Task::file_write(
-                    target_file.expect("target file"),
-                    "Writes the credentials to file for next time",
-                    serde_json::to_vec_pretty(&*pg.clone()).expect("serde=safe"),
-                )],
-                vec![],
-                Some(String::from("Save creds for next time")),
+                vec![question],
+                vec![write],
+                vec![], // do nothing if the user says 'no'
+                Some("Save creds for next time".to_string()),
             )
         } else {
             Task::Noop
         };
 
-        let save_cred_iter = vec![save_creds].into_iter();
-
+        // These base tasks will execute for every situation
         let base_tasks = vec![
             Task::notify_info(format!(
                 "Getting the Magento 2 project files for version `{}` (this can take a while)",
@@ -118,42 +157,54 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
             wf2_file,
             Task::notify_info(format!("{}", Green.paint("All done!"))),
             Task::notify_info(m2_playground_help::help(&pg)),
+            save_creds,
         ];
 
         // If -f was given just add a verification step to ensure it was intended
-        if force {
+        if opts.force {
+            // Just a message to say what we're doing
+            let notification = Task::notify_info("Deleting previous directory");
+
+            // The task to remove (if present) the target dir
             let wipe = Task::dir_remove(target_dir.clone(), "Remove an existing folder");
-            let warning = format!(
+
+            // The warning question
+            let warning = Box::new(Question::new(format!(
                 "{}: `{}` will be {} - are you {} sure about this?",
                 Green.paint("[wf2 info]"),
                 target_dir.display(),
                 Red.paint("deleted"),
                 Cyan.paint("REALLY")
-            );
+            )));
+
+            // what to say when the task was aborted
+            let aborted = Task::notify_info("Aborted... phew");
+
             return Some(vec![Task::conditional(
-                vec![Box::new(Question::new(warning))],
-                vec![Task::notify_info("Deleting previous directory"), wipe]
+                vec![warning],
+                vec![notification, wipe]
                     .into_iter()
-                    .chain(base_tasks.into_iter())
-                    .chain(save_cred_iter)
-                    .collect::<Vec<Task>>(),
-                vec![Task::notify_info("Aborted... phew")],
+                    .chain(base_tasks)
+                    .collect(),
+                vec![aborted],
                 Some("Verify that the folder should be deleted"),
             )]);
         }
 
+        // The message to show when we decide to NOT override
+        let error = Task::notify_error(format!(
+            "Cannot overwrite existing directory (use -f to override) `{}`",
+            target_dir.display()
+        ));
+
+        let file_absent_check = Box::new(FilePresent::new(target_dir, true));
+
         // if we get here, it's the 'safe' version where we wouldn't override
         // an existing directory
         Some(vec![Task::conditional(
-            vec![Box::new(FilePresent::new(target_dir.clone(), true))],
-            base_tasks
-                .into_iter()
-                .chain(save_cred_iter)
-                .collect::<Vec<Task>>(),
-            vec![Task::notify_error(format!(
-                "Cannot overwrite existing directory (use -f to override) `{}`",
-                target_dir.display()
-            ))],
+            vec![file_absent_check],
+            vec![verify(base_tasks, &pg)],
+            vec![error],
             Some("Verify the folder is absent before downloading anything"),
         )])
     }
@@ -180,6 +231,21 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
                     .help("magento password"),
             )
             .arg_from_usage("-f --force 'wipe an existing folder before starting'")
-            .arg_from_usage("-o --output [dirname] 'name of the directory to create'")]
+            .arg_from_usage("-o --output [dirname] 'name of the directory to create'")
+            .arg_from_usage("-e --enterprise 'create an enterprise edition project'")]
     }
+}
+
+fn verify(tasks: Vec<Task>, pg: &M2Playground) -> Task {
+    let prefix = Green.paint("[wf2 info]");
+    Task::conditional(
+        vec![Box::new(Question::new(format!(
+            "{prefix}: Does the following seem correct?\n\n {pg}\n\n",
+            prefix = prefix,
+            pg = pg
+        )))],
+        tasks,
+        vec![Task::notify_info("Skipping for now")],
+        Some("Verify that given params are correct".to_string()),
+    )
 }
