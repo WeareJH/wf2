@@ -197,7 +197,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
             target_dir.display()
         ));
 
-        let file_absent_check = Box::new(FilePresent::new(target_dir.clone(), true));
+        let file_absent_check = Box::new(FilePresent::new(target_dir, true));
 
         // if we get here, it's the 'safe' version where we wouldn't override
         // an existing directory
