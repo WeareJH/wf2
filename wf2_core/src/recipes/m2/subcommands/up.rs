@@ -12,6 +12,7 @@ use crate::{context::Context, task::Task};
 use ansi_term::Colour::Green;
 use clap::{App, ArgMatches};
 use structopt::StructOpt;
+use crate::commands::check_update::run_check_update;
 
 pub struct M2Up;
 
@@ -32,6 +33,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2Up {
     }
     fn exec(&self, matches: Option<&ArgMatches>, ctx: &Context) -> Option<Vec<Task>> {
         let opts: Opts = matches.map(Opts::from_clap).expect("guarded by Clap");
+        Some(run_check_update());
         Some(up(&ctx, opts.clean, opts.attached).unwrap_or_else(Task::task_err_vec))
     }
     fn subcommands(&self, _ctx: &Context) -> Vec<App<'a, 'b>> {
