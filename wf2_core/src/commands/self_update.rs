@@ -114,9 +114,8 @@ pub fn run_self_update(is_auto_confirmed: bool) -> Result<(), failure::Error> {
         .map(|asset| asset.size)
         .ok_or(SelfUpdateError::NoItems)?;
 
-    clear_terminal(is_auto_confirmed);
     let mut ok_to_proceed: bool = false;
-    if !is_auto_confirmed {
+    if !&is_auto_confirmed {
         println!("{}", Green.paint("=====[Wf2 Self Updater]====="));
         println!();
         println!("File name   : {}", name);
@@ -176,7 +175,6 @@ pub fn run_self_update(is_auto_confirmed: bool) -> Result<(), failure::Error> {
             } else if user_input == "n" || user_input == "no" {
                 break;
             } else {
-                clear_terminal(is_auto_confirmed);
                 println!("Unrecognised input: '{}'", user_input);
             }
         }
@@ -186,7 +184,6 @@ pub fn run_self_update(is_auto_confirmed: bool) -> Result<(), failure::Error> {
     }
 
     if ok_to_proceed {
-        clear_terminal(is_auto_confirmed);
         println!("Starting update...");
 
         let mut response = reqwest::get(&url)?;
@@ -198,7 +195,6 @@ pub fn run_self_update(is_auto_confirmed: bool) -> Result<(), failure::Error> {
 
         copy(&mut response, &mut current_dir)?;
 
-        clear_terminal(is_auto_confirmed);
         let version = Command::new(wf2_path)
             .arg("-V")
             .output()
@@ -209,15 +205,8 @@ pub fn run_self_update(is_auto_confirmed: bool) -> Result<(), failure::Error> {
             str::from_utf8(&version.stdout).unwrap()
         );
     } else {
-        clear_terminal(is_auto_confirmed);
         println!("Aborted update");
     }
 
     Ok(())
-}
-
-fn clear_terminal(is_auto_confirmed: bool) {
-    if !is_auto_confirmed {
-        print!("{}[2J", 27 as char);
-    }
 }
