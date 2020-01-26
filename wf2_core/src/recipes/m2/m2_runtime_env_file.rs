@@ -1,5 +1,6 @@
 use crate::context::Context;
 use crate::file::File;
+use crate::os::{OsInfo, OsType};
 use env_proc::env_vars;
 use snailquote::escape;
 use std::collections::HashMap;
@@ -106,6 +107,7 @@ pub fn create_runtime_env(
     merged.insert(EnvVarKeys::HostGid, ctx.gid.to_string());
     merged.insert(EnvVarKeys::MageHost, format!("https://{}", domain));
     merged.insert(EnvVarKeys::PhpIdeConfig, format!("serverName={}", domain));
+    merged.insert(EnvVarKeys::XdebugConfig, docker_host(&ctx.os));
 
     Ok(print(merged))
 }
@@ -124,6 +126,16 @@ fn print(store: HashMap<EnvVarKeys, String>) -> Vec<u8> {
     }
 
     buffer
+}
+
+fn docker_host(os_info: &OsInfo) -> String {
+    use OsType::*;
+    match os_info.os_type {
+        Mac => "docker.for.mac.host.internal",
+        Windows => "docker.for.windows.host.internal",
+        _ => "host.docker.internal",
+    }
+    .to_string()
 }
 
 #[derive(Deserialize, Default, Debug, Clone)]
@@ -151,4 +163,5 @@ fn test_env_hash_without_overrides() {
     let as_str = std::str::from_utf8(&env).expect("test");
     assert!(as_str.contains("PHP_IDE_CONFIG=serverName=local.m2"));
     assert!(as_str.contains(r#"MAGE_ROOT_DIR=/var/www"#));
+    assert!(as_str.contains(r#"XDEBUG_CONFIG=docker.for.mac.host.internal"#));
 }

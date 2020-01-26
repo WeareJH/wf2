@@ -1,3 +1,4 @@
+use crate::os::OsInfo;
 use crate::php::PHP;
 use crate::recipes::recipe_kinds::RecipeKinds;
 use crate::scripts::scripts::Scripts;
@@ -97,6 +98,9 @@ pub struct Context {
 
     #[serde(default)]
     pub origin: Option<String>,
+
+    #[serde(skip, default)]
+    pub os: OsInfo,
 }
 
 ///
@@ -135,6 +139,7 @@ impl Default for Context {
             env: None,
             scripts: None,
             origin: None,
+            os: OsInfo::new(),
         }
     }
 }

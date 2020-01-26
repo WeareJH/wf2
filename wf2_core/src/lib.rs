@@ -29,6 +29,7 @@ pub mod dc_tasks;
 pub mod dc_volume;
 pub mod file;
 pub mod file_op;
+pub mod os;
 pub mod output;
 pub mod php;
 pub mod recipes;
