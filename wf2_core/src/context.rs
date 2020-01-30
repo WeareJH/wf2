@@ -182,8 +182,7 @@ impl Context {
     pub fn new_from_file(path: impl Into<PathBuf>) -> Result<Option<Context>, failure::Error> {
         let path = &path.into();
         let (main, env) = get_paths(path);
-        let merged = merge_yaml(&main, &env);
-        merged
+        merge_yaml(&main, &env)
     }
     pub fn new_from_str(yaml_str: &str) -> Result<Context, FromFileError> {
         Context::from_yaml_string(yaml_str.to_string())
@@ -303,7 +302,7 @@ fn merge_yaml(left: &PathBuf, right: &PathBuf) -> Result<Option<Context>, failur
 
             // for the 'right' (optional overrides) allow empty
             // files to mean 'no overrides)
-            if r_string.trim().len() == 0 {
+            if r_string.trim().is_empty() {
                 return left_only();
             }
 

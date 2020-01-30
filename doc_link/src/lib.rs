@@ -13,7 +13,7 @@ const BASE: &str = "https://docs.rs/wf2_core/latest";
 
 #[proc_macro_attribute]
 pub fn doc_link(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let i: ItemStruct = syn::parse::<ItemStruct>(item.clone()).expect("yep");
+    let i: ItemStruct = syn::parse::<ItemStruct>(item).expect("yep");
 
     let s = attr.to_string();
     let stripped = &s[1..s.len() - 1];

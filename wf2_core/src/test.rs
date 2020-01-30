@@ -1,4 +1,4 @@
-use crate::task::Task;
+use crate::task::{FileOpPaths, Task};
 use std::path::PathBuf;
 
 use crate::cli::cli_input::CLIInput;
@@ -26,12 +26,12 @@ impl Test {
     }
     pub fn from_cmd(cmd: impl Into<String>) -> Test {
         let str = cmd.into();
-        let args: Vec<String> = str.trim().split(" ").map(String::from).collect();
+        let args: Vec<String> = str.trim().split(' ').map(String::from).collect();
         Test::new(args)
     }
     pub fn from_skipped(cmd: impl Into<String>, count: usize) -> Test {
         let input: String = cmd.into();
-        let split = input.trim().split(" ");
+        let split = input.trim().split(' ');
         let mut before = split
             .clone()
             .take(count)
@@ -85,7 +85,7 @@ impl Test {
 
         // if a recipe was given, load it as `--recipe`
         if let Some(recipe) = self.recipe.as_ref() {
-            let recipe = recipe.clone().to_string();
+            let recipe = recipe.to_string();
             let recipe_config = vec![String::from("--recipe"), recipe];
             args.extend(recipe_config);
         }
@@ -107,9 +107,7 @@ impl Test {
         let tasks = self.tasks();
         (Test::_commands(&tasks), Test::_file_ops(&tasks))
     }
-    pub fn file_ops_paths_commands(
-        &mut self,
-    ) -> (Vec<String>, (Vec<String>, Vec<String>, Vec<String>)) {
+    pub fn file_ops_paths_commands(&mut self) -> (Vec<String>, FileOpPaths) {
         let tasks = self.tasks();
         (Test::_commands(&tasks), Task::file_op_paths(&tasks))
     }
@@ -117,7 +115,7 @@ impl Test {
         let tasks = self.tasks();
         Test::_commands(&tasks)
     }
-    pub fn _commands(tasks: &Vec<Task>) -> Vec<String> {
+    pub fn _commands(tasks: &[Task]) -> Vec<String> {
         tasks.iter().fold(vec![], |mut acc, t| match t {
             Task::SimpleCommand { command, .. } | Task::Command { command, .. } => {
                 acc.push(command.clone());
@@ -135,8 +133,8 @@ impl Test {
         let tasks = self.tasks();
         Test::_file_ops(&tasks)
     }
-    pub fn _file_ops(tasks: &Vec<Task>) -> Vec<FileOp> {
-        tasks.into_iter().fold(vec![], |mut acc, t| match t {
+    pub fn _file_ops(tasks: &[Task]) -> Vec<FileOp> {
+        tasks.iter().fold(vec![], |mut acc, t| match t {
             Task::File { op, .. } => {
                 acc.push(op.clone());
                 acc

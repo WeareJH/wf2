@@ -17,7 +17,7 @@ pub struct CLI<'a, 'b> {
 pub struct CLIHelp;
 
 impl<'a, 'b> CLI<'a, 'b> {
-    pub fn new() -> CLI<'a, 'b> {
+    pub fn create() -> CLI<'a, 'b> {
         let app = App::new("wf2")
             .version(crate_version!())
             .args(&[
@@ -68,11 +68,11 @@ impl<'a, 'b> CLI<'a, 'b> {
                                 Err(CLIError::MissingConfig(std::path::PathBuf::from(file_path))
                                     .into())
                             }
-                            Err(e) => Err(e.into()),
+                            Err(e) => Err(e),
                         }
                     }
                     None => Context::new_from_file(DEFAULT_CONFIG_FILE)
-                        .map(|opt| opt.unwrap_or_else(|| Context::default())),
+                        .map(|opt| opt.unwrap_or_else(Context::default)),
                 }?;
 
                 if let Some(recipe) = matches.value_of("recipe") {
