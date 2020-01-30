@@ -58,6 +58,7 @@ struct Opts {
     /// Files or paths to push
     paths: Vec<String>,
     /// ignore warnings about synced files
+    #[structopt(short, long)]
     force: bool,
 }
 

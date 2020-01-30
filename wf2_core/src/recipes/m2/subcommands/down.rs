@@ -48,6 +48,7 @@ use structopt::StructOpt;
 
 #[derive(StructOpt)]
 struct Opts {
+    #[structopt(short, long)]
     volumes: bool,
 }
 

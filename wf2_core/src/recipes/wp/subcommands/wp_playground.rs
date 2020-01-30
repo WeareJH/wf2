@@ -36,6 +36,7 @@ impl WpPlaygroundCmd {
 struct Opts {
     output: Option<PathBuf>,
     version: Option<String>,
+    #[structopt(short, long)]
     force: bool,
 }
 

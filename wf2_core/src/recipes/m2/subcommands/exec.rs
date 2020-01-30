@@ -72,6 +72,7 @@ impl M2Exec {
 
 #[derive(StructOpt)]
 struct Opts {
+    #[structopt(short, long)]
     root: bool,
 }
 

@@ -75,6 +75,7 @@ impl M2DbImport {
 
 #[derive(StructOpt, Debug)]
 struct Opts {
+    #[structopt(short, long)]
     file: PathBuf,
 }
 

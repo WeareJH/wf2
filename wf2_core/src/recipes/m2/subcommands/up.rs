@@ -147,7 +147,9 @@ impl M2Up {
 
 #[derive(StructOpt)]
 struct Opts {
+    #[structopt(short, long)]
     attached: bool,
+    #[structopt(short, long)]
     clean: bool,
 }
 

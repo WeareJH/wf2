@@ -63,6 +63,7 @@ impl SelfUpdate {
 
 #[derive(StructOpt)]
 struct Opts {
+    #[structopt(short, long)]
     yes: bool,
 }
 

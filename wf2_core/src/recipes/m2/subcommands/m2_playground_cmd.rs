@@ -31,7 +31,9 @@ struct Opts {
     username: Option<String>,
     password: Option<String>,
     output: Option<String>,
+    #[structopt(short, long)]
     enterprise: bool,
+    #[structopt(short, long)]
     force: bool,
 }
 
