@@ -8,7 +8,7 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::ItemStruct;
 
-const BASE: &'static str = "https://docs.rs/wf2_core/latest";
+const BASE: &str = "https://docs.rs/wf2_core/latest";
 //const BASE: &'static str = "file:///Users/shakyshane/sites/oss/wf2/target/doc";
 
 #[proc_macro_attribute]
