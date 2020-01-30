@@ -43,7 +43,7 @@
 //! # use wf2_core::test::Test;
 //! # use wf2_core::recipes::recipe_kinds::RecipeKinds;
 //! # let cmd = r#"
-//! wf2 m2-playground 2.3.4 -o my-dir
+//! wf2 m2-playground 2.3.4 --username 123456 --password 123456 -o my-dir
 //! # "#;
 //! # let _tasks = Test::from_cmd(cmd).tasks();
 //! ```
