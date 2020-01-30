@@ -1,3 +1,60 @@
+//!
+//! Execute commands in the main container.
+//!
+//! Almost every time you `sh` into a container to run commands, you
+//! should probably use `exec` instead.
+//!
+//! ## List files in the main container
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # use wf2_core::cli::cli_input::CLIInput;
+//! # let cmd = r#"
+//! wf2 exec ls
+//! # "#;
+//! # let (commands, ..) = Test::from_cmd(cmd)
+//! #     .with_file("../fixtures/config_01.yaml")
+//! #     .with_cli_input(CLIInput::from_cwd("/users/shane"))
+//! #     .file_ops_commands();
+//! # assert_eq!(commands, vec!["docker exec -it -u www-data -e COLUMNS=\"80\" -e LINES=\"30\" wf2__shane__php ls"])
+//! ```
+//!
+//! ## Run as a command as `root`
+//!
+//! Be careful with this, but if you *absolutely* need to run a command as root, place the '-r'
+//! flag before the cammand
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # use wf2_core::cli::cli_input::CLIInput;
+//! # let cmd = r#"
+//! wf2 exec -r some-command
+//! # "#;
+//! # let (commands, ..) = Test::from_cmd(cmd)
+//! #     .with_file("../fixtures/config_01.yaml")
+//! #     .with_cli_input(CLIInput::from_cwd("/users/shane"))
+//! #     .file_ops_commands();
+//! # assert_eq!(commands, vec!["docker exec -it -u root -e COLUMNS=\"80\" -e LINES=\"30\" wf2__shane__php some-command"])
+//! ```
+//!
+//! ## Run a command that has flags
+//!
+//! A limitiation of `exec` is that it doesn't know when it's *own* arguments are finished, and
+//! when your command begins. This is not a problem for commands without flags, but if you need
+//! flags, just use `--` to separate `exec` from your command
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # use wf2_core::cli::cli_input::CLIInput;
+//! # let cmd = r#"
+//! wf2 exec -- rm -rf pub/static
+//! # "#;
+//! # let (commands, ..) = Test::from_cmd(cmd)
+//! #     .with_file("../fixtures/config_01.yaml")
+//! #     .with_cli_input(CLIInput::from_cwd("/users/shane"))
+//! #     .file_ops_commands();
+//! # assert_eq!(commands, vec!["docker exec -it -u www-data -e COLUMNS=\"80\" -e LINES=\"30\" wf2__shane__php rm -rf pub/static"])
+//! ```
 use crate::commands::CliCommand;
 use crate::context::Context;
 use crate::recipes::m2::services::php::PhpService;
@@ -5,6 +62,7 @@ use crate::task::Task;
 use clap::{App, ArgMatches};
 use structopt::StructOpt;
 
+#[doc_link::doc_link("/recipes/m2/subcommands/exec")]
 pub struct M2Exec;
 
 impl M2Exec {
@@ -29,10 +87,13 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2Exec {
         Some(exec(ctx, trailing, user))
     }
     fn subcommands(&self, _ctx: &Context) -> Vec<App<'a, 'b>> {
-        vec![App::new(M2Exec::NAME).about(M2Exec::ABOUT).args_from_usage(
-            "-r --root 'Execute commands as root'
+        vec![App::new(M2Exec::NAME)
+            .about(M2Exec::ABOUT)
+            .after_help(M2Exec::DOC_LINK)
+            .args_from_usage(
+                "-r --root 'Execute commands as root'
                                   [cmd]... 'Trailing args'",
-        )]
+            )]
     }
 }
 

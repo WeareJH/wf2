@@ -1,3 +1,53 @@
+//!
+//! Create an M2 project from scratch
+//!
+//! You'll need to provide either your own personal public/private keys,
+//! or those of a client.
+//!
+//! This command will by default create a new directory with the same name (`m2-playground`)
+//!
+//! ## Examples
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # use wf2_core::recipes::recipe_kinds::RecipeKinds;
+//! # let cmd = r#"
+//! wf2 m2-playground 2.3.4 --username 123456 --password 123456
+//! # "#;
+//! # let _tasks = Test::from_cmd(cmd).tasks();
+//! ```
+//! Once complete, follow the instructions provided in the terminal to complete the installation.
+//!
+//! **Note**: You'll only have to provide your credentials once as `wf2` will offer to save them
+//! for you.
+//!
+//! ## Create an enterprise edition project (`-e`)
+//!
+//! Ensure you have a set of public/private keys from an enterprise account, then just
+//! provide the `-e` flag to generate an enterprise project
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # use wf2_core::recipes::recipe_kinds::RecipeKinds;
+//! # let cmd = r#"
+//! wf2 m2-playground 2.3.4 --username 123456 --password 123456 -e
+//! # "#;
+//! # let _tasks = Test::from_cmd(cmd).tasks();
+//! ```
+//!
+//! ## Different output folder (`-o`)
+//!
+//! If you don't want to use the default folder name, provide the `-o` flag and a different one.
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # use wf2_core::recipes::recipe_kinds::RecipeKinds;
+//! # let cmd = r#"
+//! wf2 m2-playground 2.3.4 --username 123456 --password 123456 -o my-dir
+//! # "#;
+//! # let _tasks = Test::from_cmd(cmd).tasks();
+//! ```
+//!
 use crate::context::Context;
 use crate::file_op::inner_write_err;
 use crate::recipes::recipe_kinds::RecipeKinds;

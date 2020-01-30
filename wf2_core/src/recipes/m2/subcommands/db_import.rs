@@ -1,3 +1,59 @@
+//!
+//! Import a database.
+//!
+//! **NOTE for large Databases**
+//!
+//! If the database you are importing is large (over 1.5gb)
+//! then you will very likely need to increase the amount of memory
+//! assigned to Docker.
+//!
+//! On Docker For Mac, go to `preferences -> resources` and increase the
+//! memory.
+//!
+//! ## Example
+//!
+//! ```rust
+//! # use wf2_core::test::Test;
+//! # use wf2_core::recipes::recipe_kinds::RecipeKinds;
+//! # let cmd = r#"
+//! wf2 db-import ~/Downloads/dump.sql
+//! # "#;
+//! # let cmds = Test::from_cmd(cmd)
+//! #   .with_file("../fixtures/config_01.yaml")
+//! #   .commands();
+//! #
+//! # let expected = r#"
+//! # docker exec -i wf2__wf2_default__db mysql -udocker -pdocker docker < ~/Downloads/dump.sql
+//! # "#;
+//! # assert_eq!(cmds[0], expected.trim());
+//! ```
+//!
+//! ## Tip, install `pv`
+//!
+//! If you install the `pv` package, the db-import will give you a nice progress
+//! indicator so that you know how long you have to make a cup of ☕️
+//!
+//! ```sh
+//! brew install pv
+//! ```
+//!
+//! ```rust
+//! # use wf2_core::test::Test;
+//! # use wf2_core::recipes::recipe_kinds::RecipeKinds;
+//! # use wf2_core::cli::cli_input::CLIInput;
+//! # let cmd = r#"
+//! wf2 db-import ~/Downloads/dump.sql
+//! # "#;
+//! # let cmds = Test::from_cmd(cmd)
+//! #   .with_file("../fixtures/config_01.yaml")
+//! #   .with_cli_input(CLIInput::with_pv("/usr/pv"))
+//! #   .commands();
+//! #
+//! # let expected = r#"
+//! # pv -f ~/Downloads/dump.sql | docker exec -i wf2__wf2_default__db mysql -udocker -pdocker -D docker
+//! # "#;
+//! # assert_eq!(cmds[0], expected.trim());
+//! ```
 use crate::commands::CliCommand;
 use crate::context::Context;
 use crate::dc_service::DcService;
@@ -9,6 +65,7 @@ use clap::{App, ArgMatches};
 use std::path::PathBuf;
 use structopt::StructOpt;
 
+#[doc_link::doc_link("/recipes/m2/subcommands/db_import")]
 pub struct M2DbImport;
 
 impl M2DbImport {
@@ -32,7 +89,8 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2DbImport {
     fn subcommands(&self, _ctx: &Context) -> Vec<App<'a, 'b>> {
         let cmd = App::new(M2DbImport::NAME)
             .about(M2DbImport::ABOUT)
-            .arg_from_usage("<file> 'db file to import'");
+            .arg_from_usage("<file> 'db file to import'")
+            .after_help(M2DbImport::DOC_LINK);
         vec![cmd]
     }
 }

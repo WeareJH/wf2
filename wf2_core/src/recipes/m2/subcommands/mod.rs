@@ -1,5 +1,7 @@
+//!
+//! All of the Magento 2 specific sub-commands
+//!
 use crate::commands::CliCommand;
-use crate::recipes::shared::no_opts::NoOptsCmd;
 use db_dump::M2DbDump;
 use db_import::M2DbImport;
 use doctor::M2Doctor;
@@ -17,21 +19,28 @@ use update_images::M2UpdateImages;
 use varnish::VarnishCmd;
 use xdebug::XdebugCmd;
 
+pub mod composer;
 pub mod db_dump;
 pub mod db_import;
+pub mod dc;
 pub mod doctor;
 pub mod down;
 pub mod eject;
 pub mod exec;
 pub mod list_images;
+pub mod m;
 pub mod m2_playground;
+#[doc(hidden)]
 pub mod m2_playground_cmd;
+#[doc(hidden)]
 pub mod m2_playground_help;
+pub mod node;
 pub mod pull;
 pub mod push;
 pub mod sql;
 pub mod stop;
 pub mod up;
+#[doc(hidden)]
 pub mod up_help;
 pub mod update_images;
 pub mod varnish;
@@ -40,16 +49,8 @@ pub mod xdebug;
 pub fn m2_recipe_subcommands<'a, 'b>() -> Vec<Box<dyn CliCommand<'a, 'b>>> {
     vec![
         Box::new(M2Up),
-        Box::new(NoOptsCmd::new(
-            M2Down::NAME,
-            M2Down::ABOUT,
-            Box::new(M2Down::cmd),
-        )),
-        Box::new(NoOptsCmd::new(
-            M2Stop::NAME,
-            M2Stop::ABOUT,
-            Box::new(M2Stop::cmd),
-        )),
+        Box::new(M2Down),
+        Box::new(M2Stop),
         Box::new(M2DbImport),
         Box::new(M2DbDump),
         Box::new(M2Doctor),

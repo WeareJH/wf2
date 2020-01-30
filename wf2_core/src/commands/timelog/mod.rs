@@ -1,3 +1,78 @@
+//!
+//! Commands for dealing with Jira timelogs.
+//!
+//! Note: Soon this will be a separate tool.
+//!
+//! ## first time use, provide your credentials
+//!
+//! - `domain` : if your company was `acme`, this would be `acme.atlassian.net`
+//! - `email` : your own personal email address
+//! - `api` : your own personal api key
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # let cmd = r#"
+//! wf2 timelog 10 --domain acme.atlassian.net --email user@exampe.com --api 123456
+//! # "#;
+//! # let _tasks = Test::from_cmd(cmd).tasks();
+//! ```
+//!
+//! ## fetch time logs for today
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # let cmd = r#"
+//! wf2 timelog 1
+//! # --domain acme.atlassian.net --email user@exampe.com --api 123456
+//! # "#;
+//! # let cmd = cmd.trim().replace("\n", " ");
+//! # let _tasks = Test::from_cmd(cmd).tasks();
+//! ```
+//!
+//! ## fetch time logs for the last 30 days
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # let cmd = r#"
+//! wf2 timelog 30
+//! # --domain acme.atlassian.net --email user@exampe.com --api 123456
+//! # "#;
+//! # let cmd = cmd.trim().replace("\n", " ");
+//! # let _tasks = Test::from_cmd(cmd).tasks();
+//! ```
+//!
+//! ## fetch time logs for the last 10 days, with verbose output
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # let cmd = r#"
+//! wf2 timelog 10 -v
+//! # --domain acme.atlassian.net --email user@exampe.com --api 123456
+//! # "#;
+//! # let cmd = cmd.trim().replace("\n", " ");
+//! # let _tasks = Test::from_cmd(cmd).tasks();
+//! ```
+//!
+//! ## applying filters
+//!
+//! - [see all filters](jira_worklog_day_filter/enum.WorklogDayFilter.html#variants)
+//! - common filters
+//!     - `-f low` show only low days
+//!     - `-f empty` show only empty days
+//!     - `-f weekdays` show only weekdays
+//!
+//! You can also combine filters, to generate your own report
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # let cmd = r#"
+//! wf2 timelog 10 -f weekdays -f low
+//! # --domain acme.atlassian.net --email user@exampe.com --api 123456
+//! # "#;
+//! # let cmd = cmd.trim().replace("\n", " ");
+//! # let _tasks = Test::from_cmd(cmd).tasks();
+//! ```
+//!
 use crate::commands::timelog::date_input::{DateInput, DateInputError};
 use crate::commands::timelog::jira::Jira;
 use crate::commands::timelog::jira_user::JiraUser;
@@ -28,6 +103,7 @@ pub mod printer_json;
 
 const CLI_COMMAND_NAME: &str = "timelog";
 
+#[doc_link::doc_link("/commands/env")]
 #[derive(Debug, Default)]
 pub struct TimelogCmd(String);
 

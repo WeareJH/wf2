@@ -13,6 +13,7 @@ use std::{
 
 pub type FutureSig = Box<dyn Future<Item = usize, Error = TaskError> + Send>;
 pub type ExecSig = Box<dyn Future<Item = (), Error = failure::Error> + Send>;
+pub type FileOpPaths = (Vec<String>, Vec<String>, Vec<String>);
 
 pub enum Task {
     File {
@@ -169,11 +170,11 @@ impl Task {
     /// Helper for filtering tasks for only those
     /// that operate on files
     ///
-    pub fn file_op_paths(tasks: Vec<Task>) -> (Vec<String>, Vec<String>, Vec<String>) {
+    pub fn file_op_paths(tasks: &[Task]) -> FileOpPaths {
         let mut read: Vec<String> = vec![];
         let mut write: Vec<String> = vec![];
         let mut delete: Vec<String> = vec![];
-        tasks.into_iter().for_each(|t| {
+        tasks.iter().for_each(|t| {
             let push = |p: &PathBuf, v: &mut Vec<String>| v.push(p.to_string_lossy().to_string());
             match t {
                 Task::File {

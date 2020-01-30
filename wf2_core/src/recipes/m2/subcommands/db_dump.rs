@@ -1,3 +1,23 @@
+//!
+//! Dump your current database to `dump.sql`
+//!
+//! ```rust
+//! # use wf2_core::test::Test;
+//! # use wf2_core::recipes::recipe_kinds::RecipeKinds;
+//! # let cmd = r#"
+//! wf2 db-dump
+//! # "#;
+//! # let cmds = Test::from_cmd(cmd)
+//! #   .with_file("../fixtures/config_01.yaml")
+//! #   .commands();
+//!
+//! // translates into the following:
+//! # let expected = r#"
+//! docker exec -i wf2__wf2_default__db mysqldump -udocker -pdocker docker > dump.sql
+//! # "#;
+//! # assert_eq!(cmds[0], expected.trim());
+//! ```
+//!
 use crate::commands::CliCommand;
 use crate::context::Context;
 use crate::recipes::m2::services::db::DbService;
@@ -7,6 +27,7 @@ use crate::dc_service::DcService;
 use crate::recipes::m2::services::M2Service;
 use clap::{App, ArgMatches};
 
+#[doc_link::doc_link("/recipes/m2/subcommands/db_dump")]
 pub struct M2DbDump;
 
 impl M2DbDump {
@@ -22,7 +43,9 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2DbDump {
         Some(from_ctx(&ctx))
     }
     fn subcommands(&self, _ctx: &Context) -> Vec<App<'a, 'b>> {
-        let cmd = App::new(M2DbDump::NAME).about(M2DbDump::ABOUT);
+        let cmd = App::new(M2DbDump::NAME)
+            .about(M2DbDump::ABOUT)
+            .after_help(M2DbDump::DOC_LINK);
         vec![cmd]
     }
 }

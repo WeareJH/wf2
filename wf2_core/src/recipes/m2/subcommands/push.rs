@@ -1,3 +1,40 @@
+//!
+//! Push files into the main PHP container
+//!
+//! Use this command when you've edited files in vendor, or
+//! any other folder that's not currently being 'synced'
+//!
+//! # Example, push a 'vendor' file
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # use wf2_core::cli::cli_input::CLIInput;
+//! # use wf2_core::recipes::recipe_kinds::RecipeKinds;
+//! # let cmd = r#"
+//! wf2 push vendor/magento/something.php
+//! # "#;
+//! # let _tasks = Test::from_cmd(cmd).with_recipe(RecipeKinds::M2_NAME).tasks();
+//! ```
+//!
+//! # Example, forced push
+//!
+//! If you try to push a file that's already being 'synced' by unison
+//! (normally this happens when syncing has failed, it's rare) then wf2
+//! will stop you and give a warning.
+//!
+//! You can override the warning if you really know what you're doing
+//! - just provide the `-f` flag
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # use wf2_core::cli::cli_input::CLIInput;
+//! # use wf2_core::recipes::recipe_kinds::RecipeKinds;
+//! # let cmd = r#"
+//! wf2 push app/code/probably-shouldnt.php -f
+//! # "#;
+//! # let _tasks = Test::from_cmd(cmd).with_recipe(RecipeKinds::M2_NAME).tasks();
+//! ```
+//!
 use crate::commands::CliCommand;
 use crate::context::Context;
 use crate::recipes::m2::services::php::PhpService;
@@ -8,6 +45,7 @@ use clap::{App, ArgMatches};
 use std::path::PathBuf;
 use structopt::StructOpt;
 
+#[doc_link::doc_link("/recipes/m2/subcommands/push")]
 pub struct M2Push;
 
 impl M2Push {
@@ -37,7 +75,8 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2Push {
         vec![App::new(M2Push::NAME)
             .about(M2Push::ABOUT)
             .arg_from_usage("<paths>... 'files or paths to push'")
-            .arg_from_usage("-f --force 'ignore warnings about synced files'")]
+            .arg_from_usage("-f --force 'ignore warnings about synced files'")
+            .after_help(M2Push::DOC_LINK)]
     }
 }
 
@@ -142,5 +181,83 @@ pub fn push(
             .chain(recreates)
             .chain(copy_to_remotes)
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::cli::cli_input::CLIInput;
+    use crate::cli::cli_output::CLIOutput;
+    use crate::task::Task;
+    use crate::test::Test;
+    use std::path::PathBuf;
+
+    #[test]
+    fn test_push_dir() {
+        let args = vec!["prog", "--recipe=M2", "push", "vendor/shane"];
+        let cwd = "/users/acme";
+        let expected_commands = vec![
+            "docker exec wf2__acme__php rm -rf /var/www/vendor/shane",
+            "docker exec -u www-data wf2__acme__php mkdir -p /var/www/vendor",
+            "docker cp /users/acme/vendor/shane wf2__acme__php:/var/www/vendor",
+        ];
+        test_push(args, cwd, expected_commands);
+    }
+
+    #[test]
+    fn test_push_single_file() {
+        let args = vec!["prog", "--recipe=M2", "push", "composer.json"];
+        let cwd = "/users/acme";
+        let expected_commands = vec![
+            "docker exec wf2__acme__php rm -rf /var/www/composer.json",
+            "docker cp /users/acme/composer.json wf2__acme__php:/var/www",
+        ];
+        test_push(args, cwd, expected_commands);
+    }
+
+    #[test]
+    fn test_push_invalid_files() {
+        let args = vec!["prog", "--recipe=M2", "push", "app/"];
+        test_push_invalid(args);
+        let args = vec!["prog", "--recipe=M2", "push", "app/code"];
+        test_push_invalid(args);
+        let args = vec!["prog", "--recipe=M2", "push", "app/code/Acme/Lib/File"];
+        test_push_invalid(args);
+        let args = vec!["prog", "--recipe=M2", "push", "vendor/magento", "app/code"];
+        test_push_invalid(args);
+    }
+
+    #[test]
+    fn test_push_invalid_files_with_force() {
+        let args = vec![
+            "prog",
+            "--recipe=M2",
+            "push",
+            "app/code/Acme/Lib/File",
+            "-f",
+        ];
+        let cwd = "/users/acme";
+        let expected_commands = vec![
+            "docker cp /users/acme/app/code/Acme/Lib/File wf2__acme__php:/var/www/app/code/Acme/Lib",
+        ];
+        test_push(args, cwd, expected_commands);
+    }
+
+    fn test_push(args: Vec<&str>, cwd: impl Into<PathBuf>, expected_commands: Vec<&str>) {
+        let input = CLIInput::_from_args(args)._with_cwd(cwd);
+        let cli_output = CLIOutput::from_input(input);
+        let tasks = cli_output.expect("test").tasks.unwrap();
+        assert_eq!(Test::_commands(&tasks), expected_commands);
+    }
+
+    fn test_push_invalid(args: Vec<&str>) {
+        let cwd = "/users/acme";
+        let input = CLIInput::_from_args(args)._with_cwd(cwd);
+        let cli_output = CLIOutput::from_input(input);
+        let tasks = cli_output.expect("test").tasks.unwrap();
+        match tasks.get(0) {
+            Some(Task::NotifyError { .. }) => {}
+            _ => unreachable!(),
+        }
     }
 }

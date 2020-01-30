@@ -1,19 +1,12 @@
-#[macro_use]
-extern crate clap;
-
 use futures::sync::oneshot;
 use futures::{future::lazy, future::Future};
 use wf2_core::context::RunMode;
 use wf2_core::WF2;
 
-use crate::cli_input::CLIInput;
-use crate::cli_output::CLIOutput;
 use std::process;
+use wf2_core::cli::cli_input::CLIInput;
+use wf2_core::cli::cli_output::CLIOutput;
 
-mod cli;
-mod cli_input;
-mod cli_output;
-mod error;
 mod tests;
 
 fn main() {
@@ -25,7 +18,7 @@ fn main() {
         match cli_output {
             Err(ref e) => {
                 eprintln!("{}", e);
-                return;
+                process::exit(1);
             }
             _ => unreachable!(),
         }

@@ -23,6 +23,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for TimelogCmd {
         let args_required = Jira::from_file().is_none();
         vec![App::new(CLI_COMMAND_NAME)
             .about("time log summaries")
+            .after_help(TimelogCmd::DOC_LINK)
             .arg(
                 Arg::with_name("range").required(true).help(
                     "which day/days to fetch, eg: 'today', 'yesterday', '3d' or '2019-10-29'",

@@ -1,0 +1,8 @@
+recipe: Wp
+domains: ["example.com"]
+
+scripts:
+  hello-world:
+    steps:
+      - sh: echo hello world!
+      - sh: printenv
