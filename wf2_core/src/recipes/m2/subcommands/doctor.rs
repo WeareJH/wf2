@@ -1,3 +1,17 @@
+//!
+//! Diagnose & fix potential problems in the current project.
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # let cmd = r#"
+//! wf2 doctor
+//! # "#;
+//! # let (commands, ..) = Test::from_cmd(cmd)
+//! #     .with_file("../fixtures/config_01.yaml")
+//! #     .file_ops_commands();
+//! # assert_eq!(commands, vec!["docker exec -it wf2__wf2_default__unison chown -R docker:docker /volumes/internal"])
+//! ```
+//!
 use crate::commands::CliCommand;
 use crate::context::Context;
 use crate::recipes::m2::tasks::env_php::EnvPhp;
@@ -7,6 +21,7 @@ use crate::recipes::m2::services::M2Service;
 use crate::task::Task;
 use clap::{App, ArgMatches};
 
+#[doc_link::doc_link("/recipes/m2/subcommands/doctor")]
 pub struct M2Doctor;
 
 impl M2Doctor {
@@ -22,7 +37,9 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2Doctor {
         Some(doctor(ctx))
     }
     fn subcommands(&self, _ctx: &Context) -> Vec<App<'a, 'b>> {
-        let cmd = App::new(M2Doctor::NAME).about(M2Doctor::ABOUT);
+        let cmd = App::new(M2Doctor::NAME)
+            .about(M2Doctor::ABOUT)
+            .after_help(M2Doctor::DOC_LINK);
         vec![cmd]
     }
 }

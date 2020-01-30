@@ -1,3 +1,6 @@
+//!
+//! M2 playgound
+//!
 use crate::commands::CliCommand;
 use crate::conditions::file_present::FilePresent;
 use crate::conditions::question::Question;
@@ -9,10 +12,12 @@ use crate::recipes::m2::subcommands::m2_playground_help;
 use crate::task::Task;
 use ansi_term::Colour::{Cyan, Green, Red};
 use clap::{App, Arg, ArgMatches};
+use doc_link::doc_link;
 use futures::future::lazy;
 use std::sync::Arc;
 use structopt::StructOpt;
 
+#[doc_link("/recipes/m2/subcommands/m2_playground")]
 pub struct M2PlaygroundCmd;
 
 impl M2PlaygroundCmd {
@@ -232,7 +237,8 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
             )
             .arg_from_usage("-f --force 'wipe an existing folder before starting'")
             .arg_from_usage("-o --output [dirname] 'name of the directory to create'")
-            .arg_from_usage("-e --enterprise 'create an enterprise edition project'")]
+            .arg_from_usage("-e --enterprise 'create an enterprise edition project'")
+            .after_help(M2PlaygroundCmd::DOC_LINK)]
     }
 }
 

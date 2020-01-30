@@ -1,10 +1,10 @@
+use crate::context::Term;
 use std::env;
 use std::env::current_dir;
 use std::path::PathBuf;
 use std::process::{Command, Output};
 use terminal_size::{terminal_size, Height, Width};
 use users::{get_current_gid, get_current_uid};
-use wf2_core::context::Term;
 
 pub const DEFAULT_CONFIG_FILE: &str = "wf2.yml";
 
@@ -13,7 +13,7 @@ pub const DEFAULT_CONFIG_FILE: &str = "wf2.yml";
 /// It's primary all about side-effecting things, like measuring the
 /// terminal window, getting the current PWD etc
 ///
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct CLIInput {
     pub args: Vec<String>,
     pub cwd: PathBuf,
@@ -32,6 +32,18 @@ impl CLIInput {
             term: CLIInput::term(),
             uid: get_current_uid(),
             gid: get_current_gid(),
+        }
+    }
+    pub fn from_cwd(cwd: impl Into<PathBuf>) -> CLIInput {
+        CLIInput {
+            cwd: cwd.into(),
+            ..CLIInput::default()
+        }
+    }
+    pub fn with_pv(path: impl Into<String>) -> CLIInput {
+        CLIInput {
+            pv: Some(path.into()),
+            ..CLIInput::default()
         }
     }
     pub fn has_pv() -> Option<String> {

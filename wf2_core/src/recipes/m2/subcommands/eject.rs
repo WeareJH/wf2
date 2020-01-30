@@ -1,3 +1,8 @@
+//!
+//! Dump all of the files/configuration needed to run this project
+//!
+//! **Notice** This command is temporaily disabled whilst we rebuild/re-envision it
+//!
 use crate::commands::CliCommand;
 use crate::recipes::m2::M2Recipe;
 use crate::{

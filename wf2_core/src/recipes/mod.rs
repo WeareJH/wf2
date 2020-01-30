@@ -1,3 +1,39 @@
+//!
+//! Recipes in `wf2` define how a particular project
+//! will run.
+//!
+//! The CLI will adapt based on the current project's 'recipe'
+//! meaning you'll only see commands relevant to the project you
+//! run the command in.
+//!
+//! ## Examples
+//!
+//! If your `wf2.yml` file contains the following...
+//!
+//! ```
+//! # use wf2_core::context::Context;
+//! # let input = r#"
+//! recipe: M2
+//! # "#;
+//! # let _ctx: Context = serde_yaml::from_str(input).expect("Can parse m2 yaml example");
+//! ```
+//!
+//! Then you'll only see content relevant to the [Magento 2](m2/index.html),
+//! and the same thing for the [Wordpress Recipe](wp/index.html)
+//!
+//! ```
+//! # use wf2_core::context::Context;
+//! # let input = r#"
+//! recipe: Wp
+//! # "#;
+//! # let _ctx: Context = serde_yaml::from_str(input).expect("Can parse wp yaml example");
+//! ```
+//!
+//! ## Recipes
+//!
+//! - [Magento 2](m2/index.html)
+//! - [Wordpress](wp/index.html)
+//!
 use crate::commands::CliCommand;
 use crate::scripts::script::Script;
 use crate::{cmd::Cmd, context::Context, task::Task};

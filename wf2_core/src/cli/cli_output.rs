@@ -1,20 +1,19 @@
 use crate::cli::{append_subcommands, CLI};
-use crate::cli_input::CLIInput;
-use crate::error::CLIError;
 
 use clap::{App, ArgMatches};
-use from_file::FromFileError;
-use std::path::PathBuf;
-use wf2_core::commands::{internal_commands, CliCommand};
 
-use wf2_core::recipes::available_recipes;
-use wf2_core::recipes::recipe_kinds::RecipeKinds;
-use wf2_core::scripts::script::Script;
-use wf2_core::util::two_col;
-use wf2_core::{
+use crate::cli::cli_input::CLIInput;
+use crate::cli::CLIHelp;
+use crate::commands::{internal_commands, CliCommand};
+use crate::recipes::available_recipes;
+use crate::recipes::recipe_kinds::RecipeKinds;
+use crate::scripts::script::Script;
+use crate::util::two_col;
+use crate::{
     context::{Context, ContextOverrides, RunMode},
     task::Task,
 };
+use std::path::PathBuf;
 
 pub struct CLIOutput {
     pub ctx: Context,
@@ -25,7 +24,7 @@ impl CLIOutput {
     ///
     /// Create CLIOutput from CLIInput
     ///
-    pub fn from_input(input: CLIInput) -> Result<CLIOutput, CLIError> {
+    pub fn from_input(input: CLIInput) -> Result<CLIOutput, failure::Error> {
         let input_args: Vec<String> = input.args.clone().into_iter().map(|s| s).collect();
         //        let base_len = 6;
         let cli = CLI::new();
@@ -53,9 +52,10 @@ impl CLIOutput {
         }
 
         let both = help_text.join("\n\n");
+        let with_link = format!("{}{}", both, CLIHelp::DOC_LINK);
 
         // append recipe subcommands
-        let app = cli.app.after_help(&both[..]);
+        let app = cli.app.after_help(&with_link[..]);
 
         // flatten the subcommands
         let combined_subcommands = collect_apps(&ctx);
@@ -65,54 +65,11 @@ impl CLIOutput {
 
         CLIOutput::from_ctx(&app.clone().get_matches_from(input_args), &ctx, input)
     }
-    pub fn create_context_from_arg(file_path: impl Into<String>) -> Result<Context, CLIError> {
-        let ctx_file: Result<Option<Context>, CLIError> =
-            match Context::new_from_file(file_path.into()) {
-                Ok(ctx) => Ok(Some(ctx)),
-                Err(FromFileError::SerdeError(e)) => Err(CLIError::InvalidConfig(e)),
-                Err(FromFileError::FileOpen(path)) => Err(CLIError::MissingConfig(path)),
-                Err(FromFileError::InvalidExtension) => Err(CLIError::InvalidExtension),
-                Err(..) => Err(CLIError::InvalidExtension),
-            };
-
-        // if it errored, that means it DID exist, but was invalid
-        if let Err(err) = ctx_file {
-            return Err(err);
-        }
-
-        // unwrap the base context from the file above, or use the default as
-        // the base onto which CLI flags can be applied
-        match ctx_file {
-            Ok(Some(ctx)) => Ok(ctx),
-            _ => Ok(Context::default()),
-        }
-    }
-    pub fn create_context(file_path: impl Into<String>) -> Result<Context, CLIError> {
-        // try to read a default config file
-        let ctx_file: Result<Option<Context>, CLIError> =
-            match Context::new_from_file(file_path.into()) {
-                Ok(ctx) => Ok(Some(ctx)),
-                Err(FromFileError::SerdeError(e)) => Err(CLIError::InvalidConfig(e)),
-                Err(..) => Ok(None),
-            };
-
-        // if it errored, that means it DID exist, but was invalid
-        if let Err(err) = ctx_file {
-            return Err(err);
-        }
-
-        // unwrap the base context from the file above, or use the default as
-        // the base onto which CLI flags can be applied
-        match ctx_file {
-            Ok(Some(ctx)) => Ok(ctx),
-            _ => Ok(Context::default()),
-        }
-    }
     pub fn from_ctx(
         matches: &ArgMatches,
         ctx: &Context,
         input: CLIInput,
-    ) -> Result<CLIOutput, CLIError> {
+    ) -> Result<CLIOutput, failure::Error> {
         let mut ctx = ctx.clone();
 
         // Overrides because of CLI flags

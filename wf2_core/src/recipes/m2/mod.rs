@@ -1,3 +1,6 @@
+//!
+//!
+//!
 use crate::commands::CliCommand;
 use crate::dc::Dc;
 use crate::file::File;
@@ -14,13 +17,19 @@ use services::get_services;
 use subcommands::m2_recipe_subcommands;
 use volumes::get_volumes;
 
+#[doc(hidden)]
 pub mod m2_runtime_env_file;
+#[doc(hidden)]
 pub mod m2_vars;
+#[doc(hidden)]
 pub mod pass_thru;
+#[doc(hidden)]
 pub mod resolve_script;
 pub mod services;
 pub mod subcommands;
+#[doc(hidden)]
 pub mod tasks;
+#[doc(hidden)]
 pub mod templates;
 pub mod volumes;
 

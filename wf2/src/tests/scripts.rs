@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use crate::cli_input::CLIInput;
-    use crate::cli_output::CLIOutput;
     use crate::tests::_commands;
     use std::path::PathBuf;
+    use wf2_core::cli::cli_input::CLIInput;
+    use wf2_core::cli::cli_output::CLIOutput;
 
     #[test]
     fn test_scripts_multiple() {

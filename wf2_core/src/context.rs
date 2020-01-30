@@ -1,8 +1,12 @@
 use crate::php::PHP;
 use crate::recipes::recipe_kinds::RecipeKinds;
 use crate::scripts::scripts::Scripts;
+use ansi_term::Colour::{Cyan, Red};
 use from_file::{FromFile, FromFileError};
+use serde_yaml::Value;
 use std::path::PathBuf;
+
+use std::{fmt, fs};
 
 pub const DEFAULT_DOMAIN: &str = "local.m2";
 
@@ -35,7 +39,7 @@ pub const DEFAULT_DOMAIN: &str = "local.m2";
 /// # use wf2_core::context::Context;
 /// # use wf2_core::recipes::recipe_kinds::RecipeKinds;
 /// # use wf2_core::php::PHP;
-/// let ctx = Context::new_from_file("../fixtures/config_01.yaml")?;
+/// let ctx = Context::new_from_file("../fixtures/config_01.yaml").expect("test").unwrap();
 ///
 /// assert_eq!(ctx.recipe, Some(RecipeKinds::M2));
 /// assert_eq!(ctx.php_version, PHP::SevenThree);
@@ -78,6 +82,9 @@ pub struct Context {
     pub config_path: Option<PathBuf>,
 
     #[serde(skip_serializing, default)]
+    pub config_env_path: Option<PathBuf>,
+
+    #[serde(skip_serializing, default)]
     pub env: Option<serde_yaml::Value>,
 
     #[serde(skip_serializing, default)]
@@ -114,6 +121,31 @@ pub struct ContextOverrides {
     pub gid: u32,
 }
 
+#[derive(Debug, Fail)]
+pub enum ContextError {
+    ParseConfig {
+        error: serde_yaml::Error,
+        path: PathBuf,
+    },
+}
+
+impl fmt::Display for ContextError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ContextError::ParseConfig { error, path } => {
+                let prefix = Red.paint("[wf2 error]: Config could not be parsed");
+                let file = Cyan.paint(path.to_string_lossy());
+                let error = error.to_string();
+                write!(
+                    f,
+                    "{}\nFile:        {}\nError:       {}",
+                    prefix, file, error
+                )
+            }
+        }
+    }
+}
+
 pub const DEFAULT_NAME: &str = "wf2_default";
 
 impl Default for Context {
@@ -128,6 +160,7 @@ impl Default for Context {
             npm_path: default_cwd(),
             php_version: PHP::SevenThree,
             config_path: None,
+            config_env_path: None,
             overrides: None,
             debug: default_debug(),
             uid: 0,
@@ -146,12 +179,11 @@ impl Context {
             ..Default::default()
         }
     }
-    pub fn new_from_file(path: impl Into<String>) -> Result<Context, FromFileError> {
+    pub fn new_from_file(path: impl Into<PathBuf>) -> Result<Option<Context>, failure::Error> {
         let path = &path.into();
-        Context::from_file(path).and_then(|mut ctx: Context| {
-            ctx.config_path = Some(PathBuf::from(path));
-            Ok(ctx)
-        })
+        let (main, env) = get_paths(path);
+        let merged = merge_yaml(&main, &env);
+        merged
     }
     pub fn new_from_str(yaml_str: &str) -> Result<Context, FromFileError> {
         Context::from_yaml_string(yaml_str.to_string())
@@ -226,13 +258,132 @@ fn default_id() -> u32 {
     0
 }
 
-#[test]
-fn test_context_from_yaml() {
-    let r = Context::from_file("../fixtures/config_01.yaml");
-    match r {
-        Ok(ctx) => println!("context={:#?}", ctx),
-        Err(e) => eprintln!("e={:?}", e),
-    };
+///
+/// Take a path, and re-create the same path with '.env' before the extension
+///
+pub fn get_paths(input: impl Into<PathBuf>) -> (PathBuf, PathBuf) {
+    let pb = input.into();
+    let ext = pb.extension();
+    let fs = pb.file_stem();
+
+    match (fs, ext) {
+        (Some(fs), Some(_ext)) => {
+            let mut next = PathBuf::new();
+            next.set_file_name(format!("{}.env.yml", fs.to_string_lossy()));
+            let combined = pb.with_file_name(next);
+            (pb, combined)
+        }
+        _ => {
+            unimplemented!("files without extensions not currently supported");
+        }
+    }
+}
+
+fn merge_yaml(left: &PathBuf, right: &PathBuf) -> Result<Option<Context>, failure::Error> {
+    let l = std::path::Path::exists(left);
+    let r = std::path::Path::exists(right);
+    match (l, r) {
+        (true, true) => {
+            let l_string = fs::read_to_string(left)?;
+            let r_string = fs::read_to_string(right)?;
+
+            // for the 'left' (main config, hard fail for any issues)
+            let mut l_ctx: Value =
+                serde_yaml::from_str(&l_string).map_err(|e| ContextError::ParseConfig {
+                    path: left.clone(),
+                    error: e,
+                })?;
+
+            // helpers for creating the left hand side only
+            let left_only = || {
+                let mut as_ctx: Context = serde_yaml::from_value(l_ctx.clone())?;
+                as_ctx.config_path = Some(left.clone());
+                Ok(Some(as_ctx))
+            };
+
+            // for the 'right' (optional overrides) allow empty
+            // files to mean 'no overrides)
+            if r_string.trim().len() == 0 {
+                return left_only();
+            }
+
+            // now try to actually read the right hand sand
+            let r_ctx: Value =
+                serde_yaml::from_str(&r_string).map_err(|e| ContextError::ParseConfig {
+                    path: right.clone(),
+                    error: e,
+                })?;
+
+            // and merge it
+            merge(&mut l_ctx, &r_ctx);
+            let mut as_ctx: Context = serde_yaml::from_value(l_ctx)?;
+            as_ctx.config_path = Some(left.clone());
+            as_ctx.config_env_path = Some(right.clone());
+            Ok(Some(as_ctx))
+        }
+        (true, false) => {
+            let l = fs::read_to_string(left)?;
+            let mut as_ctx: Context = serde_yaml::from_str(&l)?;
+            as_ctx.config_path = Some(left.clone());
+            Ok(Some(as_ctx))
+        }
+        (false, ..) => Ok(None),
+    }
+}
+
+fn merge(a: &mut Value, b: &Value) {
+    match (a, b) {
+        (&mut Value::Mapping(ref mut a), &Value::Mapping(ref b)) => {
+            for (k, v) in b {
+                a.insert(k.clone(), v.clone());
+            }
+        }
+        _ => unimplemented!(),
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::file::File;
+    use crate::recipes::m2::m2_runtime_env_file::M2RuntimeEnvFile;
+
+    #[test]
+    fn test_context_from_yaml() {
+        let ctx = Context::new_from_file("../fixtures/minimal.yml");
+        match ctx {
+            Ok(Some(ctx)) => {
+                assert_eq!(ctx.domains, vec!["example.com", "example2.com"]);
+                assert_eq!(ctx.recipe, Some(RecipeKinds::Wp));
+                assert_eq!(
+                    ctx.config_path,
+                    Some(PathBuf::from("../fixtures/minimal.yml"))
+                );
+                assert_eq!(
+                    ctx.config_env_path,
+                    Some(PathBuf::from("../fixtures/minimal.env.yml"))
+                );
+                let env_vars = M2RuntimeEnvFile::from_ctx(&ctx).expect("test");
+                assert!(std::str::from_utf8(&env_vars.bytes)
+                    .expect("test")
+                    .contains("BLACKFIRE_SERVER_ID=kittens"));
+                assert!(std::str::from_utf8(&env_vars.bytes)
+                    .expect("test")
+                    .contains("BLACKFIRE_SERVER_TOKEN=supersecret"));
+            }
+            _ => unreachable!(),
+        }
+    }
+    #[test]
+    fn test_context_from_when_env_empty() {
+        let ctx = Context::new_from_file("../fixtures/env-empty.yml");
+        match ctx {
+            Ok(Some(ctx)) => {
+                assert_eq!(ctx.domains, vec!["acme.m2"]);
+            }
+            _ => unreachable!(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]

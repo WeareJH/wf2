@@ -1,14 +1,20 @@
-use crate::cli_input::DEFAULT_CONFIG_FILE;
-use crate::cli_output::CLIOutput;
-use crate::error::CLIError;
+use crate::cli::cli_input::DEFAULT_CONFIG_FILE;
+use crate::cli::error::CLIError;
+use crate::context::Context;
+use crate::recipes::recipe_kinds::RecipeKinds;
 use clap::{App, AppSettings, Arg};
 use std::str::FromStr;
-use wf2_core::context::Context;
-use wf2_core::recipes::recipe_kinds::RecipeKinds;
+
+pub mod cli_input;
+pub mod cli_output;
+pub mod error;
 
 pub struct CLI<'a, 'b> {
     pub app: clap::App<'a, 'b>,
 }
+
+#[doc_link::doc_link("")]
+pub struct CLIHelp;
 
 impl<'a, 'b> CLI<'a, 'b> {
     pub fn new() -> CLI<'a, 'b> {
@@ -48,27 +54,39 @@ impl<'a, 'b> CLI<'a, 'b> {
         CLI { app }
     }
 
-    pub fn get_ctx(&self, input: Vec<String>) -> Result<Context, CLIError> {
+    pub fn get_ctx(&self, input: Vec<String>) -> Result<Context, failure::Error> {
         let matches = self.app.clone().get_matches_from_safe(input.clone());
         match matches {
             Ok(matches) => {
-                let ctx = match matches.value_of("config") {
-                    Some(file_path) => CLIOutput::create_context_from_arg(file_path),
-                    None => CLIOutput::create_context(DEFAULT_CONFIG_FILE.to_string()),
-                };
-                ctx.map(move |mut ctx| {
-                    if let Some(recipe) = matches.value_of("recipe") {
-                        if let Ok(rk) = RecipeKinds::from_str(recipe) {
-                            ctx.recipe = Some(rk);
+                let mut ctx = match matches.value_of("config") {
+                    Some(file_path) => {
+                        // Match strictly here since we need to error
+                        // on None if the path was given, but was absent on disk
+                        match Context::new_from_file(file_path) {
+                            Ok(Some(ctx)) => Ok(ctx),
+                            Ok(..) => {
+                                Err(CLIError::MissingConfig(std::path::PathBuf::from(file_path))
+                                    .into())
+                            }
+                            Err(e) => Err(e.into()),
                         }
                     }
-                    // We only set a 'default' recipe if a `wf2.yml` is present
-                    // and if no recipe was already set
-                    if ctx.recipe.is_none() && ctx.config_path.is_some() {
-                        ctx.recipe = Some(RecipeKinds::M2);
+                    None => Context::new_from_file(DEFAULT_CONFIG_FILE)
+                        .map(|opt| opt.unwrap_or_else(|| Context::default())),
+                }?;
+
+                if let Some(recipe) = matches.value_of("recipe") {
+                    if let Ok(rk) = RecipeKinds::from_str(recipe) {
+                        ctx.recipe = Some(rk);
                     }
-                    ctx
-                })
+                }
+                // We only set a 'default' recipe if a `wf2.yml` is present
+                // and if no recipe was already set
+                if ctx.recipe.is_none() && ctx.config_path.is_some() {
+                    ctx.recipe = Some(RecipeKinds::M2);
+                }
+
+                Ok(ctx)
             }
             Err(clap::Error {
                 kind: clap::ErrorKind::HelpDisplayed,
@@ -85,8 +103,8 @@ impl<'a, 'b> CLI<'a, 'b> {
                 message,
                 kind: clap::ErrorKind::VersionDisplayed,
                 ..
-            }) => Err(CLIError::VersionDisplayed(message)),
-            Err(e) => Err(CLIError::InvalidConfig(e.to_string())),
+            }) => Err(CLIError::VersionDisplayed(message).into()),
+            Err(e) => Err(CLIError::InvalidConfig(e.to_string()).into()),
         }
     }
 }

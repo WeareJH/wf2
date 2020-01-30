@@ -1,3 +1,6 @@
+//!
+//! M2 Services
+//!
 use crate::context::Context;
 use crate::dc_service::DcService;
 use crate::recipes::m2::m2_vars::M2Vars;
@@ -32,9 +35,7 @@ pub trait M2Service {
     const IMAGE: &'static str;
     fn dc_service(&self, ctx: &Context, vars: &M2Vars) -> DcService;
     fn from_ctx(_ctx: &Context) -> Result<DcService, failure::Error> {
-        Err(failure::Error::from(M2ServiceError::NotImplemented(
-            format!("{}::from_ctx", Self::NAME),
-        )))
+        Err(M2ServiceError::NotImplemented(format!("{}::from_ctx", Self::NAME)).into())
     }
     fn select_image(&self, _ctx: &Context) -> String {
         Self::IMAGE.to_string()

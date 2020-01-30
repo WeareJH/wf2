@@ -1,3 +1,76 @@
+//!
+//! Update the images used in a recipe.
+//!
+//! Recipes are made up of [services](../services/index.html) - and for each service
+//! there's a corresponding image that's usually published on docker hub.
+//!
+//! For example, the PHP image used in this recipe might be
+//! something from this page [`wearejh/php`](https://hub.docker.com/r/wearejh/php/tags) - and when
+//! that's updated you could manually just run `docker pull wearejh/php:7.2-m2`
+//!
+//! But this command, `update-images` will do the hard work for you. If you don't provide
+//! any parameters it will update ALL images, but if you just wanted to update a single one, or
+//! a few, then you reference them by service name.
+//!
+//! ## Why would an image be updated?
+//!
+//! Images are typically updated when there's a bug fix, performance improvement or when they
+//! include changes that make certain `wf2` features possible.
+//!
+//! # Example: update the image used by the php service only
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # use wf2_core::cli::cli_input::CLIInput;
+//! # use wf2_core::recipes::recipe_kinds::RecipeKinds;
+//! # let cmd = r#"
+//! wf2 update-images php
+//! # "#;
+//! # let commands = Test::from_cmd(cmd)
+//! #     .with_recipe(RecipeKinds::M2_NAME)
+//! #     .with_cli_input(CLIInput::from_cwd("/users/shane"))
+//! #     .commands();
+//! # assert_eq!(commands.len(), 1)
+//! ```
+//!
+//! # Example: update the image used by the php + varnish services
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # use wf2_core::cli::cli_input::CLIInput;
+//! # use wf2_core::recipes::recipe_kinds::RecipeKinds;
+//! # let cmd = r#"
+//! wf2 update-images php varnish
+//! # "#;
+//! # let commands = Test::from_cmd(cmd)
+//! #     .with_recipe(RecipeKinds::M2_NAME)
+//! #     .with_cli_input(CLIInput::from_cwd("/users/shane"))
+//! #     .commands();
+//! # assert_eq!(commands.len(), 2)
+//! ```
+//!
+//! # Example: update ALL images
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # use wf2_core::cli::cli_input::CLIInput;
+//! # use wf2_core::recipes::recipe_kinds::RecipeKinds;
+//! # let cmd = r#"
+//! wf2 update-images
+//! # "#;
+//! # let commands = Test::from_cmd(cmd)
+//! #     .with_recipe(RecipeKinds::M2_NAME)
+//! #     .with_cli_input(CLIInput::from_cwd("/users/shane"))
+//! #     .commands();
+//! # assert_eq!(commands.len(), 13)
+//! ```
+//!
+//! ## How do I find the service names in this recipe?
+//!
+//! If you're not sure which service uses which image, take a look at
+//! the [list-images](../list_images/index.html) command.
+//!
+//!
 use crate::commands::CliCommand;
 use crate::context::Context;
 use crate::dc::Dc;
@@ -6,6 +79,7 @@ use crate::task::Task;
 use clap::{App, Arg, ArgMatches};
 use structopt::StructOpt;
 
+#[doc_link::doc_link("/recipes/m2/subcommands/update_images")]
 pub struct M2UpdateImages;
 
 impl M2UpdateImages {
@@ -33,6 +107,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2UpdateImages {
     fn subcommands(&self, _ctx: &Context) -> Vec<App<'a, 'b>> {
         vec![App::new(M2UpdateImages::NAME)
             .about(M2UpdateImages::ABOUT)
+            .after_help(M2UpdateImages::DOC_LINK)
             .arg(
                 Arg::with_name("services")
                     .help("limit the update to a subset of services")

@@ -1,3 +1,59 @@
+//!
+//! Enable and disable Xdebug
+//!
+//! Xdebug is not 'enabled' by default since it causes a big slow down on every request.
+//!
+//! So, when you need to debug something, you have 2 options:
+//!
+//! - ## Option 1: Add `?debug=true` to a request.
+//!     This is especially useful when working with APIs - since you can leave Xdebug off
+//!     which will prevent things like the admin getting really slow - but then have it working
+//!     on the the single endpoint you're working on.
+//!
+//!     For example, if you want to debug a `/graphql` request, there no need to have xdebug
+//!     enabled sitewite, you can just change the path to `/graphql?debug=true`
+//!
+//! - ## Option 2: enable xdebug globally.
+//!    You can just 'flip the switch' so to speak, and have xdebug enabled for a short period of
+//!    time, but it will trigger for every request.
+//!
+//!    Image a situation where you just need to debug 1 api request at the end of a checkout.
+//!    Since enabling/disabling xdebug does not lose any data/sessions, you can just switch it on
+//!    at the very last moment.
+//!
+//! # Example: enable xdebug
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # use wf2_core::cli::cli_input::CLIInput;
+//! # use wf2_core::recipes::recipe_kinds::RecipeKinds;
+//! # let cmd = r#"
+//! wf2 xdebug enable
+//! # "#;
+//! # let _tasks = Test::from_cmd(cmd)
+//! #     .with_recipe(RecipeKinds::M2_NAME)
+//! #     .with_cli_input(CLIInput::from_cwd("/users/shane"))
+//! #     .tasks();
+//! ```
+//!
+//! # Example: disable xdebug
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # use wf2_core::cli::cli_input::CLIInput;
+//! # use wf2_core::recipes::recipe_kinds::RecipeKinds;
+//! # let cmd = r#"
+//! wf2 xdebug disable
+//! # "#;
+//! # let _tasks = Test::from_cmd(cmd)
+//! #     .with_recipe(RecipeKinds::M2_NAME)
+//! #     .with_cli_input(CLIInput::from_cwd("/users/shane"))
+//! #     .tasks();
+//! ```
+//! ## Further reading
+//!
+//! See the [Xdebug Service](../../services/xdebug/index.html) for more information.
+//!
 use crate::commands::CliCommand;
 use crate::context::Context;
 
@@ -9,6 +65,7 @@ use clap::{App, ArgMatches, SubCommand};
 
 use crate::recipes::m2::templates::nginx_upstream::NginxUpstream;
 
+#[doc_link::doc_link("/recipes/m2/subcommands/xdebug")]
 #[derive(Default)]
 pub struct XdebugCmd;
 
@@ -74,7 +131,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for XdebugCmd {
     fn subcommands(&self, _ctx: &Context) -> Vec<App<'a, 'b>> {
         vec![App::new(XdebugCmd::NAME)
             .about(XdebugCmd::ABOUT)
-            .after_help("Enable: `wf2 xdebug enable`. Disable: `wf2 xdebug disable`.")
+            .after_help(XdebugCmd::DOC_LINK)
             .subcommands(vec![
                 SubCommand::with_name(XdebugCmd::ENABLE)
                     .display_order(0)

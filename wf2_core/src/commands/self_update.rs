@@ -1,3 +1,27 @@
+//!
+//! A command to automatically update wf2 to the latest version
+//!
+//! ## update to the latest version
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # let cmd = r#"
+//! wf2 self-update
+//! # "#;
+//! # let tasks = Test::from_cmd(cmd).tasks();
+//! # assert_eq!(tasks.len(), 1);
+//! ```
+//!
+//! ## update to the latest version, without prompts
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # let cmd = r#"
+//! wf2 self-update -y
+//! # "#;
+//! # let tasks = Test::from_cmd(cmd).tasks();
+//! # assert_eq!(tasks.len(), 1);
+//! ```
 use serde::{Deserialize, Serialize};
 use serde_json;
 use structopt::StructOpt;
@@ -11,9 +35,7 @@ use std::str;
 use crate::commands::CliCommand;
 use crate::context::Context;
 use crate::task::Task;
-use ansi_term::Color::Blue;
-use ansi_term::Color::Green;
-use ansi_term::Color::Red;
+use ansi_term::Color::{Blue, Green, Red};
 use clap::{App, Arg, ArgMatches};
 use futures::future::lazy;
 use std::path::PathBuf;
@@ -29,6 +51,7 @@ enum SelfUpdateError {
     NoItems,
 }
 
+#[doc_link::doc_link("/commands/self_update")]
 #[derive(Debug, Default)]
 pub struct SelfUpdate(String);
 
@@ -60,6 +83,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for SelfUpdate {
         vec![App::new(NAME)
             .display_order(8)
             .about("Update wf2 to the latest release")
+            .after_help(SelfUpdate::DOC_LINK)
             .arg(
                 Arg::with_name("yes")
                     .required(false)
