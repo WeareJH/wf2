@@ -9,7 +9,7 @@ pub struct VarnishService;
 
 impl M2Service for VarnishService {
     const NAME: &'static str = "varnish";
-    const IMAGE: &'static str = "wearejh/magento-varnish:latest";
+    const IMAGE: &'static str = "wearejh/varnish:latest";
 
     fn dc_service(&self, ctx: &Context, vars: &M2Vars) -> DcService {
         DcService::new(ctx.name(), Self::NAME, Self::IMAGE)
