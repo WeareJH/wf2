@@ -1,66 +1,67 @@
+//!
+//! # `env`
+//!
+//! **Subcommands**
+//! - [init](#wf2-env-init)
+//!
+//! ### About
+//!
+//! The `env` group of commands handle things related
+//! to the `wf2.env.yml` file.
+//!
+//! In a project, you'll have a `wf2.yml` file which contains configuration
+//! for the current project. But sometimes you'd like to temporarily override
+//! one (or many) of the config items.
+//!
+//! For example, you may be tunnelling your local site throuh `NGROK.io` - this requires
+//! you to change `domains: [local.m2]` to something like `domains: ["123456.ngrok.io]`.
+//!
+//! To prevent you having to change the wf2.yml file (which is under git), you can add
+//! a temporary change to `wf2.env.yml`
+//!
+//! ### Example
+//!
+//! **wf2.yml**
+//! ```yml
+//! domains: [local.m2]
+//! php_version: 7.2
+//! ```
+//!
+//! **wf2.env.yml**
+//! ```yml
+//! domains: [23456.ngrok.io]
+//! ```
+//!
+//! **merged result**
+//! ```yml
+//! domains: [23456.ngrok.io]
+//! php_version: 7.2
+//! ```
+//!
+//! ## Subcommands
+//!
+//! ### `wf2 env init`
+//!
+//! This will create a new `wf2.env.yml` file (if one is not already present)
+//! in the same directory. It will be empty, but then allows you to add any
+//! overrides that you need.
+//!
+//! ```rust
+//! # use wf2_core::test::Test;
+//! # use wf2_core::task::Task;
+//! # let cmd = r#"
+//! wf2 env init
+//! # "#;
+//! # let tasks = Test::from_cmd(cmd).with_file("../fixtures/config_01.yaml").tasks();
+//! # let (_read, write, _delete) = Task::file_op_paths(&tasks);
+//! # assert_eq!(vec!["../fixtures/config_01.env.yml"], write);
+//! ```
 use crate::commands::CliCommand;
 use crate::context::{get_paths, Context};
 use crate::task::Task;
 use clap::{App, ArgMatches};
 
-///
-/// # `env`
-///
-/// **Subcommands**
-/// - [init](#wf2-env-init)
-///
-/// ### About
-///
-/// The `env` group of commands handle things related
-/// to the `wf2.env.yml` file.
-///
-/// In a project, you'll have a `wf2.yml` file which contains configuration
-/// for the current project. But sometimes you'd like to temporarily override
-/// one (or many) of the config items.
-///
-/// For example, you may be tunnelling your local site throuh `NGROK.io` - this requires
-/// you to change `domains: [local.m2]` to something like `domains: ["123456.ngrok.io]`.
-///
-/// To prevent you having to change the wf2.yml file (which is under git), you can add
-/// a temporary change to `wf2.env.yml`
-///
-/// ### Example
-///
-/// **wf2.yml**
-/// ```yml
-/// domains: [local.m2]
-/// php_version: 7.2
-/// ```
-///
-/// **wf2.env.yml**
-/// ```yml
-/// domains: [23456.ngrok.io]
-/// ```
-///
-/// **merged result**
-/// ```yml
-/// domains: [23456.ngrok.io]
-/// php_version: 7.2
-/// ```
-///
-/// ## Subcommands
-///
-/// ### `wf2 env init`
-///
-/// This will create a new `wf2.env.yml` file (if one is not already present)
-/// in the same directory. It will be empty, but then allows you to add any
-/// overrides that you need.
-///
-/// ```rust
-/// # use wf2_core::test::Test;
-/// # use wf2_core::task::Task;
-/// # let cmd = r#"
-/// wf2 env init
-/// # "#;
-/// # let tasks = Test::from_cmd(cmd).with_file("../fixtures/config_01.yaml").tasks();
-/// # let (_read, write, _delete) = Task::file_op_paths(&tasks);
-/// # assert_eq!(vec!["../fixtures/config_01.env.yml"], write);
-/// ```
+#[doc_link::doc_link("/commands/env")]
 pub struct EnvCmd;
 
 impl EnvCmd {
@@ -86,6 +87,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for EnvCmd {
     fn subcommands(&self, _ctx: &Context) -> Vec<App<'a, 'b>> {
         vec![App::new(EnvCmd::NAME)
             .about(EnvCmd::ABOUT)
+            .after_help(EnvCmd::DOC_LINK)
             .subcommand(init_sub_command())]
     }
 }
@@ -99,7 +101,9 @@ impl EnvInitCmd {
 }
 
 fn init_sub_command<'a, 'b>() -> App<'a, 'b> {
-    App::new(EnvInitCmd::NAME).about(EnvInitCmd::ABOUT)
+    App::new(EnvInitCmd::NAME)
+        .after_help(EnvCmd::DOC_LINK)
+        .about(EnvInitCmd::ABOUT)
 }
 
 fn init_task(ctx: &Context) -> Vec<Task> {

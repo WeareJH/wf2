@@ -103,7 +103,7 @@ pub mod printer_json;
 
 const CLI_COMMAND_NAME: &str = "timelog";
 
-#[doc_link::doc_link("/commands/env")]
+#[doc_link::doc_link("/commands/timelog")]
 #[derive(Debug, Default)]
 pub struct TimelogCmd(String);
 
