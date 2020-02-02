@@ -12,7 +12,7 @@ impl DcVolume {
         let name: String = name.into();
         DcVolume {
             name: format!("wf2__{}__{}", ctx_name.into(), name),
-            display_name: name.clone(),
+            display_name: name,
         }
     }
 }

@@ -13,6 +13,7 @@ impl PhpService {
     pub const IMAGE_7_1: &'static str = "wearejh/php:7.1-m2";
     pub const IMAGE_7_2: &'static str = "wearejh/php:7.2-m2";
     pub const IMAGE_7_3: &'static str = "wearejh/php:7.3-m2";
+    pub const IMAGE_7_4: &'static str = "wearejh/php:7.4-m2";
     pub const COMPOSER_CACHE_PATH: &'static str = "/home/www-data/.composer/cache";
 
     pub fn select(ctx: &Context) -> Result<DcService, failure::Error> {
@@ -56,6 +57,7 @@ impl M2Service for PhpService {
             PHP::SevenOne => PhpService::IMAGE_7_1,
             PHP::SevenTwo => PhpService::IMAGE_7_2,
             PHP::SevenThree => PhpService::IMAGE_7_3,
+            PHP::SevenFour => PhpService::IMAGE_7_4,
         }
         .to_string()
     }
