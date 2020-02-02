@@ -1,7 +1,7 @@
 //!
 //! Global commands that can be run independent of any project
 //!
-//! - [env](env/struct.EnvCmd.html)
+//! - [env](env/index.html)
 //! - [timelog](timelog/index.html)
 //! - [self-update](self_update/index.html)
 //! - [m2-playground](../recipes/m2/subcommands/m2_playground_cmd/index.html)
