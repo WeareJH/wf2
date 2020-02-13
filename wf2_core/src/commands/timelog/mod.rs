@@ -53,6 +53,20 @@
 //! # let _tasks = Test::from_cmd(cmd).tasks();
 //! ```
 //!
+//! ## fetch time logs for a particular date.
+//!
+//! The format is YYYY-MM-DD
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # let cmd = r#"
+//! wf2 timelog 2020-01-29 -v
+//! # --domain acme.atlassian.net --email user@exampe.com --api 123456
+//! # "#;
+//! # let cmd = cmd.trim().replace("\n", " ");
+//! # let _tasks = Test::from_cmd(cmd).tasks();
+//! ```
+//!
 //! ## applying filters
 //!
 //! - [see all filters](jira_worklog_day_filter/enum.WorklogDayFilter.html#variants)
