@@ -1,14 +1,14 @@
 use crate::commands::timelog::jira::Jira;
-use crate::commands::timelog::jira_types::{JiraAssignee, JiraWorklog, WorkType};
+use crate::commands::timelog::jira_types::{JiraWorklog, WorkType};
+use crate::commands::timelog::jira_user::JiraUser;
 use chrono::{Date, DateTime, Utc};
 use reqwest::header::AUTHORIZATION;
-use serde::Serializer;
+
 use std::sync::Arc;
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct Worklog {
-    #[serde(serialize_with = "crate::commands::timelog::jira_worklog::serialize_author")]
-    pub author: JiraAssignee,
+    pub author: JiraUser,
     pub started: String,
     pub comment: Option<String>,
 
@@ -76,11 +76,4 @@ fn fetch_worklog(
     let bytes = res.text().map_err(|e| e.to_string())?;
     let worklog: JiraWorklog = serde_json::from_str(&bytes).map_err(|e| e.to_string())?;
     Ok(worklog.worklogs)
-}
-
-fn serialize_author<S>(author: &JiraAssignee, s: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    s.serialize_str(&author.name)
 }
