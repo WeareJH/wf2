@@ -15,14 +15,6 @@ pub struct JiraIssueType {
     pub name: String,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
-pub struct JiraAssignee {
-    #[serde(rename = "displayName")]
-    pub display_name: String,
-    pub name: String,
-    pub key: String,
-}
-
 #[derive(Deserialize, Debug)]
 pub struct JiraStatus {
     pub name: String,
