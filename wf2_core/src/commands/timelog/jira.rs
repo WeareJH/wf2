@@ -1,4 +1,4 @@
-use crate::commands::timelog::jira_issues::JiraIssues;
+use crate::commands::timelog::jira_issues::{JiraIssue, JiraIssues};
 use crate::commands::timelog::jira_user::JiraUser;
 use crate::commands::timelog::jira_worklog::Worklog;
 use crate::commands::timelog::jira_worklog_day_filter::WorklogDayFilter;
@@ -24,8 +24,12 @@ pub struct Jira {
 
 #[derive(Debug, Fail)]
 enum JiraError {
-    #[fail(display = "Fetch failed")]
+    #[fail(display = "Fetch failed: {}", _0)]
     FetchFailed(String),
+    #[fail(display = "Worklog Fetch failed {}", _0)]
+    WorklogFetchFailed(String),
+    #[fail(display = "Worklog invalid collection {:#?}", _0)]
+    WorklogInvalidCollection(Vec<String>),
 }
 
 impl Jira {
@@ -74,43 +78,17 @@ impl Jira {
         // make a thread-safe ref to the the jira config
         let jira = Arc::new(self.clone());
 
+        // convert the issue keys into a set of urls to fetch
         let issues = JiraIssues::from_dates(&dates, &jira)?.issues;
 
-        // convert the issue keys into a set of urls to fetch
+        // Execute API calls in chunks of 50
         let as_futures = issues.chunks(50).map(move |issues| {
             let jira = jira.clone();
 
-            Box::new(lazy(move || {
-                let jira = jira.clone();
-
-                let futures = issues.iter().map(move |issue| {
-                    let jira = jira.clone();
-                    let key = issue.key.clone();
-                    let status_name = issue.fields.status.name.clone();
-
-                    let (tx, rx) = oneshot::channel();
-
-                    tokio::spawn(lazy(move || {
-                        tx.send(Worklog::items_from_jira(
-                            jira.clone(),
-                            key.clone(),
-                            status_name.clone(),
-                        ))
-                        .map(|_| ())
-                        .map_err(|_e| println!("lost communication with channel"))
-                    }));
-                    rx
-                });
-
-                futures::collect(futures).and_then(move |results| {
-                    let worklogs: Vec<Worklog> = results
-                        .into_iter()
-                        .filter_map(|res| res.ok())
-                        .flatten()
-                        .collect();
-                    Ok(worklogs)
-                })
-            }))
+            // This is probably a bad practice to clone here
+            // but given that we're potentially making hundreds of API calls
+            // the performance hit in Rust for this won't even be measurable
+            to_fut(issues.to_vec(), jira)
         });
 
         let out = iter_ok(as_futures)
@@ -133,4 +111,74 @@ impl Jira {
             .wait()?;
         Ok(out)
     }
+}
+
+///
+/// Convert a collection of issues into a collection of worklogs
+///
+fn to_fut(
+    issues: Vec<JiraIssue>,
+    jira: Arc<Jira>,
+) -> Box<dyn Future<Item = Vec<Worklog>, Error = failure::Error>> {
+    Box::new(lazy(move || {
+        let jira = jira.clone();
+
+        let futures = issues.into_iter().map(move |issue| {
+            let jira = jira.clone();
+            let key = issue.key.clone();
+            let status_name = issue.fields.status.name;
+
+            let (tx, rx) = oneshot::channel();
+
+            tokio::spawn(lazy(move || {
+                tx.send(Worklog::items_from_jira(
+                    jira.clone(),
+                    key.clone(),
+                    status_name.clone(),
+                ))
+                .map_err(|_e| eprintln!("lost communication with channel"))
+            }));
+            rx
+        });
+
+        futures::collect(futures)
+            .map_err(|e| JiraError::WorklogFetchFailed(e.to_string()).into())
+            .and_then(process_results)
+    }))
+}
+
+///
+/// Take all the results from the many API calls, and determine if everything
+/// was successful.
+///
+/// Note: I've witnessed individual worklogs fail to de-serialize in the past,
+/// so this is here to ensure we forward errors from any that failed (since they
+/// are happening asynchronously)
+///
+type R = Result<Vec<Worklog>, String>;
+fn process_results(input: Vec<R>) -> Result<Vec<Worklog>, failure::Error> {
+    let input_len = input.len();
+
+    // Split between valid & invalid API calls
+    let (valid, invalid): (Vec<R>, Vec<R>) = input.into_iter().partition(|w| w.is_ok());
+
+    // if there were any invalid ones, cancel the whole thing
+    if valid.len() != input_len {
+        let mut errors: Vec<String> = vec![];
+        for e in invalid {
+            if let Err(e) = e {
+                errors.push(e.clone());
+            }
+        }
+        return Err(JiraError::WorklogInvalidCollection(errors).into());
+    }
+
+    // if we get here, all API calls were good + deserialized
+    let output = valid
+        .into_iter()
+        .filter_map(|res| res.ok())
+        .flatten()
+        .collect::<Vec<Worklog>>();
+
+    Ok(output)
 }

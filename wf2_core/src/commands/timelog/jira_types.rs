@@ -3,24 +3,24 @@ use core::fmt;
 use serde::export::fmt::Error;
 use serde::export::Formatter;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct JiraField {
     pub issuetype: JiraIssueType,
     pub status: JiraStatus,
     pub summary: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct JiraIssueType {
     pub name: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct JiraStatus {
     pub name: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct JiraWorklog {
     pub worklogs: Vec<Worklog>,
 }

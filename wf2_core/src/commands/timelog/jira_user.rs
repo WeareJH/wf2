@@ -9,9 +9,6 @@ pub struct JiraUser {
 
     #[serde(rename = "accountId")]
     pub id: String,
-
-    #[serde(rename = "emailAddress")]
-    pub email: String,
 }
 
 impl JiraUser {
