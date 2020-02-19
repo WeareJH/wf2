@@ -9,7 +9,7 @@ pub struct JiraIssues {
     pub issues: Vec<JiraIssue>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct JiraIssue {
     pub fields: JiraField,
     pub key: String,
@@ -36,6 +36,7 @@ impl JiraIssues {
             .send()?;
 
         let as_string = res.text()?;
+        //        std::fs::write(std::path::PathBuf::from("out.json"), as_string.clone());
         let j_issues = serde_json::from_str(&as_string)?;
         Ok(j_issues)
     }

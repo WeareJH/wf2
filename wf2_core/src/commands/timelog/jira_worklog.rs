@@ -63,10 +63,10 @@ fn fetch_worklog(
     issue_id: impl Into<String>,
 ) -> Result<Vec<Worklog>, String> {
     let client = reqwest::Client::new();
+    let id = issue_id.into();
     let issue_url = format!(
         "https://{}.atlassian.net/rest/api/2/issue/{}/worklog",
-        domain,
-        issue_id.into()
+        domain, id
     );
     let mut res = client
         .get(&issue_url)
@@ -74,6 +74,7 @@ fn fetch_worklog(
         .send()
         .map_err(|e| e.to_string())?;
     let bytes = res.text().map_err(|e| e.to_string())?;
-    let worklog: JiraWorklog = serde_json::from_str(&bytes).map_err(|e| e.to_string())?;
+    let worklog: JiraWorklog =
+        serde_json::from_str(&bytes).map_err(|e| format!("issue_id = {}, error = {}", id, e))?;
     Ok(worklog.worklogs)
 }
