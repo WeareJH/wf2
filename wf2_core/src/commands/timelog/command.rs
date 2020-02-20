@@ -3,7 +3,7 @@ use crate::commands::timelog::jira_worklog_day_filter::WorklogDayFilter;
 use crate::commands::timelog::{TimelogCmd, CLI_COMMAND_NAME};
 use crate::commands::CliCommand;
 use crate::context::Context;
-use crate::task::Task;
+use crate::task::{Task, TaskError};
 use clap::{App, Arg, ArgMatches};
 
 impl<'a, 'b> CliCommand<'a, 'b> for TimelogCmd {
@@ -12,22 +12,20 @@ impl<'a, 'b> CliCommand<'a, 'b> for TimelogCmd {
     }
 
     fn exec(&self, matches: Option<&ArgMatches>, _ctx: &Context) -> Option<Vec<Task>> {
-        matches.map(|m| {
-            match m.subcommand_matches("create") {
-                Some(sub_ma) => {
-                    dbg!(sub_ma);
-                }
-                _ => {
-                    unimplemented!()
-                }
+        matches.map(|m| match m.subcommand_matches("create") {
+            Some(sub_ma) => {
+                self.create(sub_ma).unwrap_or_else(Task::task_err_vec)
+            },
+            _ => {
+                dbg!(m);
+                unimplemented!();
             }
-        });
+        })
         // let tasks = self.get_tasks(matches);
         // match tasks {
         //     Ok(tasks) => Some(tasks),
         //     Err(e) => Some(vec![Task::notify_error(e.to_string())]),
         // }
-        None
     }
 
     fn subcommands(&self, _ctx: &Context) -> Vec<App<'a, 'b>> {
@@ -38,18 +36,24 @@ impl<'a, 'b> CliCommand<'a, 'b> for TimelogCmd {
             .subcommand(
                 App::new("create")
                     .arg(
-                        Arg::with_name("issue").required(true).help(
-                            "which issue the time should be logged",
-                        ),
+                        Arg::with_name("issue")
+                            .required(true)
+                            .help("which issue the time should be logged"),
                     )
                     .arg(
-                        Arg::with_name("timeSpent").required(true).help(
-                            "How much time was spent, eg: 4h 30m",
-                        ),
+                        Arg::with_name("spent")
+                            .required(true)
+                            .help("How much time was spent, eg: 4h 30m"),
                     )
-                    .arg(Arg::from_usage("-d --date 'The day to log the time'"))
-                    .arg(Arg::from_usage("-t --time 'The start time of the log'"))
-                    .arg(Arg::from_usage("-c --comment 'A comment to add, such as `overtime`'"))
+                    .arg(Arg::from_usage(
+                        "-d --date [date] 'The day to log the time'",
+                    ))
+                    .arg(Arg::from_usage(
+                        "-t --time [time] 'The start time of the log'",
+                    ))
+                    .arg(Arg::from_usage(
+                        "-c --comment [comment] 'A comment to add, such as `overtime`'",
+                    )),
             )
             .arg(
                 Arg::with_name("range").required(false).help(

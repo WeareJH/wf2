@@ -76,6 +76,7 @@
 use crate::commands::timelog::date_input::{DateInput, DateInputError};
 use crate::commands::timelog::jira::Jira;
 use crate::commands::timelog::jira_user::JiraUser;
+use crate::commands::timelog::jira_worklog::{Worklog, create_worklog};
 use crate::commands::timelog::jira_worklog_day_filter::WorklogDayFilter;
 use crate::commands::timelog::jira_worklog_result::TARGET_TIME;
 use crate::commands::timelog::printer::printer_from_matches;
@@ -86,6 +87,7 @@ use clap::ArgMatches;
 use failure::Error;
 use futures::future::lazy;
 use std::str::FromStr;
+use structopt::StructOpt;
 
 pub mod command;
 pub mod date_input;
@@ -107,11 +109,50 @@ const CLI_COMMAND_NAME: &str = "timelog";
 #[derive(Debug, Default)]
 pub struct TimelogCmd(String);
 
+#[derive(StructOpt, Debug)]
+struct CreateOpt {
+    issue: String,
+    spent: String,
+    #[structopt(short, long)]
+    date: Option<String>,
+    #[structopt(short, long)]
+    time: Option<String>,
+    #[structopt(short, long)]
+    comment: Option<String>,
+}
+
 impl TimelogCmd {
     pub fn new() -> TimelogCmd {
         TimelogCmd(String::from(CLI_COMMAND_NAME))
     }
-
+    pub fn create(&self, matches: &ArgMatches) -> Result<Vec<Task>, Error> {
+        let prefix = Green.paint("[wf2 info]");
+        let default = vec![Task::notify_error("Please run timelog at least once first to save your credentials")];
+        Jira::from_file()
+            .map_or(Ok(default), |jira| {
+                let opts: CreateOpt = CreateOpt::from_clap(matches);
+                let wl = Worklog::create(opts.date, opts.time, opts.spent.clone(), opts.comment.clone())?;
+                let issue_st = opts.issue.clone();
+                let format_lines: Vec<Option<String>> = vec![
+                    Some(format!("  issue      = {}", jira.issue_link(opts.issue.clone()))),
+                    Some(format!("  time spent = {}", opts.spent.clone())),
+                    Some(format!("  date/time  = {}", wl.display_started_time())),
+                    opts.comment.as_ref().map(|comment| format!("  comment    = `{}`", comment))
+                ];
+                let preview = format_lines.into_iter().filter_map(|f| f).collect::<Vec<String>>().join("\n");
+                let question = format!("\n{}: About to create a worklog, does this look correct?\n\n{}\n\n", prefix, preview);
+                let create = Task::Exec {
+                    description: Some(String::from("Create a worklog via API call")),
+                    exec: Box::new(lazy(move || {
+                        let _ = create_worklog(jira.domain.clone(), jira.basic_auth(), issue_st, wl)?;
+                        println!("Created :)");
+                        Ok(())
+                    }))
+                };
+                let q = Task::conditional(vec![Box::new(Question::new(question))], vec![create], vec![], None as Option<String>);
+                Ok(vec![q])
+            })
+    }
     pub fn get_tasks(&self, matches: Option<&ArgMatches>) -> Result<Vec<Task>, Error> {
         let prefix = Green.paint("[wf2 info]");
         let from_file = Jira::from_file();

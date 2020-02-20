@@ -49,6 +49,9 @@ impl Jira {
             }
         })
     }
+    pub fn issue_link(&self, key: String) -> String {
+        format!("https://{}.atlassian.net/browse/{}", self.domain, key)
+    }
     pub fn basic_auth(&self) -> String {
         format!(
             "Basic {}",
@@ -121,24 +124,18 @@ fn to_fut(
     jira: Arc<Jira>,
 ) -> Box<dyn Future<Item = Vec<Worklog>, Error = failure::Error>> {
     Box::new(lazy(move || {
-        let jira = jira.clone();
-
         let futures = issues.into_iter().map(move |issue| {
             let jira = jira.clone();
-            let key = issue.key.clone();
-            let status_name = issue.fields.status.name;
 
-            let (tx, rx) = oneshot::channel();
-
-            tokio::spawn(lazy(move || {
-                tx.send(Worklog::items_from_jira(
-                    jira.clone(),
-                    key.clone(),
-                    status_name.clone(),
-                ))
-                .map_err(|_e| eprintln!("lost communication with channel"))
-            }));
-            rx
+            Box::new(lazy(move || {
+                let (tx, rx) = oneshot::channel();
+                tokio::spawn(lazy(move || {
+                    let result =
+                        Worklog::items_from_jira(jira, issue.key, issue.fields.status.name);
+                    tx.send(result).map_err(|_e| eprintln!("send failed"))
+                }));
+                rx
+            }))
         });
 
         futures::collect(futures)
