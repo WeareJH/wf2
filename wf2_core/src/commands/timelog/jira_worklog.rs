@@ -25,6 +25,13 @@ pub struct Worklog {
     pub link: Option<String>,
 }
 
+#[derive(Debug, Fail, PartialEq)]
+enum WorklogError {
+    #[fail(display = "Invalid date or time provided.")]
+    InvalidDateTime
+}
+
+
 impl Worklog {
     pub fn date(&self) -> Date<Utc> {
         let date_time = self.started.parse::<DateTime<Utc>>().expect("can parse");
@@ -77,4 +84,56 @@ fn fetch_worklog(
     let worklog: JiraWorklog =
         serde_json::from_str(&bytes).map_err(|e| format!("issue_id = {}, error = {}", id, e))?;
     Ok(worklog.worklogs)
+}
+
+///
+/// Take optional date & time inputs and produce a new date/time
+///
+/// Examples
+///
+/// ```rust
+/// use chrono::{Utc, TimeZone, Timelike};
+/// use wf2_core::commands::timelog::jira_worklog::get_time_started;
+/// let now = Utc.ymd(2019, 11, 30).and_hms(12, 0, 0);
+///
+/// // No date or time given
+/// let actual = get_time_started(now, None, None);
+/// assert_eq!(now, actual.expect("test"));
+///
+/// // Just a date given
+/// let actual = get_time_started(now, Some("2019-11-01"), None);
+/// let expected = Utc.ymd(2019, 11, 1).and_hms(12, 0, 0);
+/// assert_eq!(expected, actual.expect("test"));
+///
+/// // Just a time given
+/// let actual = get_time_started(now, None, Some("09:01:10"));
+/// let expected = Utc.ymd(2019, 11, 30).and_hms(9, 1, 10);
+/// assert_eq!(expected, actual.expect("test"));
+///
+/// // Data + time given
+/// let actual = get_time_started(now, Some("2019-11-01"), Some("09:01:10"));
+/// let expected = Utc.ymd(2019, 11, 1).and_hms(9, 1, 10);
+/// assert_eq!(expected, actual.expect("test"))
+/// ```
+///
+pub fn get_time_started(now: DateTime<Utc>, date: Option<&str>, time: Option<&str>) -> Result<DateTime<Utc>, failure::Error> {
+    let now_date_str = now.format("%Y-%m-%d").to_string();
+
+    match (date, time) {
+        // no inputs, default to now + today
+        (None, None) => Ok(now),
+        // has date, use 12pm as a default
+        (Some(date), None) => {
+            format!("{}T12:00:00+0000", date).parse::<DateTime<Utc>>()
+        },
+        // has a time only, use today
+        (None, Some(time)) => {
+            format!("{}T{}+0000", now_date_str, time).parse::<DateTime<Utc>>()
+        },
+        // has both date+time, try to use both
+        (Some(date), Some(time)) => {
+            let date = format!("{}T{}+0000", date, time);
+            date.parse::<DateTime<Utc>>()
+        },
+    }.map_err(|e| e.into())
 }
