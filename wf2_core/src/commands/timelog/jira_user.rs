@@ -2,7 +2,7 @@ use crate::commands::timelog::jira::Jira;
 use failure::Error;
 use reqwest::header::AUTHORIZATION;
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Default)]
 pub struct JiraUser {
     #[serde(rename = "displayName")]
     pub name: String,

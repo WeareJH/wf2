@@ -6,22 +6,30 @@ use reqwest::header::AUTHORIZATION;
 
 use std::sync::Arc;
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Default)]
 pub struct Worklog {
-    pub author: JiraUser,
+
     pub started: String,
+
+    #[serde(skip_serializing)]
+    pub author: JiraUser,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub comment: Option<String>,
 
-    #[serde(rename(deserialize = "timeSpentSeconds"))]
+    #[serde(rename = "timeSpentSeconds", skip_serializing)]
     pub time_spent_seconds: u64,
 
-    #[serde(rename(deserialize = "timeSpent"))]
+    #[serde(rename = "timeSpent")]
     pub time_spent: String,
 
+    #[serde(skip_serializing)]
     pub ticket_key: Option<String>,
 
+    #[serde(skip_serializing)]
     pub ticket_status: Option<String>,
 
+    #[serde(skip_serializing)]
     pub link: Option<String>,
 }
 
@@ -30,7 +38,6 @@ enum WorklogError {
     #[fail(display = "Invalid date or time provided.")]
     InvalidDateTime
 }
-
 
 impl Worklog {
     pub fn date(&self) -> Date<Utc> {
@@ -62,6 +69,15 @@ impl Worklog {
                 .collect::<Vec<Worklog>>()
         })
     }
+    pub fn create(date: Option<&str>, time: Option<&str>, spent: impl Into<String>, comment: Option<impl Into<String>>) -> Result<Worklog, failure::Error> {
+        let started = get_time_started(Utc::now(), date, time)?;
+        Ok(Worklog {
+            time_spent: spent.into(),
+            started: started.to_string(),
+            comment: comment.map(|s| s.into()),
+            ..Worklog::default()
+        })
+    }
 }
 
 fn fetch_worklog(
@@ -84,6 +100,28 @@ fn fetch_worklog(
     let worklog: JiraWorklog =
         serde_json::from_str(&bytes).map_err(|e| format!("issue_id = {}, error = {}", id, e))?;
     Ok(worklog.worklogs)
+}
+
+fn create_worklog(
+    domain: String,
+    basic_auth: String,
+    issue_id: impl Into<String>,
+    wl: Worklog
+) -> Result<(), String> {
+    let client = reqwest::Client::new();
+    let id = issue_id.into();
+    let issue_url = format!(
+        "https://{}.atlassian.net/rest/api/2/issue/{}/worklog",
+        domain, id
+    );
+    Ok(())
+    // let mut res = client
+    //     .post(&issue_url)
+    //     .header(AUTHORIZATION, basic_auth)
+    //     .json(&wl)
+    //     .send()
+    //     .map_err(|e| e.to_string())?;
+    // Ok(worklog.worklogs)
 }
 
 ///
@@ -136,4 +174,32 @@ pub fn get_time_started(now: DateTime<Utc>, date: Option<&str>, time: Option<&st
             date.parse::<DateTime<Utc>>()
         },
     }.map_err(|e| e.into())
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::commands::timelog::jira_worklog::{Worklog, get_time_started};
+    use chrono::Utc;
+
+    #[test]
+    fn test_serialize() -> Result<(), failure::Error> {
+
+        let mut wl = Worklog::create(
+            None,
+            None,
+            "3h",
+            Some("overtime")
+        ).expect("test");
+
+        let example = r#"
+{
+  "timeSpent": "3h",
+  "comment": "I did some work here.",
+  "started": "2020-02-20T07:36:38.222+0000"
+}
+        "#;
+        let as_json = serde_json::to_string_pretty(&wl).expect("serde");
+        println!("{}", as_json);
+        Ok(())
+    }
 }
