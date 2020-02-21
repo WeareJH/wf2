@@ -3,8 +3,8 @@ use crate::commands::timelog::jira_types::{JiraWorklog, WorkType};
 use crate::commands::timelog::jira_user::JiraUser;
 use chrono::{Date, DateTime, Utc};
 use reqwest::header::AUTHORIZATION;
-use reqwest::{StatusCode};
 
+use crate::commands::timelog::jira_issues::JiraIssue;
 use std::sync::Arc;
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Default)]
@@ -35,8 +35,6 @@ pub struct Worklog {
 
 #[derive(Debug, Fail, PartialEq)]
 enum WorklogError {
-    #[fail(display = "Invalid date or time provided.")]
-    InvalidDateTime,
     #[fail(display = "Create failed: {}", _0)]
     CreateFailed(String),
 }
@@ -58,18 +56,17 @@ impl Worklog {
         }
         WorkType::Normal
     }
-    pub fn items_from_jira(
-        jira: Arc<Jira>,
-        key: String,
-        status_name: String,
-    ) -> Result<Vec<Worklog>, String> {
-        fetch_worklog(jira.domain.clone(), jira.basic_auth(), key.clone()).map(|wl| {
+    pub fn from_issue(jira: Arc<Jira>, issue: JiraIssue) -> Result<Vec<Worklog>, String> {
+        fetch_worklog(jira.domain.clone(), jira.basic_auth(), issue.key.clone()).map(move |wl| {
             wl.into_iter()
-                .map(move |wl| Worklog {
-                    ticket_key: Some(key.clone()),
-                    ticket_status: Some(status_name.clone()),
-                    link: Some(jira.issue_link(key.clone())),
-                    ..wl
+                .map(move |wl| {
+                    let link = jira.issue_link(&issue.key);
+                    Worklog {
+                        ticket_key: Some(issue.key.clone()),
+                        ticket_status: Some(issue.fields.status.name.clone()),
+                        link: Some(link),
+                        ..wl
+                    }
                 })
                 .collect::<Vec<Worklog>>()
         })
@@ -199,16 +196,12 @@ mod tests {
 
     #[test]
     fn test_serialize() -> Result<(), failure::Error> {
-        let expected = "2020-02-20T07:36:38.222+0000";
-        let mut wl = Worklog::create(
-            Some("2020-02-20"),
-            Some("07:36:38"),
-            "3h",
-            Some("overtime")
-        ).expect("test");
+        let _expected = "2020-02-20T07:36:38.222+0000";
+        let wl = Worklog::create(Some("2020-02-20"), Some("07:36:38"), "3h", Some("overtime"))
+            .expect("test");
         let as_json = serde_json::to_string_pretty(&wl).expect("serde");
 
-                let example = r#"{
+        let example = r#"{
   "started": "2020-02-20T07:36:38.222+0000",
   "comment": "overtime",
   "timeSpent": "3h"

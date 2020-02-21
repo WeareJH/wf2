@@ -1,6 +1,7 @@
 use crate::commands::timelog::jira::Jira;
 use failure::Error;
 use reqwest::header::AUTHORIZATION;
+use std::sync::Arc;
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Default)]
 pub struct JiraUser {
@@ -12,7 +13,7 @@ pub struct JiraUser {
 }
 
 impl JiraUser {
-    pub fn from_jira(jira: &Jira) -> Result<JiraUser, Error> {
+    pub fn from_jira(jira: Arc<Jira>) -> Result<JiraUser, Error> {
         let client = reqwest::Client::new();
         let issue_url = format!("https://{}.atlassian.net/rest/api/2/myself", jira.domain);
         let mut res = client

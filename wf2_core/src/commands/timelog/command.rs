@@ -3,7 +3,7 @@ use crate::commands::timelog::jira_worklog_day_filter::WorklogDayFilter;
 use crate::commands::timelog::{TimelogCmd, CLI_COMMAND_NAME};
 use crate::commands::CliCommand;
 use crate::context::Context;
-use crate::task::{Task, TaskError};
+use crate::task::Task;
 use clap::{App, Arg, ArgMatches};
 
 impl<'a, 'b> CliCommand<'a, 'b> for TimelogCmd {
@@ -13,9 +13,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for TimelogCmd {
 
     fn exec(&self, matches: Option<&ArgMatches>, _ctx: &Context) -> Option<Vec<Task>> {
         matches.map(|m| match m.subcommand_matches("create") {
-            Some(sub_ma) => {
-                self.create(sub_ma).unwrap_or_else(Task::task_err_vec)
-            },
+            Some(sub_ma) => self.create(sub_ma).unwrap_or_else(Task::task_err_vec),
             _ => {
                 dbg!(m);
                 unimplemented!();
