@@ -118,6 +118,8 @@ pub mod conditions;
 #[doc(hidden)]
 pub mod context;
 #[doc(hidden)]
+pub mod date_util;
+#[doc(hidden)]
 pub mod dc;
 #[doc(hidden)]
 pub mod dc_service;
