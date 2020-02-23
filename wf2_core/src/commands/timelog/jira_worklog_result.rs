@@ -31,7 +31,7 @@ impl WorklogResult {
         target_mins: u32,
     ) -> Result<WorklogResult, failure::Error> {
         // convert the issue keys into a set of urls to fetch
-        let issues = JiraIssues::from_dates(&dates, &jira)?.issues;
+        let issues = JiraIssues::from_dates(&dates, jira.clone())?.issues;
 
         // Execute API calls in chunks of 50
         let as_futures = issues.chunks(50).map(move |issues| {

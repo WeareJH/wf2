@@ -75,6 +75,7 @@
 //!
 use crate::commands::timelog::date_input::{DateInput, DateInputError};
 use crate::commands::timelog::jira::Jira;
+use crate::commands::timelog::jira_issues::JiraIssues;
 use crate::commands::timelog::jira_user::JiraUser;
 use crate::commands::timelog::jira_worklog::{create_worklog, Worklog};
 use crate::commands::timelog::jira_worklog_day_filter::WorklogDayFilter;
@@ -86,6 +87,8 @@ use ansi_term::Colour::{Cyan, Green};
 use clap::ArgMatches;
 use failure::Error;
 use futures::future::lazy;
+use prettytable::format;
+use prettytable::Table;
 use std::str::FromStr;
 use std::sync::Arc;
 use structopt::StructOpt;
@@ -125,6 +128,27 @@ struct CreateOpt {
 impl TimelogCmd {
     pub fn new() -> TimelogCmd {
         TimelogCmd(String::from(CLI_COMMAND_NAME))
+    }
+    pub fn assigned(&self, _matches: &ArgMatches) -> Result<Vec<Task>, Error> {
+        let default = vec![Task::notify_error(
+            "Please run timelog at least once first to save your credentials",
+        )];
+        Jira::from_file().map_or(Ok(default), |jira| {
+            let jira = Arc::new(jira);
+            Ok(vec![Task::Exec {
+                description: None,
+                exec: Box::new(lazy(move || {
+                    let issues = JiraIssues::assigned(jira.clone())?;
+                    let mut table = Table::new();
+                    table.set_format(*format::consts::FORMAT_CLEAN);
+                    for i in issues.issues {
+                        table.add_row(row![jira.issue_link(&i.key), i.fields.summary]);
+                    }
+                    table.printstd();
+                    Ok(())
+                })),
+            }])
+        })
     }
     pub fn create(&self, matches: &ArgMatches) -> Result<Vec<Task>, Error> {
         let prefix = Green.paint("[wf2 info]");

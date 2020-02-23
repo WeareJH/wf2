@@ -3,6 +3,7 @@ use crate::commands::timelog::jira_types::JiraField;
 use chrono::{Date, Utc};
 use reqwest::header::AUTHORIZATION;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 #[derive(Deserialize, Debug)]
 pub struct JiraIssues {
@@ -16,10 +17,11 @@ pub struct JiraIssue {
 }
 
 impl JiraIssues {
-    pub fn from_dates(dates: &[Date<Utc>], jira: &Jira) -> Result<JiraIssues, failure::Error> {
-        // Create the jira query
-        let query = issue_query(&dates);
-
+    pub fn from_query(
+        query: impl Into<String>,
+        jira: Arc<Jira>,
+    ) -> Result<JiraIssues, failure::Error> {
+        let query = query.into();
         // fetch the issues JSON
         let mut map = HashMap::new();
         map.insert("jql", query);
@@ -36,9 +38,18 @@ impl JiraIssues {
             .send()?;
 
         let as_string = res.text()?;
-        //        std::fs::write(std::path::PathBuf::from("out.json"), as_string.clone());
         let j_issues = serde_json::from_str(&as_string)?;
         Ok(j_issues)
+    }
+    pub fn from_dates(dates: &[Date<Utc>], jira: Arc<Jira>) -> Result<JiraIssues, failure::Error> {
+        // Create the jira query
+        let query = issue_query(&dates);
+        JiraIssues::from_query(query, jira)
+    }
+    pub fn assigned(jira: Arc<Jira>) -> Result<JiraIssues, failure::Error> {
+        // Create the jira query
+        let query = format!("assignee = currentUser()");
+        JiraIssues::from_query(query, jira)
     }
 }
 
