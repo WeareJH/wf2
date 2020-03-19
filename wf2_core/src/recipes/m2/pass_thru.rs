@@ -16,7 +16,7 @@ pub enum M2PassThru {
     Dc,
     Node,
     M,
-    N98
+    N98,
 }
 
 impl M2PassThru {
@@ -38,7 +38,7 @@ impl M2PassThru {
             M2PassThru::Dc => M2PassThru::DC,
             M2PassThru::Node => M2PassThru::NODE,
             M2PassThru::M => M2PassThru::MAGE,
-            M2PassThru::N98 => M2PassThru::N98_MAGERUN
+            M2PassThru::N98 => M2PassThru::N98_MAGERUN,
         }
         .to_string()
     }
