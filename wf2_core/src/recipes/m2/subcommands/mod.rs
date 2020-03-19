@@ -45,6 +45,7 @@ pub mod up_help;
 pub mod update_images;
 pub mod varnish;
 pub mod xdebug;
+pub mod n98;
 
 pub fn m2_recipe_subcommands<'a, 'b>() -> Vec<Box<dyn CliCommand<'a, 'b>>> {
     vec![
