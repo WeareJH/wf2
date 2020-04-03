@@ -39,3 +39,5 @@ ignore = Name {.*,*}.txt
 ignore = Name {.*,*}.tmp
 ignore = Name {.*,*}.sql
 ignore = Name {.*,*}.sql.gz
+ignorenot = Regex .*/.*\.sql
+ignorenot = Regex .*/.*\.sql.gz
