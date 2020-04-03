@@ -23,7 +23,7 @@
 //! #   .commands();
 //! #
 //! # let expected = r#"
-//! # docker exec -i wf2__wf2_default__db mysql -udocker -pdocker docker < ~/Downloads/dump.sql
+//! # docker exec -i wf2__wf2_default__db mysql -f -udocker -pdocker docker < ~/Downloads/dump.sql
 //! # "#;
 //! # assert_eq!(cmds[0], expected.trim());
 //! ```
@@ -50,7 +50,7 @@
 //! #   .commands();
 //! #
 //! # let expected = r#"
-//! # pv -f ~/Downloads/dump.sql | docker exec -i wf2__wf2_default__db mysql -udocker -pdocker -D docker
+//! # pv -f ~/Downloads/dump.sql | docker exec -i wf2__wf2_default__db mysql -f -udocker -pdocker -D docker
 //! # "#;
 //! # assert_eq!(cmds[0], expected.trim());
 //! ```
@@ -114,7 +114,7 @@ pub fn db_import(has_pv: bool, service: DcService, path: impl Into<PathBuf>) -> 
     let path = path.into();
     let db_import_command = if has_pv {
         format!(
-            r#"pv -f {file} | docker exec -i {container} mysql -u{user} -p{pass} -D {db}"#,
+            r#"pv -f {file} | docker exec -i {container} mysql -f -u{user} -p{pass} -D {db}"#,
             file = path_buf_to_string(&path),
             container = service.container_name,
             user = DbService::DB_USER,
@@ -123,7 +123,7 @@ pub fn db_import(has_pv: bool, service: DcService, path: impl Into<PathBuf>) -> 
         )
     } else {
         format!(
-            r#"docker exec -i {container} mysql -u{user} -p{pass} {db} < {file}"#,
+            r#"docker exec -i {container} mysql -f -u{user} -p{pass} {db} < {file}"#,
             file = path_buf_to_string(&path),
             container = service.container_name,
             user = DbService::DB_USER,
