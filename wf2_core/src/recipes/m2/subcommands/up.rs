@@ -51,8 +51,8 @@
 //! #   .with_file("../fixtures/config_01.yaml")
 //! #   .file_ops_paths_commands();
 //! # assert_eq!(commands, vec![
-//! #     "docker stop $(docker ps -aq)",
-//! #     "docker rm $(docker ps -aq)",
+//! #     "if [[ $(docker ps -aq) ]]; then docker stop $(docker ps -aq); fi",
+//! #     "if [[ $(docker ps -aq) ]]; then docker rm $(docker ps -aq); fi",
 //! #     "docker-compose -f /users/shane/.wf2_m2_shane/docker-compose.yml up -d"
 //! # ]);
 //! ```
