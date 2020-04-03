@@ -25,9 +25,12 @@ impl<'a, 'b> CliCommand<'a, 'b> for TimelogCmd {
             .about("time log summaries")
             .after_help(TimelogCmd::DOC_LINK)
             .arg(
-                Arg::with_name("range").required(true).help(
-                    "which day/days to fetch, eg: 'today', 'yesterday', '3d' or '2019-10-29'",
-                ),
+                Arg::with_name("range")
+                    .required(false)
+                    .default_value("1")
+                    .help(
+                        "which day/days to fetch, eg: 'today', 'yesterday', '3d' or '2019-10-29'",
+                    ),
             )
             .arg(
                 Arg::with_name("email")

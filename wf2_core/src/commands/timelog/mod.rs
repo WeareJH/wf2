@@ -19,10 +19,12 @@
 //!
 //! ## fetch time logs for today
 //!
+//! This is a shortcut for `wf2 timelog 1` as `1` is the default range
+//!
 //! ```
 //! # use wf2_core::test::Test;
 //! # let cmd = r#"
-//! wf2 timelog 1
+//! wf2 timelog
 //! # --domain acme.atlassian.net --email user@exampe.com --api 123456
 //! # "#;
 //! # let cmd = cmd.trim().replace("\n", " ");
@@ -53,6 +55,20 @@
 //! # let _tasks = Test::from_cmd(cmd).tasks();
 //! ```
 //!
+//! ## fetch time logs for a particular date.
+//!
+//! The format is YYYY-MM-DD
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # let cmd = r#"
+//! wf2 timelog 2020-01-29 -v
+//! # --domain acme.atlassian.net --email user@exampe.com --api 123456
+//! # "#;
+//! # let cmd = cmd.trim().replace("\n", " ");
+//! # let _tasks = Test::from_cmd(cmd).tasks();
+//! ```
+//!
 //! ## applying filters
 //!
 //! - [see all filters](jira_worklog_day_filter/enum.WorklogDayFilter.html#variants)
@@ -60,6 +76,7 @@
 //!     - `-f low` show only low days
 //!     - `-f empty` show only empty days
 //!     - `-f weekdays` show only weekdays
+//!     - `-f ot` show only overtime
 //!
 //! You can also combine filters, to generate your own report
 //!
