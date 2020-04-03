@@ -34,6 +34,7 @@ pub mod m2_playground;
 pub mod m2_playground_cmd;
 #[doc(hidden)]
 pub mod m2_playground_help;
+pub mod n98;
 pub mod node;
 pub mod pull;
 pub mod push;

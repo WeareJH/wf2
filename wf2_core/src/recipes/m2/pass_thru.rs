@@ -1,6 +1,7 @@
 use crate::recipes::m2::subcommands::composer::{composer, ComposerPassThru};
 use crate::recipes::m2::subcommands::dc::{dc_passthru, DcPassThru};
 use crate::recipes::m2::subcommands::m::{mage, MPassThru};
+use crate::recipes::m2::subcommands::n98::{n98, N98PassThru};
 use crate::recipes::m2::subcommands::node::{node, NodePassThru};
 use crate::recipes::m2::M2Recipe;
 use crate::{context::Context, task::Task};
@@ -15,6 +16,7 @@ pub enum M2PassThru {
     Dc,
     Node,
     M,
+    N98,
 }
 
 impl M2PassThru {
@@ -25,6 +27,7 @@ impl M2PassThru {
     const DC: &'static str = "dc";
     const NODE: &'static str = "node";
     const MAGE: &'static str = "m";
+    const N98_MAGERUN: &'static str = "n98";
 
     ///
     /// Helper method for converting an enum member to a String
@@ -35,6 +38,7 @@ impl M2PassThru {
             M2PassThru::Dc => M2PassThru::DC,
             M2PassThru::Node => M2PassThru::NODE,
             M2PassThru::M => M2PassThru::MAGE,
+            M2PassThru::N98 => M2PassThru::N98_MAGERUN,
         }
         .to_string()
     }
@@ -45,6 +49,7 @@ impl M2PassThru {
                 ref x if *x == M2PassThru::Node => Some(node(trailing, dc)),
                 ref x if *x == M2PassThru::Composer => Some(composer(&ctx, trailing)),
                 ref x if *x == M2PassThru::M => Some(mage(&ctx, trailing)),
+                ref x if *x == M2PassThru::N98 => Some(n98(&ctx, trailing)),
                 _ => None,
             },
             Err(e) => Some(Task::task_err_vec(e)),
@@ -58,6 +63,7 @@ pub fn commands() -> Vec<(String, String)> {
         (M2PassThru::Dc, DcPassThru::ABOUT),
         (M2PassThru::Node, NodePassThru::ABOUT),
         (M2PassThru::M, MPassThru::ABOUT),
+        (M2PassThru::N98, N98PassThru::ABOUT),
     ]
     .into_iter()
     .map(|(name, help)| (name.into(), help.into()))
