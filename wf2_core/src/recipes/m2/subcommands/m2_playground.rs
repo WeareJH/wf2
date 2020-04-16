@@ -286,10 +286,8 @@ pub fn get_latest_version(pg: &mut M2Playground) -> Result<(), Error> {
                 .map(|(_k, v)| v.version.to_string())
                 .filter(|v| re.is_match(v))
                 .map(|v| {
-                    let mut parts_int: Vec<i32> = v
-                        .split('.')
-                        .map(|s| s.parse().unwrap())
-                        .collect();
+                    let mut parts_int: Vec<i32> =
+                        v.split('.').map(|s| s.parse().unwrap()).collect();
 
                     parts_int[0] *= base.pow(2);
                     parts_int[1] *= base.pow(1);
