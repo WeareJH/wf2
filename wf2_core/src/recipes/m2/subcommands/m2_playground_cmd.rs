@@ -6,7 +6,7 @@ use crate::conditions::file_present::FilePresent;
 use crate::conditions::question::Question;
 use crate::context::Context;
 use crate::recipes::m2::subcommands::m2_playground::{
-    get_composer_json, get_project_files, write_auth_json, write_wf2_file, M2Edition, M2Playground, get_latest_version
+    get_composer_json, get_project_files, write_auth_json, write_wf2_file, M2Edition, M2Playground, get_latest_version, print_latest_version
 };
 use crate::recipes::m2::subcommands::m2_playground_help;
 use crate::task::Task;
@@ -96,6 +96,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
         let pg_3 = pg.clone();
         let pg_4 = pg.clone();
         let pg_5 = pg.clone();
+        let pg_6 = pg.clone();
 
         let get_version = Task::Exec {
             description: Some("Get latest M2 version".to_string()),
@@ -103,6 +104,14 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
                 let mut pg = pg_5.lock().unwrap();
                 get_latest_version(&mut pg)
             }))
+        };
+
+        let print_version = Task::Exec {
+            description: Some("Print latest version".to_string()),
+            exec: Box::new(lazy(move || {
+                let pg = pg_6.lock().unwrap();
+                print_latest_version(&*pg)
+            })),
         };
 
         let get_files = Task::Exec {
@@ -180,29 +189,29 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
                     ))
                 },
                 None => {
-                    Task::notify_info(format!(
-                        "Checking for the {} version of Magento (this can take a while)",
-                        Cyan.paint("latest".to_string())
-                    ))
-                },
-            },
-            match &input_version {
-                Some(v) => Task::Noop,
-                None => get_version,
+                    Task::Seq(vec![
+                        Task::notify_info(format!(
+                            "Checking for the {} version of Magento (this can take a while)",
+                            Cyan.paint("latest".to_string())
+                        )),
+                        get_version,
+                        print_version
+                    ])
+                }
             },
             get_files,
-//             Task::notify_info(format!(
-//                 "Getting the correct `{}` file",
-//                 Cyan.paint("composer.json")
-//             )),
-//             get_composer_json,
-//             Task::notify_info(format!("Creating {}", Cyan.paint("auth.json"))),
-//             auth_json,
-//             Task::notify_info(format!("Creating {}", Cyan.paint("wf2.yml"))),
-//             wf2_file,
-//             Task::notify_info(format!("{}", Green.paint("All done!"))),
-//             Task::notify_info(m2_playground_help::help(&pg)),
-//             save_creds,
+            Task::notify_info(format!(
+                "Getting the correct `{}` file",
+                Cyan.paint("composer.json")
+            )),
+            get_composer_json,
+            Task::notify_info(format!("Creating {}", Cyan.paint("auth.json"))),
+            auth_json,
+            Task::notify_info(format!("Creating {}", Cyan.paint("wf2.yml"))),
+            wf2_file,
+            Task::notify_info(format!("{}", Green.paint("All done!"))),
+            Task::notify_info(m2_playground_help::help(&*pg.lock().unwrap())),
+            save_creds,
         ];
 
         // If -f was given just add a verification step to ensure it was intended

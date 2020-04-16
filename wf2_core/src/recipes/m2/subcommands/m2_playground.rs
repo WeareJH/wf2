@@ -64,6 +64,8 @@ use tempdir::TempDir;
 use std::collections::HashMap;
 use regex::Regex;
 use std::sync::Mutex;
+use crate::task::Task;
+use ansi_term::Colour::{Cyan};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct M2Packages {
@@ -72,7 +74,6 @@ struct M2Packages {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct M2PackageVersion {
-    description: String,
     version: String
 }
 
@@ -122,25 +123,16 @@ impl M2Playground {
         Some(pg)
     }
     pub fn project_path(&self) -> String {
-        let v = match &self.version {
-            Some(v) => v.to_string(),
-            None => String::from("1.2.3.4")
-        };
         format!(
             "https://repo.magento.com/archives/magento/project-{edition}-edition/magento-project-{edition}-edition-{version}.0.zip",
             edition = self.edition.to_string(),
-            version = v
+            version = self.version.as_ref().expect("version set previously").to_string()
         )
     }
     pub fn base_path(&self) -> String {
-        let v = match &self.version {
-            Some(v) => v.to_string(),
-            None => String::from("1.2.3.4")
-        };
-
         format!(
             "https://repo.magento.com/archives/magento/magento2-base/magento-magento2-base-{}.0.zip",
-            v
+            self.version.as_ref().expect("version set previously").to_string()
         )
     }
     pub fn packages(&self) -> String {
@@ -310,13 +302,19 @@ pub fn get_latest_version(pg: &mut M2Playground) -> Result<(), Error> {
 
             parsed_versions.sort_by(|a, b| b.base10.cmp(&a.base10));
 
-            let top: String = parsed_versions[0].string_ver.to_string();
-            println!("Latest version is {}", top);
-            pg.version = Some(top);
+            pg.version = Some(parsed_versions[0].string_ver.to_string());
             Ok(())
         }
         s => Err(status_err(s, pg)),
     }
+}
+
+pub fn print_latest_version(pg: &M2Playground) -> Result<(), Error> {
+    Task::notify_info(format!(
+        "Proceeding with latest version `{}`",
+        Cyan.paint(&*pg.version.as_ref().unwrap().to_string())
+    ));
+    Ok(())
 }
 
 pub fn get_project_files(pg: &M2Playground) -> Result<(), Error> {
