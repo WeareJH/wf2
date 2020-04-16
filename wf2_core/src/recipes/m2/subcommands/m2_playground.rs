@@ -55,17 +55,17 @@ use crate::zip_utils;
 use clap::ArgMatches;
 use failure::Error;
 use hyper::http::header::ACCEPT_ENCODING;
+use regex::Regex;
 use reqwest::header::{AUTHORIZATION, USER_AGENT};
 use reqwest::StatusCode;
+use std::collections::HashMap;
 use std::io::Read;
 use std::path::PathBuf;
 use std::{fmt, fs};
 use tempdir::TempDir;
-use std::collections::HashMap;
-use regex::Regex;
-use std::sync::Mutex;
+
 use crate::task::Task;
-use ansi_term::Colour::{Cyan};
+use ansi_term::Colour::Cyan;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct M2Packages {
@@ -74,7 +74,7 @@ struct M2Packages {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct M2PackageVersion {
-    version: String
+    version: String,
 }
 
 struct Version {
@@ -136,9 +136,7 @@ impl M2Playground {
         )
     }
     pub fn packages(&self) -> String {
-        format!(
-            "https://repo.magento.com/packages.json",
-        )
+        "https://repo.magento.com/packages.json".to_string()
     }
 }
 
@@ -276,27 +274,31 @@ pub fn get_latest_version(pg: &mut M2Playground) -> Result<(), Error> {
             let re = Regex::new(r"^\d+.\d+.\d+$").unwrap();
 
             let package_name = format!(
-               "magento/project-{edition}-edition",
-               edition = pg.edition.to_string(),
+                "magento/project-{edition}-edition",
+                edition = pg.edition.to_string(),
             );
 
             let m2packages: M2Packages = serde_json::from_str(&resp)?;
             let versions = &m2packages.packages[&package_name];
 
-            let mut parsed_versions: Vec<Version> = versions.iter()
-                .map(|(k, v)| v.version.to_string())
+            let mut parsed_versions: Vec<Version> = versions
+                .iter()
+                .map(|(_k, v)| v.version.to_string())
                 .filter(|v| re.is_match(v))
                 .map(|v| {
-                    let mut parts_int:Vec<i32> = v.split(".")
-                        .into_iter()
+                    let mut parts_int: Vec<i32> = v
+                        .split('.')
                         .map(|s| s.parse().unwrap())
                         .collect();
 
-                    parts_int[0] = parts_int[0] * base.pow(2);
-                    parts_int[1] = parts_int[1] * base.pow(1);
-                    parts_int[2] = parts_int[2] * base.pow(0);
+                    parts_int[0] *= base.pow(2);
+                    parts_int[1] *= base.pow(1);
+                    parts_int[2] *= base.pow(0);
 
-                    Version { string_ver: v.to_string(), base10: parts_int.into_iter().sum() }
+                    Version {
+                        string_ver: v,
+                        base10: parts_int.into_iter().sum(),
+                    }
                 })
                 .collect();
 
@@ -342,7 +344,7 @@ pub fn get_project_files(pg: &M2Playground) -> Result<(), Error> {
 pub fn status_err(s: StatusCode, pg: &M2Playground) -> failure::Error {
     let v = match &pg.version {
         Some(v) => v.to_string(),
-        None => String::from("1.0.0")
+        None => String::from("1.0.0"),
     };
 
     let err = match s.as_u16() {
@@ -353,4 +355,3 @@ pub fn status_err(s: StatusCode, pg: &M2Playground) -> failure::Error {
 
     Error::from(err)
 }
-

@@ -6,7 +6,8 @@ use crate::conditions::file_present::FilePresent;
 use crate::conditions::question::Question;
 use crate::context::Context;
 use crate::recipes::m2::subcommands::m2_playground::{
-    get_composer_json, get_project_files, write_auth_json, write_wf2_file, M2Edition, M2Playground, get_latest_version, print_latest_version
+    get_composer_json, get_latest_version, get_project_files, print_latest_version,
+    write_auth_json, write_wf2_file, M2Edition, M2Playground,
 };
 use crate::recipes::m2::subcommands::m2_playground_help;
 use crate::task::Task;
@@ -84,7 +85,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
         let pg = M2Playground {
             version: opts.version.clone(),
             dir: target_dir.clone(),
-            edition: input_edition.clone(),
+            edition: input_edition,
             username,
             password,
         };
@@ -103,7 +104,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
             exec: Box::new(lazy(move || {
                 let mut pg = pg_5.lock().unwrap();
                 get_latest_version(&mut pg)
-            }))
+            })),
         };
 
         let print_version = Task::Exec {
@@ -178,26 +179,21 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
             Task::Noop
         };
 
-
         // These base tasks will execute for every situation
         let base_tasks = vec![
             match &input_version {
-                Some(v) => {
+                Some(v) => Task::notify_info(format!(
+                    "Getting the Magento 2 project files for version `{}` (this can take a while)",
+                    Cyan.paint(v)
+                )),
+                None => Task::Seq(vec![
                     Task::notify_info(format!(
-                        "Getting the Magento 2 project files for version `{}` (this can take a while)",
-                        Cyan.paint(v)
-                    ))
-                },
-                None => {
-                    Task::Seq(vec![
-                        Task::notify_info(format!(
-                            "Checking for the {} version of Magento (this can take a while)",
-                            Cyan.paint("latest".to_string())
-                        )),
-                        get_version,
-                        print_version
-                    ])
-                }
+                        "Checking for the {} version of Magento (this can take a while)",
+                        Cyan.paint("latest".to_string())
+                    )),
+                    get_version,
+                    print_version,
+                ]),
             },
             get_files,
             Task::notify_info(format!(

@@ -44,7 +44,7 @@ fn test_help() {
     use crate::recipes::m2::subcommands::m2_playground::{M2Edition, M2Playground};
     let pg = M2Playground {
         dir: std::path::PathBuf::from("/user/shakyshane"),
-        version: String::from("2.3.4"),
+        version: Option::Some(String::from("2.3.4")),
         username: "".to_string(),
         password: "".to_string(),
         edition: M2Edition::Community,
