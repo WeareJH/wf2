@@ -14,7 +14,7 @@ use ansi_term::Colour::{Cyan, Green, Red};
 use clap::{App, Arg, ArgMatches};
 use doc_link::doc_link;
 use futures::future::lazy;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use structopt::StructOpt;
 
 #[doc_link("/recipes/m2/subcommands/m2_playground")]
@@ -74,21 +74,23 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
             .expect("guarded");
 
         let target_dir = ctx.cwd.join(dirname);
+        let input_version = opts.version.clone();
+        let input_edition = if opts.enterprise {
+            M2Edition::Enterprise
+        } else {
+            M2Edition::Community
+        };
 
         let pg = M2Playground {
             version: opts.version.clone(),
             dir: target_dir.clone(),
-            edition: if opts.enterprise {
-                M2Edition::Enterprise
-            } else {
-                M2Edition::Community
-            },
+            edition: input_edition.clone(),
             username,
             password,
         };
 
         // I assume there's a better way to share these
-        let pg = Arc::new(pg);
+        let pg = Arc::new(Mutex::new(pg));
         let pg_1 = pg.clone();
         let pg_2 = pg.clone();
         let pg_3 = pg.clone();
@@ -97,27 +99,42 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
 
         let get_version = Task::Exec {
             description: Some("Get latest M2 version".to_string()),
-            exec: Box::new(lazy(move || get_latest_version(&pg_5))),
+            exec: Box::new(lazy(move || {
+                let mut pg = pg_5.lock().unwrap();
+                get_latest_version(&mut pg)
+            }))
         };
 
         let get_files = Task::Exec {
             description: Some("Get M2 project files".to_string()),
-            exec: Box::new(lazy(move || get_project_files(&pg_1))),
+            exec: Box::new(lazy(move || {
+                let pg = pg_1.lock().unwrap();
+                get_project_files(&*pg)
+            })),
         };
 
         let get_composer_json = Task::Exec {
             description: Some("Get M2 composer.json file".to_string()),
-            exec: Box::new(lazy(move || get_composer_json(&pg_2))),
+            exec: Box::new(lazy(move || {
+                let pg = pg_2.lock().unwrap();
+                get_composer_json(&*pg)
+            })),
         };
 
         let auth_json = Task::Exec {
             description: Some("Write auth.json".to_string()),
-            exec: Box::new(lazy(move || write_auth_json(&pg_3))),
+            exec: Box::new(lazy(move || {
+                let pg = pg_3.lock().unwrap();
+                write_auth_json(&*pg)
+            })),
         };
 
         let wf2_file = Task::Exec {
             description: Some("Write wf2.yaml".to_string()),
-            exec: Box::new(lazy(move || write_wf2_file(&pg_4))),
+            exec: Box::new(lazy(move || {
+                let pg = pg_4.lock().unwrap();
+                write_wf2_file(&*pg)
+            })),
         };
 
         //
@@ -152,9 +169,10 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
             Task::Noop
         };
 
+
         // These base tasks will execute for every situation
         let base_tasks = vec![
-            match &pg.version {
+            match &input_version {
                 Some(v) => {
                     Task::notify_info(format!(
                         "Getting the Magento 2 project files for version `{}` (this can take a while)",
@@ -163,12 +181,12 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
                 },
                 None => {
                     Task::notify_info(format!(
-                        "Checking for the latest version of Magento `{}` (this can take a while)",
-                        Cyan.paint(&pg.edition.to_string())
+                        "Checking for the {} version of Magento (this can take a while)",
+                        Cyan.paint("latest".to_string())
                     ))
                 },
             },
-            match &pg.version {
+            match &input_version {
                 Some(v) => Task::Noop,
                 None => get_version,
             },
@@ -264,13 +282,14 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
     }
 }
 
-fn verify(tasks: Vec<Task>, pg: &M2Playground) -> Task {
+fn verify(tasks: Vec<Task>, pg: &Arc<Mutex<M2Playground>>) -> Task {
     let prefix = Green.paint("[wf2 info]");
+    let pg = pg.lock().unwrap();
     Task::conditional(
         vec![Box::new(Question::new(format!(
             "{prefix}: Does the following seem correct?\n\n {pg}\n\n",
             prefix = prefix,
-            pg = pg
+            pg = *pg
         )))],
         tasks,
         vec![Task::notify_info("Skipping for now")],

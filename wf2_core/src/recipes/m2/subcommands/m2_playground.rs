@@ -63,6 +63,7 @@ use std::{fmt, fs};
 use tempdir::TempDir;
 use std::collections::HashMap;
 use regex::Regex;
+use std::sync::Mutex;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct M2Packages {
@@ -159,7 +160,7 @@ enum M2PlaygroundError {
     NotFound(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum M2Edition {
     Community,
     Enterprise,
@@ -266,7 +267,7 @@ pub fn get_composer_json(pg: &M2Playground) -> Result<(), Error> {
     )
 }
 
-pub fn get_latest_version(pg: &M2Playground) -> Result<(), Error> {
+pub fn get_latest_version(pg: &mut M2Playground) -> Result<(), Error> {
     let client = reqwest::Client::new();
 
     let mut res = client
@@ -294,7 +295,7 @@ pub fn get_latest_version(pg: &M2Playground) -> Result<(), Error> {
                 .map(|(k, v)| v.version.to_string())
                 .filter(|v| re.is_match(v))
                 .map(|v| {
-                    let mut parts_int:Vec<i32>= v.split(".")
+                    let mut parts_int:Vec<i32> = v.split(".")
                         .into_iter()
                         .map(|s| s.parse().unwrap())
                         .collect();
@@ -311,6 +312,7 @@ pub fn get_latest_version(pg: &M2Playground) -> Result<(), Error> {
 
             let top: String = parsed_versions[0].string_ver.to_string();
             println!("Latest version is {}", top);
+            pg.version = Some(top);
             Ok(())
         }
         s => Err(status_err(s, pg)),
@@ -353,4 +355,4 @@ pub fn status_err(s: StatusCode, pg: &M2Playground) -> failure::Error {
 
     Error::from(err)
 }
-x
+
