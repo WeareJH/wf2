@@ -6,7 +6,7 @@ use crate::conditions::file_present::FilePresent;
 use crate::conditions::question::Question;
 use crate::context::Context;
 use crate::recipes::m2::subcommands::m2_playground::{
-    get_composer_json, get_project_files, write_auth_json, write_wf2_file, M2Edition, M2Playground,
+    get_composer_json, get_project_files, write_auth_json, write_wf2_file, M2Edition, M2Playground, get_latest_version
 };
 use crate::recipes::m2::subcommands::m2_playground_help;
 use crate::task::Task;
@@ -27,7 +27,7 @@ impl M2PlaygroundCmd {
 
 #[derive(StructOpt)]
 struct Opts {
-    version: String,
+    version: Option<String>,
     username: Option<String>,
     password: Option<String>,
     output: Option<String>,
@@ -93,6 +93,12 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
         let pg_2 = pg.clone();
         let pg_3 = pg.clone();
         let pg_4 = pg.clone();
+        let pg_5 = pg.clone();
+
+        let get_version = Task::Exec {
+            description: Some("Get latest M2 version".to_string()),
+            exec: Box::new(lazy(move || get_latest_version(&pg_5))),
+        };
 
         let get_files = Task::Exec {
             description: Some("Get M2 project files".to_string()),
@@ -148,23 +154,37 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
 
         // These base tasks will execute for every situation
         let base_tasks = vec![
-            Task::notify_info(format!(
-                "Getting the Magento 2 project files for version `{}` (this can take a while)",
-                Cyan.paint(pg.version.clone())
-            )),
+            match &pg.version {
+                Some(v) => {
+                    Task::notify_info(format!(
+                        "Getting the Magento 2 project files for version `{}` (this can take a while)",
+                        Cyan.paint(v)
+                    ))
+                },
+                None => {
+                    Task::notify_info(format!(
+                        "Checking for the latest version of Magento `{}` (this can take a while)",
+                        Cyan.paint(&pg.edition.to_string())
+                    ))
+                },
+            },
+            match &pg.version {
+                Some(v) => Task::Noop,
+                None => get_version,
+            },
             get_files,
-            Task::notify_info(format!(
-                "Getting the correct `{}` file",
-                Cyan.paint("composer.json")
-            )),
-            get_composer_json,
-            Task::notify_info(format!("Creating {}", Cyan.paint("auth.json"))),
-            auth_json,
-            Task::notify_info(format!("Creating {}", Cyan.paint("wf2.yml"))),
-            wf2_file,
-            Task::notify_info(format!("{}", Green.paint("All done!"))),
-            Task::notify_info(m2_playground_help::help(&pg)),
-            save_creds,
+//             Task::notify_info(format!(
+//                 "Getting the correct `{}` file",
+//                 Cyan.paint("composer.json")
+//             )),
+//             get_composer_json,
+//             Task::notify_info(format!("Creating {}", Cyan.paint("auth.json"))),
+//             auth_json,
+//             Task::notify_info(format!("Creating {}", Cyan.paint("wf2.yml"))),
+//             wf2_file,
+//             Task::notify_info(format!("{}", Green.paint("All done!"))),
+//             Task::notify_info(m2_playground_help::help(&pg)),
+//             save_creds,
         ];
 
         // If -f was given just add a verification step to ensure it was intended
@@ -221,7 +241,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
         let args_required = pg_file.is_none();
         vec![App::new(M2PlaygroundCmd::NAME)
             .about(M2PlaygroundCmd::ABOUT)
-            .arg_from_usage("<version> 'Which magento version to use'")
+            .arg_from_usage("[version] 'Which magento version to use - or none for latest'")
             .after_help("Example: wf2 playground 2.3.3")
             .arg(
                 Arg::with_name("username")

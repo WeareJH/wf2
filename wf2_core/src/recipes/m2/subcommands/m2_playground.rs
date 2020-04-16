@@ -61,11 +61,29 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::{fmt, fs};
 use tempdir::TempDir;
+use std::collections::HashMap;
+use regex::Regex;
+
+#[derive(Serialize, Deserialize, Debug)]
+struct M2Packages {
+    packages: HashMap<String, HashMap<String, M2PackageVersion>>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct M2PackageVersion {
+    description: String,
+    version: String
+}
+
+struct Version {
+    string_ver: String,
+    base10: i32,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct M2Playground {
     #[serde(skip)]
-    pub version: String,
+    pub version: Option<String>,
     #[serde(skip)]
     pub dir: PathBuf,
 
@@ -103,16 +121,30 @@ impl M2Playground {
         Some(pg)
     }
     pub fn project_path(&self) -> String {
+        let v = match &self.version {
+            Some(v) => v.to_string(),
+            None => String::from("1.2.3.4")
+        };
         format!(
             "https://repo.magento.com/archives/magento/project-{edition}-edition/magento-project-{edition}-edition-{version}.0.zip",
             edition = self.edition.to_string(),
-            version = self.version
+            version = v
         )
     }
     pub fn base_path(&self) -> String {
+        let v = match &self.version {
+            Some(v) => v.to_string(),
+            None => String::from("1.2.3.4")
+        };
+
         format!(
             "https://repo.magento.com/archives/magento/magento2-base/magento-magento2-base-{}.0.zip",
-            self.version
+            v
+        )
+    }
+    pub fn packages(&self) -> String {
+        format!(
+            "https://repo.magento.com/packages.json",
         )
     }
 }
@@ -234,6 +266,57 @@ pub fn get_composer_json(pg: &M2Playground) -> Result<(), Error> {
     )
 }
 
+pub fn get_latest_version(pg: &M2Playground) -> Result<(), Error> {
+    let client = reqwest::Client::new();
+
+    let mut res = client
+        .get(&pg.packages())
+        .header(USER_AGENT, "composer")
+        .header(AUTHORIZATION, pg.basic_auth())
+        .send()?;
+
+    match res.status() {
+        StatusCode::OK => {
+            let resp = res.text()?;
+
+            let base: i32 = 10;
+            let re = Regex::new(r"^\d+.\d+.\d+$").unwrap();
+
+            let package_name = format!(
+               "magento/project-{edition}-edition",
+               edition = pg.edition.to_string(),
+            );
+
+            let m2packages: M2Packages = serde_json::from_str(&resp)?;
+            let versions = &m2packages.packages[&package_name];
+
+            let mut parsed_versions: Vec<Version> = versions.iter()
+                .map(|(k, v)| v.version.to_string())
+                .filter(|v| re.is_match(v))
+                .map(|v| {
+                    let mut parts_int:Vec<i32>= v.split(".")
+                        .into_iter()
+                        .map(|s| s.parse().unwrap())
+                        .collect();
+
+                    parts_int[0] = parts_int[0] * base.pow(2);
+                    parts_int[1] = parts_int[1] * base.pow(1);
+                    parts_int[2] = parts_int[2] * base.pow(0);
+
+                    Version { string_ver: v.to_string(), base10: parts_int.into_iter().sum() }
+                })
+                .collect();
+
+            parsed_versions.sort_by(|a, b| b.base10.cmp(&a.base10));
+
+            let top: String = parsed_versions[0].string_ver.to_string();
+            println!("Latest version is {}", top);
+            Ok(())
+        }
+        s => Err(status_err(s, pg)),
+    }
+}
+
 pub fn get_project_files(pg: &M2Playground) -> Result<(), Error> {
     let client = reqwest::Client::new();
     let tmp_dir = TempDir::new(TMP_DIR_NAME)?;
@@ -257,11 +340,17 @@ pub fn get_project_files(pg: &M2Playground) -> Result<(), Error> {
 }
 
 pub fn status_err(s: StatusCode, pg: &M2Playground) -> failure::Error {
+    let v = match &pg.version {
+        Some(v) => v.to_string(),
+        None => String::from("1.0.0")
+    };
+
     let err = match s.as_u16() {
         401 | 402 | 403 => M2PlaygroundError::Forbidden,
-        404 => M2PlaygroundError::NotFound(pg.version.clone()),
+        404 => M2PlaygroundError::NotFound(v),
         _ => M2PlaygroundError::Fetch(s),
     };
 
     Error::from(err)
 }
+x
