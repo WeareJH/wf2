@@ -6,6 +6,7 @@ use from_file::{FromFile, FromFileError};
 use serde_yaml::Value;
 use std::path::PathBuf;
 
+use serde::Deserialize;
 use std::{fmt, fs};
 
 pub const DEFAULT_DOMAIN: &str = "local.m2";
@@ -90,6 +91,9 @@ pub struct Context {
     #[serde(skip_serializing, default)]
     pub overrides: Option<serde_yaml::Value>,
 
+    #[serde(skip_serializing, default = "default_options")]
+    pub options: Option<serde_yaml::Value>,
+
     #[serde(skip_serializing, default = "default_debug")]
     pub debug: bool,
 
@@ -168,6 +172,7 @@ impl Default for Context {
             env: None,
             scripts: None,
             origin: None,
+            options: None,
         }
     }
 }
@@ -230,6 +235,10 @@ impl Context {
     pub fn file_path(&self, filename: impl Into<PathBuf>) -> PathBuf {
         self.output_dir().join(filename.into())
     }
+    pub fn parse_options<T: for<'a> Deserialize<'a>>(&self) -> Result<T, failure::Error> {
+        let opts: T = serde_yaml::from_value(self.options.clone().unwrap_or_default())?;
+        Ok(opts)
+    }
 }
 
 fn default_domains() -> Vec<String> {
@@ -255,6 +264,9 @@ fn default_debug() -> bool {
 }
 fn default_id() -> u32 {
     0
+}
+fn default_options() -> Option<serde_yaml::Value> {
+    None
 }
 
 ///
