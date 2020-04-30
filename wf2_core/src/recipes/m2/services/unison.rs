@@ -3,6 +3,7 @@ use crate::dc_service::DcService;
 use crate::recipes::m2::m2_vars::{M2Var, M2Vars, Vars};
 use crate::recipes::m2::services::M2Service;
 use crate::recipes::m2::volumes::M2Volumes;
+use std::path::PathBuf;
 
 pub struct UnisonService;
 
@@ -10,6 +11,11 @@ impl UnisonService {
     pub const VOLUME_HOST: &'static str = "/volumes/host";
     pub const VOLUME_INTERNAL: &'static str = "/volumes/internal";
     pub const CONFIG_FILE: &'static str = "/home/docker/.unison/sync.prf";
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UnisonOptions {
+    pub ignore_not: Option<Vec<PathBuf>>,
 }
 
 impl M2Service for UnisonService {

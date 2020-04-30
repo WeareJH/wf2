@@ -1,0 +1,14 @@
+recipe: M2
+domains: [wwe.m2]
+options:
+  services:
+    unison:
+      ignore_not:
+        - vendor/wearejh
+        - vendor/someootherlib/nested
+
+scripts:
+  hello-world:
+    steps:
+      - sh: echo hello world!
+      - sh: printenv

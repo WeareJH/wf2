@@ -10,7 +10,7 @@ use crate::recipes::m2::services::php::PhpService;
 use crate::recipes::m2::services::php_debug::PhpDebugService;
 use crate::recipes::m2::services::rabbit_mq::RabbitMqService;
 use crate::recipes::m2::services::traefik::TraefikService;
-use crate::recipes::m2::services::unison::UnisonService;
+use crate::recipes::m2::services::unison::{UnisonOptions, UnisonService};
 use crate::recipes::m2::services::varnish::VarnishService;
 
 use crate::recipes::m2::services::blackfire::BlackfireService;
@@ -25,6 +25,16 @@ pub const M2_ROOT: &str = "/var/www";
 pub enum M2ServiceError {
     #[fail(display = "{} method not implemented", _0)]
     NotImplemented(String),
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct M2ServiceOptions {
+    pub unison: Option<UnisonOptions>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct M2RecipeOptions {
+    pub services: Option<M2ServiceOptions>,
 }
 
 pub trait M2Service {

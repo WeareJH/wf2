@@ -68,13 +68,13 @@ impl EnvPhp {
         let env = EnvPhp::from_ctx(ctx);
         Task::conditional(
             vec![
-                /// Does the env.php file exist?
+                // Does the env.php file exist?
                 Box::new(FilePresent::new(&env.env, false)),
-                /// Does the env.php.dist file exist?
+                // Does the env.php.dist file exist?
                 Box::new(FilePresent::new(&env.env_dist, false)),
-                /// Do those files differ?
+                // Do those files differ?
                 Box::new(FilesDiffer::new(&env.env, &env.env_dist)),
-                /// Does the user want to copy env.php.dist -> env.php
+                // Does the user want to copy env.php.dist -> env.php
                 Box::new(env.copy_confirm()),
             ],
             vec![env.copy_dist(), env.copy_dist_msg(), env.copy_warning()],

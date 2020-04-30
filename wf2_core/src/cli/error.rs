@@ -5,5 +5,7 @@ pub enum CLIError {
     #[fail(display = "The following does not exist {:?}", _0)]
     MissingConfig(std::path::PathBuf),
     #[fail(display = "{}", _0)]
+    ParsingContext(String),
+    #[fail(display = "{}", _0)]
     VersionDisplayed(String),
 }
