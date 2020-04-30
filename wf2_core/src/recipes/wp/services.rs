@@ -81,10 +81,10 @@ fn php(name: &str, image: &str, ctx: &Context) -> DcService {
             "XDEBUG_CONFIG=remote_host=host.docker.internal",
             &format!("PHP_IDE_CONFIG=serverName={}", domain),
             &format!("PHP_MEMORY_LIMIT=\"{}\"", "2G"),
-            ///
-            /// this one is here to prevent needing to modify/change the
-            /// default bedrock setup.
-            ///
+            //
+            // this one is here to prevent needing to modify/change the
+            // default bedrock setup.
+            //
             &format!("DB_HOST={}", WpServices::DB),
         ])
         .build()

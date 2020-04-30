@@ -23,7 +23,6 @@
 //! # assert_eq!(tasks.len(), 1);
 //! ```
 use serde::{Deserialize, Serialize};
-use serde_json;
 use structopt::StructOpt;
 
 use std::env;
