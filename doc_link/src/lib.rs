@@ -18,7 +18,7 @@ pub fn doc_link(attr: TokenStream, item: TokenStream) -> TokenStream {
     let s = attr.to_string();
     let stripped = &s[1..s.len() - 1];
     let str_out = format!(
-        "Documentation:\n    {base}/wf2_core{path}/index.html",
+        "\nDocumentation: {base}/wf2_core{path}/index.html",
         base = BASE,
         path = stripped
     );

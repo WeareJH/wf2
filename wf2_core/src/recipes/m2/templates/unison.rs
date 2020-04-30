@@ -37,7 +37,7 @@ impl File<UnisonFile> for UnisonFile {
         if let Some(ignore_not) = self.ignore_not.as_ref() {
             let extra_lines: Vec<String> = ignore_not
                 .iter()
-                .map(|pb| format!("ignorenot Path {}", pb.display()))
+                .map(|pb| format!("ignorenot = Path {}", pb.display()))
                 .collect();
             lines.extend(extra_lines);
         }

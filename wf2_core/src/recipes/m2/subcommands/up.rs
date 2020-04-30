@@ -78,6 +78,31 @@
 //! # ]);
 //! ```
 //!
+//! ## sync folders from `vendor`
+//!
+//! Sometimes you'll need or want to edit files that would normally be accessible in your local
+//! `vendor` folder - but you cannot with `wf2` because we don't 'sync' 'vendor' by default for performance reasons.
+//!
+//! To get around this limitiation, we can add temporary 'sync' folders
+//!
+//! **with the `--sync` flag**
+//!
+//! ```sh
+//! wf2 up --sync vendor/magento/framework/Acl
+//! ```
+//!
+//! You can also add folders with `wf2.yml` or `wf2.env.yml`
+//!
+//! ```yaml
+//! options:
+//!   services:
+//!     unison:
+//!       ignore_not:
+//!         - vendor/wearejh
+//! ```
+//!
+//! Note: If you provide both (in the yml + cli flag) then ONLY the cli flag will be used
+//!
 //! # Next steps:
 //!
 //! Bringing up the containers just gives you all of the services needed to run Magento.
@@ -126,6 +151,7 @@ use crate::commands::CliCommand;
 use crate::recipes::m2::tasks::env_php::EnvPhp;
 use crate::recipes::m2::templates::M2Templates;
 
+use crate::conditions::question::Question;
 use crate::recipes::m2::services::{M2RecipeOptions, M2ServiceOptions};
 use crate::recipes::m2::subcommands::m2_playground_help;
 use crate::recipes::m2::subcommands::up_help::up_help;
@@ -133,7 +159,7 @@ use crate::recipes::m2::M2Recipe;
 use crate::recipes::Recipe;
 use crate::tasks::docker_clean::docker_clean;
 use crate::{context::Context, task::Task};
-use ansi_term::Colour::Cyan;
+use ansi_term::Colour::{Cyan, Green};
 use clap::{App, ArgMatches};
 use doc_link::doc_link;
 use std::path::PathBuf;
@@ -164,6 +190,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2Up {
     fn exec(&self, matches: Option<&ArgMatches>, ctx: &Context) -> Option<Vec<Task>> {
         let opts: Opts = matches.map(Opts::from_clap).expect("guarded by Clap");
         let mut next_ctx = ctx.clone();
+        let mut syncing = false;
         let mut prev_options: Option<Result<M2RecipeOptions, _>> =
             next_ctx.options.clone().map(serde_yaml::from_value);
 
@@ -176,6 +203,12 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2Up {
         {
             if let Some(paths) = opts.sync {
                 unison_opts.ignore_not = Some(paths);
+                syncing = true;
+            } else if unison_opts.ignore_not.is_some() {
+                syncing = true;
+            } else {
+                // for completeness
+                syncing = false;
             }
         }
 
@@ -183,7 +216,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2Up {
             next_ctx.options = Some(serde_yaml::to_value(opts).expect("Can convert to value"));
         }
 
-        Some(up(&next_ctx, opts.clean, opts.attached).unwrap_or_else(Task::task_err_vec))
+        Some(up(&next_ctx, opts.clean, opts.attached, syncing).unwrap_or_else(Task::task_err_vec))
     }
     fn subcommands(&self, _ctx: &Context) -> Vec<App<'a, 'b>> {
         vec![App::new(M2Up::NAME)
@@ -198,7 +231,12 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2Up {
 ///
 /// Bring the project up using given templates
 ///
-pub fn up(ctx: &Context, clean: bool, attached: bool) -> Result<Vec<Task>, failure::Error> {
+pub fn up(
+    ctx: &Context,
+    clean: bool,
+    attached: bool,
+    syncing: bool,
+) -> Result<Vec<Task>, failure::Error> {
     //
     // Display which config file (if any) is being used.
     //
@@ -224,6 +262,24 @@ pub fn up(ctx: &Context, clean: bool, attached: bool) -> Result<Vec<Task>, failu
     //
     // Check that certain critical files exist
     //
+    let verify_sync = if syncing {
+        vec![Task::conditional(
+            vec![Box::new(Question::new(format!(
+                "{} {}",
+                Green.paint("[wf2 info]"),
+                "You've chosen to sync some directories, do you understand the risk?",
+            )))],
+            vec![Task::Noop],
+            vec![Task::notify_error(format!(
+                "Phew, bailed! For more information try:{}",
+                M2Up::DOC_LINK
+            ))],
+            Some("Verify sync".to_string()),
+        )]
+    } else {
+        vec![]
+    };
+
     let validate = vec![(M2Recipe).validate(&ctx)];
 
     //
@@ -283,6 +339,7 @@ pub fn up(ctx: &Context, clean: bool, attached: bool) -> Result<Vec<Task>, failu
 
     Ok(vec![]
         .into_iter()
+        .chain(verify_sync.into_iter())
         .chain(validate.into_iter())
         .chain(notify.into_iter())
         .chain(missing_env.into_iter())
