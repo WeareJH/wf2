@@ -3,7 +3,7 @@ use crate::dc_service::DcService;
 use crate::dc_service_network::DcServiceNetwork;
 
 use crate::file::File;
-use crate::recipes::m2::output_files::traefik::TraefikFile;
+use crate::recipes::m2::output_files::traefik::{TraefikFile,TraefikRedirectFile};
 use crate::services::Service;
 
 pub struct TraefikService;
@@ -12,27 +12,37 @@ pub struct TraefikService;
 pub struct TraefikServiceVars;
 
 impl TraefikService {
-    pub fn host_entry_label(domain: impl Into<String>, port: impl Into<u32>) -> Vec<String> {
-        vec![
-            TraefikService::host(domain.into()),
-            TraefikService::port(port.into()),
-        ]
-    }
-    pub fn host_only_entry_label(domain: impl Into<String>) -> Vec<String> {
-        vec![TraefikService::host(domain.into())]
-    }
-
-    fn host(domain: String) -> String {
-        format!("traefik.frontend.rule=Host:{}", domain)
-    }
-    fn port(port: u32) -> String {
-        format!("traefik.port={}", port)
+    // MVP implementation to allow upgrade to Traefik2
+    pub fn simple_entry(
+        name: impl Into<String>,
+        domain: impl Into<String>,
+        tls: bool,
+        target_port: impl Into<u32>,
+    ) -> Vec<String> {
+        let name: String = name.into();
+        let service_name = format!("{}-svc", name);
+        let val = vec![
+            format!(
+                "traefik.http.routers.{}.rule=Host(`{}`)",
+                name,
+                domain.into()
+            ),
+            format!("traefik.http.routers.{}.service={}", name, service_name),
+            format!("traefik.http.routers.{}.tls={}", name, tls),
+            format!(
+                "traefik.http.services.{}.loadBalancer.server.port={}",
+                service_name,
+                target_port.into()
+            ),
+            "traefik.enable=true".into(),
+        ];
+        val
     }
 }
 
 impl Service for TraefikService {
     const NAME: &'static str = "traefik";
-    const IMAGE: &'static str = "traefik:1.7";
+    const IMAGE: &'static str = "traefik:2.2";
 
     fn dc_service(&self, ctx: &Context, _vars: &()) -> DcService {
         DcService::new(ctx.name(), Self::NAME, Self::IMAGE)
@@ -44,9 +54,14 @@ impl Service for TraefikService {
                         .expect("cannot fail to get traefik file")
                         .file_path_string(),
                 ),
+                format!(
+                    "{}:/etc/traefik/dynamic/redirect.toml",
+                    TraefikRedirectFile::from_ctx(&ctx)
+                        .expect("cannot fail to get traefik redirect file")
+                        .file_path_string(),
+                ),
             ])
             .set_ports(vec!["80:80", "443:443", "8080:8080"])
-            .set_command("--api --docker")
             .set_labels(vec![Self::TRAEFIK_DISABLE_LABEL])
             .set_network(
                 "default",
@@ -62,12 +77,19 @@ mod test {
 
     #[test]
     fn test_host_entry() {
-        let labels = TraefikService::host_entry_label("mail.jh", 8080_u32);
+        let labels = TraefikService::simple_entry("mailhog", "mail.jh", true, 8080_u32);
         assert_eq!(
             labels,
-            vec!["traefik.frontend.rule=Host:mail.jh", "traefik.port=8080"]
+            vec![
+                "traefik.http.routers.mailhog.rule=Host(`mail.jh`)",
+                "traefik.http.routers.mailhog.service=mailhog-svc",
+                "traefik.http.routers.mailhog.tls=true",
+                "traefik.http.services.mailhog-svc.loadBalancer.server.port=8080",
+                "traefik.enable=true"
+            ]
         )
     }
+
     #[test]
     fn test_aliases() {
         let ctx = Context::default();
@@ -95,10 +117,5 @@ mod test {
         "#;
         let expected_dc: DcService = serde_yaml::from_str(expected).expect("deserialize");
         assert_eq!(actual, expected_dc);
-    }
-    #[test]
-    fn test_host_only_entry() {
-        let labels = TraefikService::host_only_entry_label("mail.jh");
-        assert_eq!(labels, vec!["traefik.frontend.rule=Host:mail.jh"])
     }
 }

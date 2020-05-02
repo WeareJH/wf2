@@ -32,8 +32,10 @@ impl Service for RabbitMqService {
                 format!("{port}:{port}", port = RabbitMqService::PORT_PUBLIC),
                 format!("{port}:{port}", port = RabbitMqService::PORT_INTERNAL),
             ])
-            .set_labels(TraefikService::host_entry_label(
+            .set_labels(TraefikService::simple_entry(
+                RabbitMqService::NAME,
                 RabbitMqService::DOMAIN,
+                false,
                 RabbitMqService::PORT_PUBLIC,
             ))
             .finish()
