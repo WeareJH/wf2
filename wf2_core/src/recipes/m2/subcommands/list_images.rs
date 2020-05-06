@@ -23,7 +23,7 @@
 //!    nginx            wearejh/nginx:stable-m2
 //!    php-debug        wearejh/php:7.3-m2
 //!    rabbitmq         rabbitmq:3.7-management-alpine
-//!    elasticsearch    wearejh/elasticsearch:5.6-m2
+//!    elasticsearch    wearejh/elasticsearch:7.6-m2
 //!    php              wearejh/php:7.3-m2
 //!    mail             mailhog/mailhog
 //! ```
