@@ -12,7 +12,7 @@ impl ElasticSearchService {
 
 impl M2Service for ElasticSearchService {
     const NAME: &'static str = "elasticsearch";
-    const IMAGE: &'static str = "wearejh/elasticsearch:5.6-m2";
+    const IMAGE: &'static str = "wearejh/elasticsearch:7.6-m2";
 
     fn dc_service(&self, ctx: &Context, _vars: &M2Vars) -> DcService {
         DcService::new(ctx.name(), Self::NAME, Self::IMAGE)
