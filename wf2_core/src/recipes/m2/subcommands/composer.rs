@@ -27,10 +27,10 @@ use crate::task::Task;
 pub struct ComposerPassThru;
 
 impl ComposerPassThru {
-    pub const ABOUT: &'static str = "[m2] Run composer commands with the correct user";
+    pub const ABOUT: &'static str = "Run composer commands with the correct user";
 }
 
-pub fn composer(ctx: &Context, trailing: Vec<String>) -> Vec<Task> {
+pub fn composer(ctx: &Context, trailing: &[String]) -> Vec<Task> {
     PhpService::select(&ctx)
         .map(|service| {
             let exec_command = format!(

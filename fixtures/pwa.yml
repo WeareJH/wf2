@@ -1,0 +1,7 @@
+recipe: M2
+domains: [ example.m2 ]
+options:
+  services:
+    pwa:
+      domains: [ example.pwa, test.ngrok.io ]
+      src_dir: /users/shane/pwa

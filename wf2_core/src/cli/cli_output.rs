@@ -4,6 +4,7 @@ use clap::{App, ArgMatches};
 
 use crate::cli::cli_input::CLIInput;
 use crate::cli::CLIHelp;
+use crate::cmd::PassThruCmd;
 use crate::commands::{internal_commands, CliCommand};
 use crate::recipes::available_recipes;
 use crate::recipes::recipe_kinds::RecipeKinds;
@@ -35,7 +36,7 @@ impl CLIOutput {
         if let Some(recipe) = ctx.recipe {
             // recipe pass-thru commands first
             let recipe = RecipeKinds::select(recipe);
-            let recipe_pass_thru = recipe.pass_thru_commands();
+            let recipe_pass_thru = recipe.names(&ctx);
             if !recipe_pass_thru.is_empty() {
                 help_text.push(format!(
                     "PASS THRU COMMANDS:\n{}",
@@ -83,7 +84,7 @@ impl CLIOutput {
         let recipe_subcommands = ctx
             .recipe
             .map(RecipeKinds::select)
-            .map(|r| r.subcommands())
+            .map(|r| r.subcommands(&ctx))
             .unwrap_or_else(|| vec![]);
 
         let internal_cmd = internal_commands()
@@ -160,7 +161,7 @@ impl CLIOutput {
             }
         }
 
-        let recipe = RecipeKinds::select(ctx.recipe?);
+        let recipe = RecipeKinds::from_ctx(&ctx);
 
         let flattened = Script {
             description: desc,
@@ -171,16 +172,16 @@ impl CLIOutput {
     }
 
     pub fn get_recipe_pass_thru(matches: &ArgMatches, ctx: &Context) -> Option<Vec<Task>> {
-        let recipe = RecipeKinds::select(ctx.recipe?);
+        let recipe = RecipeKinds::from_ctx(&ctx);
         //
         // Get the task list by checking which sub-command was used
         //
         let cmd = match matches.subcommand() {
-            (cmd, Some(sub_matches)) => recipe.select_command((cmd, Some(sub_matches))),
+            (cmd, Some(sub_matches)) => Some(PassThruCmd::select_pass_thru((cmd, sub_matches))),
             _ => None,
         };
 
-        cmd.and_then(|cmd| recipe.resolve_cmd(&ctx, cmd))
+        cmd.and_then(|cmd| recipe.resolve(&ctx, &cmd))
     }
 }
 
@@ -190,7 +191,7 @@ fn collect_apps(ctx: &Context) -> Vec<App> {
     let recipe_subcommands = ctx
         .recipe
         .map(RecipeKinds::select)
-        .map(|r| r.subcommands())
+        .map(|r| r.subcommands(&ctx))
         .unwrap_or_else(|| vec![]);
 
     // this is all of the individual recipe 'global' commands

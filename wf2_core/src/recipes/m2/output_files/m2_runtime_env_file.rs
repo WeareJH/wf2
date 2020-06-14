@@ -2,7 +2,7 @@ use crate::context::Context;
 use crate::file::File;
 use env_proc::env_vars;
 use snailquote::escape;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 ///
@@ -17,10 +17,10 @@ pub struct M2RuntimeEnvFile {
 
 impl File<M2RuntimeEnvFile> for M2RuntimeEnvFile {
     const DESCRIPTION: &'static str = "Writes the .env file to disk";
-    const OUTPUT_PATH: &'static str = ".docker.env";
+    const HOST_OUTPUT_PATH: &'static str = ".docker.env";
 
     fn from_ctx(ctx: &Context) -> Result<M2RuntimeEnvFile, failure::Error> {
-        let env_file_path = ctx.file_path(Self::OUTPUT_PATH);
+        let env_file_path = ctx.output_file_path(Self::HOST_OUTPUT_PATH);
         let bytes = create_runtime_env(&ctx, &ctx.env, &ctx.default_domain())?;
         Ok(M2RuntimeEnvFile {
             file_path: env_file_path,
@@ -84,6 +84,7 @@ env_vars! {
     BLACKFIRE_CLIENT_TOKEN=""
     BLACKFIRE_SERVER_ID=""
     BLACKFIRE_SERVER_TOKEN=""
+    NODE_TLS_REJECT_UNAUTHORIZED="0"
 }
 
 //
@@ -113,7 +114,7 @@ pub fn create_runtime_env(
 //
 // Hashmap -> bytes for writing to disk
 //
-fn print(store: HashMap<EnvVarKeys, String>) -> Vec<u8> {
+fn print(store: BTreeMap<EnvVarKeys, String>) -> Vec<u8> {
     let mut buffer = Vec::with_capacity(1024);
     for (key, value) in &store {
         buffer.extend_from_slice(key.to_string().as_bytes());

@@ -2,7 +2,7 @@ use crate::context::Context;
 use crate::file::File;
 use crate::recipes::m2::services::php::PhpService;
 use crate::recipes::m2::services::php_debug::PhpDebugService;
-use crate::recipes::m2::services::M2Service;
+use crate::services::Service;
 use std::path::PathBuf;
 
 ///
@@ -18,11 +18,11 @@ pub struct NginxUpstream {
 
 impl File<NginxUpstream> for NginxUpstream {
     const DESCRIPTION: &'static str = "write the upstream file";
-    const OUTPUT_PATH: &'static str = "nginx/sites/upstream.conf";
+    const HOST_OUTPUT_PATH: &'static str = "nginx/sites/upstream.conf";
 
     fn from_ctx(ctx: &Context) -> Result<NginxUpstream, failure::Error> {
         Ok(NginxUpstream {
-            file_path: ctx.file_path(Self::OUTPUT_PATH),
+            file_path: ctx.output_file_path(Self::HOST_OUTPUT_PATH),
             backend: PhpService::NAME.to_string(),
             backend_debug: PhpDebugService::NAME.to_string(),
         })

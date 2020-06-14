@@ -2,11 +2,11 @@ use crate::context::Context;
 use crate::dc_service::DcService;
 use crate::recipes::m2::m2_vars::M2Vars;
 use crate::recipes::m2::services::php::PhpService;
-use crate::recipes::m2::services::M2Service;
+use crate::services::Service;
 
 pub struct PhpDebugService;
 
-impl M2Service for PhpDebugService {
+impl Service<M2Vars> for PhpDebugService {
     const NAME: &'static str = "php-debug";
     const IMAGE: &'static str = PhpService::IMAGE_7_3;
     ///
@@ -24,7 +24,7 @@ impl M2Service for PhpDebugService {
             .set_container_name(ctx.name(), Self::NAME)
             .set_name(Self::NAME)
             .set_environment(vec!["XDEBUG_ENABLE=true"])
-            .build()
+            .finish()
     }
 }
 
@@ -32,7 +32,6 @@ impl M2Service for PhpDebugService {
 mod tests {
     use super::*;
     use crate::php::PHP;
-    use crate::recipes::m2::m2_vars::Vars;
 
     #[test]
     fn test_php_debug() -> Result<(), failure::Error> {

@@ -9,11 +9,11 @@ pub struct DbInit {
 
 impl File<DbInit> for DbInit {
     const DESCRIPTION: &'static str = "Writes the mysql init file";
-    const OUTPUT_PATH: &'static str = "mysql/init-scripts/init-db.sh";
+    const HOST_OUTPUT_PATH: &'static str = "mysql/init-scripts/init-db.sh";
 
     fn from_ctx(ctx: &Context) -> Result<DbInit, failure::Error> {
         Ok(DbInit {
-            file_path: ctx.file_path(Self::OUTPUT_PATH),
+            file_path: ctx.output_file_path(Self::HOST_OUTPUT_PATH),
         })
     }
 

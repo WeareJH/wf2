@@ -17,7 +17,7 @@ use crate::context::Context;
 use crate::recipes::m2::tasks::env_php::EnvPhp;
 
 use crate::recipes::m2::services::unison::UnisonService;
-use crate::recipes::m2::services::M2Service;
+use crate::services::Service;
 use crate::task::Task;
 use clap::{App, ArgMatches};
 
@@ -26,7 +26,7 @@ pub struct M2Doctor;
 
 impl M2Doctor {
     const NAME: &'static str = "doctor";
-    const ABOUT: &'static str = "[m2] Try to fix common issues with a recipe";
+    const ABOUT: &'static str = "Try to fix common issues with a recipe";
 }
 
 impl<'a, 'b> CliCommand<'a, 'b> for M2Doctor {

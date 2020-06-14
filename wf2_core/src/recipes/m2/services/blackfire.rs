@@ -1,18 +1,18 @@
 use crate::context::Context;
 use crate::dc_service::DcService;
 use crate::recipes::m2::m2_vars::{M2Var, M2Vars};
-use crate::recipes::m2::services::M2Service;
+use crate::services::blackfire::BlackfireService;
+use crate::services::Service;
 
-pub struct BlackfireService;
+pub struct M2BlackfireService;
 
-impl M2Service for BlackfireService {
-    const NAME: &'static str = "blackfire";
-    const IMAGE: &'static str = "blackfire/blackfire";
+impl Service<M2Vars> for M2BlackfireService {
+    const NAME: &'static str = BlackfireService::NAME;
+    const IMAGE: &'static str = BlackfireService::IMAGE;
 
     fn dc_service(&self, ctx: &Context, vars: &M2Vars) -> DcService {
-        DcService::new(ctx.name(), Self::NAME, Self::IMAGE)
-            .set_env_file(vec![vars.content[&M2Var::EnvFile].to_string()])
-            .set_labels(vec![Self::TRAEFIK_DISABLE_LABEL.to_string()])
-            .build()
+        let mut s = (BlackfireService).dc_service(&ctx, &());
+        s.set_env_file(vec![vars.content[&M2Var::EnvFile].to_string()]);
+        s
     }
 }

@@ -11,13 +11,13 @@ pub struct UnisonFile {
 
 impl File<UnisonFile> for UnisonFile {
     const DESCRIPTION: &'static str = "Writes the unison file";
-    const OUTPUT_PATH: &'static str = "unison/conf/sync.prf";
+    const HOST_OUTPUT_PATH: &'static str = "unison/conf/sync.prf";
 
     fn from_ctx(ctx: &Context) -> Result<UnisonFile, failure::Error> {
         let opts: Result<M2RecipeOptions, _> = ctx.parse_options();
 
         Ok(UnisonFile {
-            file_path: ctx.file_path(Self::OUTPUT_PATH),
+            file_path: ctx.output_file_path(Self::HOST_OUTPUT_PATH),
             ignore_not: opts.ok().and_then(|opts| {
                 opts.services
                     .and_then(|s| s.unison.and_then(|u| u.ignore_not))

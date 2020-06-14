@@ -1,6 +1,7 @@
 use crate::commands::CliCommand;
 use crate::context::Context;
 
+use crate::dc_tasks::DcTasksTrait;
 use crate::recipes::wp::services::WpVolumeMounts;
 use crate::recipes::wp::WpRecipe;
 use crate::task::Task;
@@ -40,16 +41,17 @@ impl<'a, 'b> CliCommand<'a, 'b> for WpUp {
 }
 
 fn up(ctx: &Context, clean: bool, attached: bool) -> Vec<Task> {
-    WpRecipe::dc_tasks(&ctx)
+    (WpRecipe)
+        .dc_tasks(&ctx)
         .map(|dc_tasks| {
             let base_tasks = vec![
                 Task::file_write(
-                    ctx.file_path(WpVolumeMounts::NGINX_CONF),
+                    ctx.output_file_path(WpVolumeMounts::NGINX_CONF),
                     "Writes the nginx conf file",
                     include_bytes!("../templates/nginx.conf").to_vec(),
                 ),
                 Task::file_write(
-                    ctx.file_path(WpVolumeMounts::NGINX_DEFAULT_HOST),
+                    ctx.output_file_path(WpVolumeMounts::NGINX_DEFAULT_HOST),
                     "Writes the nginx conf file",
                     include_bytes!("../templates/host.conf").to_vec(),
                 ),

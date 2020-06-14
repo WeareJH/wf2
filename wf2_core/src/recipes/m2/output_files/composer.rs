@@ -9,11 +9,11 @@ pub struct Composer {
 
 impl File<Composer> for Composer {
     const DESCRIPTION: &'static str = "Composer file";
-    const OUTPUT_PATH: &'static str = "composer.json";
+    const HOST_OUTPUT_PATH: &'static str = "composer.json";
 
     fn from_ctx(ctx: &Context) -> Result<Composer, failure::Error> {
         Ok(Composer {
-            file_path: ctx.cwd.join(Self::OUTPUT_PATH),
+            file_path: ctx.cwd.join(Self::HOST_OUTPUT_PATH),
         })
     }
 

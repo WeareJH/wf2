@@ -21,6 +21,15 @@ pub mod env;
 pub mod self_update;
 pub mod timelog;
 
+pub trait Commands<'a, 'b> {
+    fn subcommands(&self, _ctx: &Context) -> Vec<Box<dyn CliCommand<'a, 'b>>> {
+        vec![]
+    }
+    fn global_subcommands(&self) -> Vec<Box<dyn CliCommand<'a, 'b>>> {
+        vec![]
+    }
+}
+
 pub trait CliCommand<'a, 'b> {
     fn name(&self) -> String;
     fn about(&self) -> String {

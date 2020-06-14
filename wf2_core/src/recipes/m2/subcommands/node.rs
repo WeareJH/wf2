@@ -30,10 +30,10 @@ use crate::task::Task;
 pub struct NodePassThru;
 
 impl NodePassThru {
-    pub const ABOUT: &'static str = "[m2] Run commands in the node container";
+    pub const ABOUT: &'static str = "Run commands in the node container";
 }
 
-pub fn node(trailing: Vec<String>, dc: DcTasks) -> Vec<Task> {
+pub fn node(trailing: &[String], dc: DcTasks) -> Vec<Task> {
     let dc_command = format!(r#"run {}"#, trailing.join(" "));
     vec![dc.cmd_task(vec![dc_command])]
 }

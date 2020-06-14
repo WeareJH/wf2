@@ -20,16 +20,19 @@
 //! # let expected = "docker-compose -f /users/shane/.wf2_m2_shane/docker-compose.yml logs php";
 //! # assert_eq!(commands, vec![expected]);
 //! ```
-use crate::dc_tasks::DcTasks;
+use crate::context::Context;
+use crate::recipes::recipe_kinds::RecipeKinds;
 use crate::task::Task;
 
 pub struct DcPassThru;
 
 impl DcPassThru {
-    pub const ABOUT: &'static str = "[m2] Run docker-compose commands";
+    pub const ABOUT: &'static str = "Run docker-compose commands";
 }
 
-pub fn dc_passthru(trailing: Vec<String>, dc: DcTasks) -> Vec<Task> {
-    let after: Vec<String> = trailing.into_iter().skip(1).collect();
-    vec![dc.cmd_task(after)]
+pub fn dc_passthru(ctx: &Context, trailing: &[String]) -> Result<Vec<Task>, failure::Error> {
+    let recipe = RecipeKinds::from_ctx(&ctx);
+    let dc_tasks = recipe.dc_tasks(&ctx)?;
+    let after: Vec<String> = trailing.iter().map(String::from).skip(1).collect();
+    Ok(vec![dc_tasks.cmd_task(after)])
 }

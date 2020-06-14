@@ -24,7 +24,7 @@ use crate::recipes::m2::services::db::DbService;
 use crate::task::Task;
 
 use crate::dc_service::DcService;
-use crate::recipes::m2::services::M2Service;
+use crate::services::Service;
 use clap::{App, ArgMatches};
 
 #[doc_link::doc_link("/recipes/m2/subcommands/db_dump")]
@@ -32,7 +32,7 @@ pub struct M2DbDump;
 
 impl M2DbDump {
     const NAME: &'static str = "db-dump";
-    const ABOUT: &'static str = "[m2] Dump the current database to dump.sql";
+    const ABOUT: &'static str = "Dump the current database to dump.sql";
 }
 
 impl<'a, 'b> CliCommand<'a, 'b> for M2DbDump {

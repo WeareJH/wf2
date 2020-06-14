@@ -27,7 +27,7 @@ struct EnvItem {
 /// extern crate serde_derive;
 /// extern crate serde;
 /// use env_proc::*;
-/// use std::collections::HashMap;
+/// use std::collections::BTreeMap;
 /// env_vars! {
 ///    NAME = "shane"
 /// }
@@ -128,7 +128,7 @@ pub fn env_vars(item: TokenStream) -> TokenStream {
 
     let output_tokens = quote! {
 
-        #[derive(Eq, Debug, Clone, Hash, PartialEq, Deserialize)]
+        #[derive(Eq, Debug, Clone, Hash, PartialEq, Deserialize, Ord, PartialOrd)]
         #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
         enum EnvVarKeys {
             #(#enum_names),*
@@ -143,11 +143,11 @@ pub fn env_vars(item: TokenStream) -> TokenStream {
         }
 
         #[derive(Eq, Debug, Clone, PartialEq, Deserialize)]
-        struct HmEnv(HashMap<EnvVarKeys, String>);
+        struct HmEnv(BTreeMap<EnvVarKeys, String>);
 
         impl Default for HmEnv {
             fn default() -> HmEnv {
-                let mut hm: HashMap<EnvVarKeys, String> = HashMap::new();
+                let mut hm: BTreeMap<EnvVarKeys, String> = BTreeMap::new();
                 #(#pushes);*
                 HmEnv(hm)
             }
@@ -158,7 +158,7 @@ pub fn env_vars(item: TokenStream) -> TokenStream {
                 HmEnv(self.0
                     .into_iter()
                     .chain(other.0.into_iter())
-                    .collect::<HashMap<EnvVarKeys, String>>())
+                    .collect::<BTreeMap<EnvVarKeys, String>>())
             }
         }
     };

@@ -9,11 +9,11 @@ pub struct Auth {
 
 impl File<Auth> for Auth {
     const DESCRIPTION: &'static str = "Auth file";
-    const OUTPUT_PATH: &'static str = "auth.json";
+    const HOST_OUTPUT_PATH: &'static str = "auth.json";
 
     fn from_ctx(ctx: &Context) -> Result<Auth, failure::Error> {
         Ok(Auth {
-            file_path: ctx.cwd.join(Self::OUTPUT_PATH),
+            file_path: ctx.cwd.join(Self::HOST_OUTPUT_PATH),
         })
     }
 

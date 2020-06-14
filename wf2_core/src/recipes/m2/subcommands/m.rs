@@ -80,10 +80,10 @@ use crate::task::Task;
 pub struct MPassThru;
 
 impl MPassThru {
-    pub const ABOUT: &'static str = "[m2] Execute ./bin/magento commands inside the PHP container";
+    pub const ABOUT: &'static str = "Execute ./bin/magento commands inside the PHP container";
 }
 
-pub fn mage(ctx: &Context, trailing: Vec<String>) -> Vec<Task> {
+pub fn mage(ctx: &Context, trailing: &[String]) -> Vec<Task> {
     PhpService::select(&ctx)
         .map(|service| {
             let full_command = format!(
@@ -92,8 +92,9 @@ pub fn mage(ctx: &Context, trailing: Vec<String>) -> Vec<Task> {
                 height = ctx.term.height,
                 container_name = service.container_name,
                 trailing_args = trailing
-                    .into_iter()
+                    .iter()
                     .skip(1)
+                    .map(String::from)
                     .collect::<Vec<String>>()
                     .join(" ")
             );

@@ -74,6 +74,7 @@
 use crate::commands::CliCommand;
 use crate::context::Context;
 use crate::dc::Dc;
+use crate::dc_tasks::DcTasksTrait;
 use crate::recipes::m2::M2Recipe;
 use crate::task::Task;
 use clap::{App, Arg, ArgMatches};
@@ -84,7 +85,7 @@ pub struct M2UpdateImages;
 
 impl M2UpdateImages {
     const NAME: &'static str = "update-images";
-    const ABOUT: &'static str = "[m2] Update images used in the current recipe by service name";
+    const ABOUT: &'static str = "Update images used in the current recipe by service name";
 }
 
 #[derive(StructOpt, Debug)]
@@ -98,7 +99,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2UpdateImages {
     }
     fn exec(&self, matches: Option<&ArgMatches>, ctx: &Context) -> Option<Vec<Task>> {
         let opts: Opts = matches.map(Opts::from_clap).expect("guarded by Clap");
-        let dc = M2Recipe::dc(&ctx);
+        let dc = (M2Recipe).dc(&ctx);
         match dc {
             Ok(dc) => Some(update_images(&dc, opts.services)),
             Err(e) => Some(Task::task_err_vec(e)),

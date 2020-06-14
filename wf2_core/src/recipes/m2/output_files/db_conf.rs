@@ -9,11 +9,11 @@ pub struct DbConf {
 
 impl File<DbConf> for DbConf {
     const DESCRIPTION: &'static str = "Writes the mysql conf file";
-    const OUTPUT_PATH: &'static str = "mysql/mysqlconf/mysql.cnf";
+    const HOST_OUTPUT_PATH: &'static str = "mysql/mysqlconf/mysql.cnf";
 
     fn from_ctx(ctx: &Context) -> Result<DbConf, failure::Error> {
         Ok(DbConf {
-            file_path: ctx.file_path(Self::OUTPUT_PATH),
+            file_path: ctx.output_file_path(Self::HOST_OUTPUT_PATH),
         })
     }
 

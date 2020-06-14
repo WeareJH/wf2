@@ -1,7 +1,7 @@
 use crate::context::Context;
 
-use crate::recipes::m2::services::mail::MailService;
-use crate::recipes::m2::services::rabbit_mq::RabbitMqService;
+use crate::services::mail::MailService;
+use crate::services::rabbit_mq::RabbitMqService;
 use ansi_term::Color::{Cyan, Green};
 
 pub fn up_help(ctx: &Context) -> String {

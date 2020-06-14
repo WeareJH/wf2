@@ -32,6 +32,7 @@ use crate::context::Context;
 use crate::task::Task;
 use clap::{App, ArgMatches};
 
+use crate::dc_tasks::DcTasksTrait;
 use crate::recipes::m2::M2Recipe;
 use crate::util::two_col;
 
@@ -40,7 +41,7 @@ pub struct M2ListImages;
 
 impl M2ListImages {
     const NAME: &'static str = "list-images";
-    const ABOUT: &'static str = "[m2] List the images used in the current recipe";
+    const ABOUT: &'static str = "List the images used in the current recipe";
 }
 
 impl<'a, 'b> CliCommand<'a, 'b> for M2ListImages {
@@ -58,7 +59,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2ListImages {
 }
 
 pub fn list_images(ctx: &Context) -> Vec<Task> {
-    let dc = M2Recipe::dc(&ctx);
+    let dc = (M2Recipe).dc(&ctx);
     match dc {
         Ok(dc) => {
             let pairs = dc.service_img();

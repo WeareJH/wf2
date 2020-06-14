@@ -1,4 +1,8 @@
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+use crate::dc_image_build::DcImageBuild;
+use crate::dc_service_network::DcServiceNetwork;
+use std::collections::HashMap;
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone, PartialEq, Eq)]
 pub struct DcService {
     // This is used internally only
     #[serde(skip_serializing)]
@@ -9,6 +13,9 @@ pub struct DcService {
 
     // required field
     pub image: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub build: Option<DcImageBuild>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub volumes: Option<Vec<String>>,
@@ -39,6 +46,9 @@ pub struct DcService {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub init: Option<bool>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub networks: Option<HashMap<String, DcServiceNetwork>>,
 }
 
 impl DcService {
@@ -59,6 +69,16 @@ impl DcService {
         self.volumes = Some(volumes.into_iter().map(|x| x.into()).collect());
         self
     }
+    pub fn add_volumes(&mut self, volumes: Vec<impl Into<String>>) -> &mut Self {
+        let next_volumes = volumes
+            .into_iter()
+            .map(|x| x.into())
+            .collect::<Vec<String>>();
+        let mut prev_volumes = self.volumes.clone().unwrap_or_default();
+        prev_volumes.extend(next_volumes);
+        self.volumes = Some(prev_volumes);
+        self
+    }
     pub fn set_ports(&mut self, ports: Vec<impl Into<String>>) -> &mut Self {
         self.ports = Some(ports.into_iter().map(|x| x.into()).collect());
         self
@@ -77,6 +97,16 @@ impl DcService {
     }
     pub fn set_depends_on(&mut self, depends_on: Vec<impl Into<String>>) -> &mut Self {
         self.depends_on = Some(depends_on.into_iter().map(|x| x.into()).collect());
+        self
+    }
+    pub fn add_depends_on(&mut self, depends_on: Vec<impl Into<String>>) -> &mut Self {
+        let next_depends_on = depends_on
+            .into_iter()
+            .map(|x| x.into())
+            .collect::<Vec<String>>();
+        let mut prev_depends_on = self.depends_on.clone().unwrap_or_default();
+        prev_depends_on.extend(next_depends_on);
+        self.depends_on = Some(prev_depends_on);
         self
     }
     pub fn set_environment(&mut self, environment: Vec<impl Into<String>>) -> &mut Self {
@@ -111,7 +141,21 @@ impl DcService {
         self.image = image.into();
         self
     }
-    pub fn build(&self) -> DcService {
+    pub fn set_build(&mut self, build: DcImageBuild) -> &mut Self {
+        self.build = Some(build);
+        self
+    }
+    pub fn set_network(&mut self, name: impl Into<String>, network: DcServiceNetwork) -> &mut Self {
+        if let Some(prev) = self.networks.as_mut() {
+            prev.insert(name.into(), network);
+        } else {
+            let mut hm = HashMap::new();
+            hm.insert(name.into(), network);
+            self.networks = Some(hm)
+        }
+        self
+    }
+    pub fn finish(&self) -> DcService {
         DcService { ..self.clone() }
     }
 }

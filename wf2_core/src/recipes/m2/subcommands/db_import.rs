@@ -58,7 +58,7 @@ use crate::commands::CliCommand;
 use crate::context::Context;
 use crate::dc_service::DcService;
 use crate::recipes::m2::services::db::DbService;
-use crate::recipes::m2::services::M2Service;
+use crate::services::Service;
 use crate::task::Task;
 use crate::util::path_buf_to_string;
 use clap::{App, ArgMatches};
@@ -70,7 +70,7 @@ pub struct M2DbImport;
 
 impl M2DbImport {
     const NAME: &'static str = "db-import";
-    const ABOUT: &'static str = "[m2] Import a DB file";
+    const ABOUT: &'static str = "Import a DB file";
 }
 
 #[derive(StructOpt, Debug)]

@@ -9,11 +9,11 @@ pub struct TraefikFile {
 
 impl File<TraefikFile> for TraefikFile {
     const DESCRIPTION: &'static str = "Writes the traefix file";
-    const OUTPUT_PATH: &'static str = "traefik/traefik.toml";
+    const HOST_OUTPUT_PATH: &'static str = "traefik/traefik.toml";
 
     fn from_ctx(ctx: &Context) -> Result<TraefikFile, failure::Error> {
         Ok(TraefikFile {
-            file_path: ctx.file_path(Self::OUTPUT_PATH),
+            file_path: ctx.output_file_path(Self::HOST_OUTPUT_PATH),
         })
     }
 

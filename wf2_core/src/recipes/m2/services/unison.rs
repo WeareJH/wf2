@@ -1,8 +1,8 @@
 use crate::context::Context;
 use crate::dc_service::DcService;
-use crate::recipes::m2::m2_vars::{M2Var, M2Vars, Vars};
-use crate::recipes::m2::services::M2Service;
-use crate::recipes::m2::volumes::M2Volumes;
+use crate::recipes::m2::dc_tasks::M2Volumes;
+use crate::recipes::m2::m2_vars::{M2Var, M2Vars};
+use crate::services::Service;
 use std::path::PathBuf;
 
 pub struct UnisonService;
@@ -13,12 +13,12 @@ impl UnisonService {
     pub const CONFIG_FILE: &'static str = "/home/docker/.unison/sync.prf";
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UnisonOptions {
     pub ignore_not: Option<Vec<PathBuf>>,
 }
 
-impl M2Service for UnisonService {
+impl Service<M2Vars> for UnisonService {
     const NAME: &'static str = "unison";
     const IMAGE: &'static str = "wearejh/unison";
 
@@ -40,7 +40,7 @@ impl M2Service for UnisonService {
             .set_env_file(vec![vars.content[&M2Var::EnvFile].to_string()])
             .set_labels(vec![Self::TRAEFIK_DISABLE_LABEL.to_string()])
             .set_restart("unless-stopped")
-            .build()
+            .finish()
     }
 
     fn from_ctx(ctx: &Context) -> Result<DcService, failure::Error> {

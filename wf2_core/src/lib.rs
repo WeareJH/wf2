@@ -120,7 +120,11 @@ pub mod context;
 #[doc(hidden)]
 pub mod dc;
 #[doc(hidden)]
+pub mod dc_image_build;
+#[doc(hidden)]
 pub mod dc_service;
+#[doc(hidden)]
+pub mod dc_service_network;
 #[doc(hidden)]
 pub mod dc_tasks;
 #[doc(hidden)]
@@ -132,10 +136,15 @@ pub mod file_op;
 #[doc(hidden)]
 pub mod output;
 #[doc(hidden)]
+pub mod output_files;
+#[doc(hidden)]
 pub mod php;
 pub mod recipes;
 #[doc(hidden)]
 pub mod scripts;
+#[doc(hidden)]
+pub mod services;
+pub mod subcommands;
 #[doc(hidden)]
 pub mod task;
 #[doc(hidden)]
@@ -144,8 +153,6 @@ pub mod tasks;
 pub mod test;
 #[doc(hidden)]
 pub mod util;
-#[doc(hidden)]
-pub mod vars;
 #[doc(hidden)]
 pub mod zip_utils;
 
