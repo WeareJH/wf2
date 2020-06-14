@@ -5,3 +5,4 @@ options:
     pwa:
       domains: [ example.pwa, test.ngrok.io ]
       src_dir: /users/shane/pwa
+      dockerfile: /users/shane/pwa/wf2/Dockerfile
