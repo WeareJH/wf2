@@ -85,7 +85,7 @@ impl CLIOutput {
             .recipe
             .map(RecipeKinds::select)
             .map(|r| r.subcommands(&ctx))
-            .unwrap_or_else(|| vec![]);
+            .unwrap_or_else(Vec::new);
 
         let internal_cmd = internal_commands()
             .iter()
@@ -192,7 +192,7 @@ fn collect_apps(ctx: &Context) -> Vec<App> {
         .recipe
         .map(RecipeKinds::select)
         .map(|r| r.subcommands(&ctx))
-        .unwrap_or_else(|| vec![]);
+        .unwrap_or_else(Vec::new);
 
     // this is all of the individual recipe 'global' commands
     // global meaning that the recipe can register a command

@@ -5,7 +5,7 @@ pub fn path_buf_to_string(pb: &PathBuf) -> String {
 }
 
 pub fn two_col(commands: Vec<(String, String)>) -> String {
-    match commands.clone().get(0) {
+    match commands.get(0) {
         Some(_t) => {
             let longest = commands.iter().fold(
                 commands[0].clone(),

@@ -133,7 +133,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2PlaygroundCmd {
             let write = Task::file_write(
                 target_file.expect("target file"),
                 "Writes the credentials to file for next time",
-                serde_json::to_vec_pretty(&*pg.clone()).expect("serde=safe"),
+                serde_json::to_vec_pretty(&*pg).expect("serde=safe"),
             );
 
             Task::conditional(

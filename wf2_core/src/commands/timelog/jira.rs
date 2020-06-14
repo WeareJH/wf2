@@ -134,7 +134,7 @@ fn to_fut(
                 tx.send(Worklog::items_from_jira(
                     jira.clone(),
                     key.clone(),
-                    status_name.clone(),
+                    status_name,
                 ))
                 .map_err(|_e| eprintln!("lost communication with channel"))
             }));

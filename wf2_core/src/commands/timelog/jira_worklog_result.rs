@@ -29,7 +29,7 @@ impl WorklogResult {
             .for_each(|wl| {
                 let dt = wl.started.parse::<DateTime<Utc>>().expect("can parse");
                 let lookup = dt.format(JIRA_DATE_FORMAT).to_string();
-                let entry = hm.entry(lookup).or_insert_with(|| vec![]);
+                let entry = hm.entry(lookup).or_insert_with(Vec::new);
                 entry.push(wl.clone());
             });
 
