@@ -1,8 +1,8 @@
 use crate::context::Context;
 use crate::dc_service::DcService;
-use crate::recipes::m2::m2_vars::{M2Var, M2Vars, Vars};
-use crate::recipes::m2::services::M2Service;
-use crate::recipes::m2::volumes::M2Volumes;
+use crate::recipes::m2::dc_tasks::M2Volumes;
+use crate::recipes::m2::m2_vars::{M2Var, M2Vars};
+use crate::services::Service;
 
 pub struct DbService;
 
@@ -16,7 +16,7 @@ impl DbService {
     pub const VOLUME_ENTRY: &'static str = "/docker-entrypoint-initdb.d";
 }
 
-impl M2Service for DbService {
+impl Service<M2Vars> for DbService {
     const NAME: &'static str = "db";
     const IMAGE: &'static str = "mysql:5.6";
 
@@ -39,7 +39,7 @@ impl M2Service for DbService {
             .set_restart("unless-stopped")
             .set_env_file(vec![vars.content[&M2Var::EnvFile].to_string()])
             .set_labels(vec![Self::TRAEFIK_DISABLE_LABEL.to_string()])
-            .build()
+            .finish()
     }
 
     fn from_ctx(ctx: &Context) -> Result<DcService, failure::Error> {

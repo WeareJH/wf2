@@ -4,30 +4,27 @@ use crate::dc_service::DcService;
 use crate::recipes::m2::services::php::PhpService;
 use crate::recipes::wp::volumes::WpVolumes;
 use crate::recipes::wp::WpRecipe;
+use crate::services::{Service, Services};
 
-pub struct WpServices;
-pub struct WpServiceImages;
+pub struct WpServices {
+    pub services: Vec<DcService>,
+}
 pub struct WpVolumeMounts;
 
 impl WpServices {
-    pub const NGINX: &'static str = "nginx";
-    pub const WP_CLI: &'static str = "wp";
-    pub const PHP: &'static str = "php";
-    pub const PHP_DEBUG: &'static str = "php-debug";
-    pub const NODE: &'static str = "node";
-    pub const DB: &'static str = "db";
     pub const ROOT: &'static str = "/var/www";
-}
 
-impl WpServiceImages {
-    pub const NGINX: &'static str = "wearejh/nginx:stable-m2";
-    pub const NODE: &'static str = "wearejh/node:8-m2";
-    pub const DB: &'static str = "mysql:5.7";
-    pub const WP_CLI: &'static str = "wordpress:cli";
+    pub fn from_ctx(ctx: &Context) -> Self {
+        let services = vec![
+            (WpNginxService).dc_service(ctx, &()),
+            (WpPhpService).dc_service(ctx, &()),
+            (WpPhpDebugService).dc_service(ctx, &()),
+            (WpCliService).dc_service(ctx, &()),
+            (WpDbService).dc_service(ctx, &()),
+        ];
 
-    // PHP images are handled elsewhere for the time being
-    //    const PHP: &'static str = "php";
-    //    const PHP_DEBUG: &'static str = "php-debug";
+        Self { services }
+    }
 }
 
 impl WpVolumeMounts {
@@ -38,99 +35,116 @@ impl WpVolumeMounts {
     pub const NGINX_DEFAULT_REMOTE: &'static str = "/etc/nginx/conf.d/default.conf";
 }
 
-pub fn get_services(ctx: &Context) -> Vec<DcService> {
-    vec![
-        nginx(WpServices::NGINX, WpServiceImages::NGINX, ctx),
-        php(WpServices::PHP, PhpService::IMAGE_7_3, ctx),
-        php_debug(WpServices::PHP_DEBUG, PhpService::IMAGE_7_3, ctx),
-        //        node(WpServices::NODE, WpServiceImages::NODE, ctx),
-        db(WpServices::DB, WpServiceImages::DB, ctx),
-        wp_cli(WpServices::WP_CLI, WpServiceImages::WP_CLI, ctx),
-    ]
-}
-
-fn nginx(name: &str, image: &str, ctx: &Context) -> DcService {
-    let host_port = WpRecipe::ctx_port(&ctx);
-    DcService::new(ctx.name(), name, image)
-        .set_depends_on(vec![WpServices::PHP])
-        .set_volumes(vec![
-            format!("{}:{}", ctx.cwd.display(), WpServices::ROOT),
-            format!(
-                "{}:{}",
-                ctx.file_path(WpVolumeMounts::NGINX_CONF).display(),
-                WpVolumeMounts::NGINX_CONF_REMOTE
-            ),
-            format!(
-                "{}:{}",
-                ctx.file_path(WpVolumeMounts::NGINX_DEFAULT_HOST).display(),
-                WpVolumeMounts::NGINX_DEFAULT_REMOTE
-            ),
-        ])
-        .set_working_dir(WpServices::ROOT)
-        .set_ports(vec![format!("{}:80", host_port)])
-        .build()
-}
-
-fn php(name: &str, image: &str, ctx: &Context) -> DcService {
-    let domain = WpRecipe::ctx_domain(&ctx);
-    DcService::new(ctx.name(), name, image)
-        .set_volumes(vec![format!("{}:{}", ctx.cwd.display(), WpServices::ROOT)])
-        .set_depends_on(vec![WpServices::DB])
-        .set_working_dir(WpServices::ROOT)
-        .set_environment(vec![
-            "XDEBUG_CONFIG=remote_host=host.docker.internal",
-            &format!("PHP_IDE_CONFIG=serverName={}", domain),
-            &format!("PHP_MEMORY_LIMIT=\"{}\"", "2G"),
-            //
-            // this one is here to prevent needing to modify/change the
-            // default bedrock setup.
-            //
-            &format!("DB_HOST={}", WpServices::DB),
-        ])
-        .build()
-}
-
-fn php_debug(name: &str, image: &str, ctx: &Context) -> DcService {
-    let mut php_cnt = php(name, image, ctx);
-    {
-        php_cnt.set_environment(vec!["XDEBUG_ENABLE=true"]);
+impl Services for WpServices {
+    fn dc_services(&self) -> Vec<DcService> {
+        self.services.clone()
     }
-    php_cnt
 }
 
-//fn node(name: &str, image: &str, ctx: &Context) -> DcService {
-//    DcService::new(ctx.name(), name, image)
-//        .set_working_dir(WpServices::ROOT)
-//        .set_init(true)
-//        .set_volumes(vec![format!("{}:{}", M2Volumes::APP, WpServices::ROOT)])
-//        .build()
-//}
-fn wp_cli(name: &str, image: &str, ctx: &Context) -> DcService {
-    DcService::new(ctx.name(), name, image)
-        .set_working_dir(WpServices::ROOT)
-        .set_init(true)
-        .set_depends_on(vec![WpServices::PHP])
-        .set_volumes(vec![format!("{}:{}", ctx.cwd.display(), WpServices::ROOT)])
-        //        .set_volumes(vec![WpServices::PHP])
-        .set_environment(vec![&format!("DB_HOST={}", WpServices::DB)])
-        .build()
+struct WpNginxService;
+
+impl Service for WpNginxService {
+    const NAME: &'static str = "nginx";
+    const IMAGE: &'static str = "wearejh/nginx:stable-m2";
+    fn dc_service(&self, ctx: &Context, _vars: &()) -> DcService {
+        let host_port = WpRecipe::ctx_port(&ctx);
+        DcService::new(ctx.name(), Self::NAME, Self::IMAGE)
+            .set_depends_on(vec![WpPhpService::NAME])
+            .set_volumes(vec![
+                format!("{}:{}", ctx.cwd.display(), WpServices::ROOT),
+                format!(
+                    "{}:{}",
+                    ctx.output_file_path(WpVolumeMounts::NGINX_CONF).display(),
+                    WpVolumeMounts::NGINX_CONF_REMOTE
+                ),
+                format!(
+                    "{}:{}",
+                    ctx.output_file_path(WpVolumeMounts::NGINX_DEFAULT_HOST)
+                        .display(),
+                    WpVolumeMounts::NGINX_DEFAULT_REMOTE
+                ),
+            ])
+            .set_working_dir(WpServices::ROOT)
+            .set_ports(vec![format!("{}:80", host_port)])
+            .finish()
+    }
 }
 
-fn db(name: &str, image: &str, ctx: &Context) -> DcService {
-    DcService::new(ctx.name(), name, image)
-        .set_volumes(vec![
-            format!("{}:/var/lib/mysql", WpVolumes::DB),
-            //            format!(
-            //                "{}:/docker-entrypoint-initdb.d",
-            //                vars.content[&M2Var::DbInitDir]
-            //            ),
-        ])
-        .set_environment(vec![
-            "MYSQL_DATABASE=docker",
-            "MYSQL_USER=docker",
-            "MYSQL_PASSWORD=docker",
-            "MYSQL_ROOT_PASSWORD=docker",
-        ])
-        .set_ports(vec!["3307:3306"])
-        .build()
+struct WpPhpService;
+
+impl Service for WpPhpService {
+    const NAME: &'static str = "php";
+    const IMAGE: &'static str = PhpService::IMAGE_7_3;
+
+    fn dc_service(&self, ctx: &Context, _vars: &()) -> DcService {
+        let domain = WpRecipe::ctx_domain(&ctx);
+        DcService::new(ctx.name(), Self::NAME, PhpService::IMAGE_7_3)
+            .set_volumes(vec![format!("{}:{}", ctx.cwd.display(), WpServices::ROOT)])
+            .set_depends_on(vec![WpDbService::NAME])
+            .set_working_dir(WpServices::ROOT)
+            .set_environment(vec![
+                "XDEBUG_CONFIG=remote_host=host.docker.internal",
+                &format!("PHP_IDE_CONFIG=serverName={}", domain),
+                &format!("PHP_MEMORY_LIMIT=\"{}\"", "2G"),
+                //
+                // this one is here to prevent needing to modify/change the
+                // default bedrock setup.
+                //
+                &format!("DB_HOST={}", WpDbService::NAME),
+            ])
+            .finish()
+    }
+}
+
+struct WpPhpDebugService;
+
+impl Service for WpPhpDebugService {
+    const NAME: &'static str = "php-debug";
+    const IMAGE: &'static str = PhpService::IMAGE_7_3;
+
+    fn dc_service(&self, ctx: &Context, _vars: &()) -> DcService {
+        let mut php_cnt = (WpPhpService).dc_service(ctx, &());
+        {
+            php_cnt.set_environment(vec!["XDEBUG_ENABLE=true"]);
+        }
+        php_cnt
+    }
+}
+
+struct WpCliService;
+
+impl Service for WpCliService {
+    const NAME: &'static str = "wp-cli";
+    const IMAGE: &'static str = "wordpress:cli";
+
+    fn dc_service(&self, ctx: &Context, _vars: &()) -> DcService {
+        DcService::new(ctx.name(), Self::NAME, Self::IMAGE)
+            .set_working_dir(WpServices::ROOT)
+            .set_init(true)
+            .set_depends_on(vec![WpPhpService::NAME])
+            .set_volumes(vec![format!("{}:{}", ctx.cwd.display(), WpServices::ROOT)])
+            //        .set_volumes(vec![WpServices::PHP])
+            .set_environment(vec![&format!("DB_HOST={}", WpDbService::NAME)])
+            .finish()
+    }
+}
+
+struct WpDbService;
+
+impl Service for WpDbService {
+    const NAME: &'static str = "db";
+    const IMAGE: &'static str = "mysql:5.7";
+
+    fn dc_service(&self, ctx: &Context, _vars: &()) -> DcService {
+        DcService::new(ctx.name(), Self::NAME, Self::IMAGE)
+            .set_volumes(vec![format!("{}:/var/lib/mysql", WpVolumes::DB)])
+            .set_environment(vec![
+                "MYSQL_DATABASE=docker",
+                "MYSQL_USER=docker",
+                "MYSQL_PASSWORD=docker",
+                "MYSQL_ROOT_PASSWORD=docker",
+            ])
+            .set_ports(vec!["3307:3306"])
+            .finish()
+    }
 }

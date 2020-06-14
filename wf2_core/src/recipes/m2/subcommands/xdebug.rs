@@ -57,13 +57,12 @@
 use crate::commands::CliCommand;
 use crate::context::Context;
 
-use crate::recipes::m2::M2Recipe;
-
 use crate::file::File;
 use crate::task::Task;
 use clap::{App, ArgMatches, SubCommand};
 
-use crate::recipes::m2::templates::nginx_upstream::NginxUpstream;
+use crate::recipes::m2::output_files::nginx_upstream::NginxUpstream;
+use crate::recipes::recipe_kinds::RecipeKinds;
 
 #[doc_link::doc_link("/recipes/m2/subcommands/xdebug")]
 #[derive(Default)]
@@ -71,7 +70,7 @@ pub struct XdebugCmd;
 
 impl XdebugCmd {
     const NAME: &'static str = "xdebug";
-    const ABOUT: &'static str = "[m2] Enable or disable XDebug for M2";
+    const ABOUT: &'static str = "Enable or disable XDebug for M2";
 
     const ENABLE: &'static str = "enable";
     const DISABLE: &'static str = "disable";
@@ -109,7 +108,8 @@ impl<'a, 'b> CliCommand<'a, 'b> for XdebugCmd {
 
         let mut nginx_upstream = nginx_upstream.expect("guarded");
 
-        let dc = M2Recipe::dc_tasks(ctx);
+        let recipe = RecipeKinds::select(ctx.recipe.expect("recipe is always resolved here"));
+        let dc = recipe.dc_tasks(ctx);
 
         if let Err(_e) = dc {
             return Some(vec![Task::notify_error(

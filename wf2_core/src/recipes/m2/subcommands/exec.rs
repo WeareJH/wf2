@@ -67,7 +67,7 @@ pub struct M2Exec;
 
 impl M2Exec {
     const NAME: &'static str = "exec";
-    const ABOUT: &'static str = "[m2] Execute commands in the main container";
+    const ABOUT: &'static str = "Execute commands in the main container";
 }
 
 #[derive(StructOpt)]

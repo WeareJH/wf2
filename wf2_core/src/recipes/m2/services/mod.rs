@@ -4,22 +4,61 @@
 use crate::context::Context;
 use crate::dc_service::DcService;
 use crate::recipes::m2::m2_vars::M2Vars;
-use crate::recipes::m2::services::mail::MailService;
-use crate::recipes::m2::services::nginx::NginxService;
-use crate::recipes::m2::services::php::PhpService;
-use crate::recipes::m2::services::php_debug::PhpDebugService;
-use crate::recipes::m2::services::rabbit_mq::RabbitMqService;
-use crate::recipes::m2::services::traefik::TraefikService;
-use crate::recipes::m2::services::unison::{UnisonOptions, UnisonService};
-use crate::recipes::m2::services::varnish::VarnishService;
 
-use crate::recipes::m2::services::blackfire::BlackfireService;
-use crate::recipes::m2::services::db::DbService;
-use crate::recipes::m2::services::elastic_search::ElasticSearchService;
-use crate::recipes::m2::services::node::NodeService;
-use crate::recipes::m2::services::redis::RedisService;
+use crate::services::elastic_search::ElasticSearchService;
+use crate::services::mail::MailService;
+use crate::services::pwa::{PwaService, PwaServiceOptions};
+use crate::services::traefik::TraefikService;
+use crate::services::varnish::VarnishService;
+use crate::services::{Service, Services};
+
+use blackfire::M2BlackfireService;
+use db::DbService;
+use nginx::M2NginxService;
+use node::M2NodeService;
+use php::PhpService;
+use php_debug::PhpDebugService;
+use rabbit_mq::M2RabbitMqService;
+use redis::M2RedisService;
+use unison::{UnisonOptions, UnisonService};
 
 pub const M2_ROOT: &str = "/var/www";
+
+pub struct M2Services {
+    pub services: Vec<DcService>,
+}
+
+impl M2Services {
+    pub fn from_ctx(ctx: &Context, vars: &M2Vars) -> Self {
+        let mut services = vec![
+            (UnisonService).dc_service(ctx, vars),
+            (TraefikService).dc_service(ctx, &()),
+            (VarnishService).dc_service(ctx, &()),
+            (PhpService).dc_service(ctx, vars),
+            (PhpDebugService).dc_service(ctx, vars),
+            (DbService).dc_service(ctx, vars),
+            (MailService).dc_service(ctx, &()),
+            (M2BlackfireService).dc_service(ctx, vars),
+            (ElasticSearchService).dc_service(ctx, &()),
+            (M2NginxService).dc_service(ctx, vars),
+            (M2NodeService).dc_service(ctx, vars),
+            (M2RedisService).dc_service(ctx, vars),
+            (M2RabbitMqService).dc_service(ctx, vars),
+        ];
+
+        if let Some(pwa_opts) = M2RecipeOptions::get_pwa_options(ctx) {
+            services.push((PwaService).dc_service(ctx, &pwa_opts))
+        }
+
+        Self { services }
+    }
+}
+
+impl Services for M2Services {
+    fn dc_services(&self) -> Vec<DcService> {
+        self.services.clone()
+    }
+}
 
 #[derive(Debug, Fail)]
 pub enum M2ServiceError {
@@ -27,59 +66,32 @@ pub enum M2ServiceError {
     NotImplemented(String),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct M2ServiceOptions {
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+pub struct M2ServicesOptions {
     pub unison: Option<UnisonOptions>,
+    pub pwa: Option<PwaServiceOptions>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct M2RecipeOptions {
-    pub services: Option<M2ServiceOptions>,
+    pub services: Option<M2ServicesOptions>,
 }
 
-pub trait M2Service {
-    const TRAEFIK_DISABLE_LABEL: &'static str = "traefik.enable=false";
-    const ROOT: &'static str = M2_ROOT;
-
-    const NAME: &'static str;
-    const IMAGE: &'static str;
-    fn dc_service(&self, ctx: &Context, vars: &M2Vars) -> DcService;
-    fn from_ctx(_ctx: &Context) -> Result<DcService, failure::Error> {
-        Err(M2ServiceError::NotImplemented(format!("{}::from_ctx", Self::NAME)).into())
+impl M2RecipeOptions {
+    pub fn get_pwa_options(ctx: &Context) -> Option<PwaServiceOptions> {
+        ctx.parse_options::<M2RecipeOptions>().ok()?.services?.pwa
     }
-    fn select_image(&self, _ctx: &Context) -> String {
-        Self::IMAGE.to_string()
+    pub fn has_pwa_options(ctx: &Context) -> bool {
+        M2RecipeOptions::get_pwa_options(ctx).is_some()
     }
-}
-
-pub fn get_services(vars: &M2Vars, ctx: &Context) -> Vec<DcService> {
-    vec![
-        (UnisonService).dc_service(ctx, vars),
-        (TraefikService).dc_service(ctx, vars),
-        (VarnishService).dc_service(ctx, vars),
-        (NginxService).dc_service(ctx, vars),
-        (PhpService).dc_service(ctx, vars),
-        (PhpDebugService).dc_service(ctx, vars),
-        (NodeService).dc_service(ctx, vars),
-        (DbService).dc_service(ctx, vars),
-        (RedisService).dc_service(ctx, vars),
-        (RabbitMqService).dc_service(ctx, vars),
-        (MailService).dc_service(ctx, vars),
-        (BlackfireService).dc_service(ctx, vars),
-        (ElasticSearchService).dc_service(ctx, vars),
-    ]
 }
 
 pub mod blackfire;
 pub mod db;
-pub mod elastic_search;
-pub mod mail;
 pub mod nginx;
 pub mod node;
 pub mod php;
 pub mod php_debug;
 pub mod rabbit_mq;
 pub mod redis;
-pub mod traefik;
 pub mod unison;
-pub mod varnish;

@@ -1,29 +1,28 @@
-use crate::cmd::Cmd;
-use crate::commands::CliCommand;
+use crate::cmd::PassThruCmd;
+use crate::commands::{CliCommand, Commands};
 use crate::context::Context;
-use crate::dc::Dc;
-use crate::dc_tasks::DcTasks;
+
+use crate::dc_tasks::DcTasksTrait;
+use crate::dc_volume::DcVolume;
 use crate::recipes::wp::pass_thru::WpPassThru;
 use crate::recipes::wp::subcommands::{wp_recipe_global_subcommands, wp_recipe_subcommands};
 use crate::recipes::Recipe;
-use crate::scripts::script::Script;
+use crate::scripts::script::ResolveScript;
 use crate::task::Task;
-use clap::ArgMatches;
-use services::get_services;
+
+use crate::output_files::OutputFiles;
+use crate::recipes::validate::ValidateRecipe;
+use crate::recipes::wp::services::WpServices;
+use crate::services::Services;
+use crate::subcommands::PassThru;
 use volumes::get_volumes;
 
 pub struct WpRecipe;
 
+impl ValidateRecipe for WpRecipe {}
+
 impl WpRecipe {
     const DEFAULT_DOMAIN: &'static str = "localhost:8080";
-    pub fn dc_tasks(ctx: &Context) -> Result<DcTasks, failure::Error> {
-        let dc = Dc::new()
-            .set_volumes(&get_volumes(&ctx))
-            .set_services(&get_services(&ctx))
-            .build();
-
-        Ok(DcTasks::from_ctx(&ctx, dc.to_bytes()))
-    }
     pub fn ctx_domain(ctx: &Context) -> String {
         ctx.domains
             .get(0)
@@ -47,43 +46,53 @@ impl WpRecipe {
     }
 }
 
+impl DcTasksTrait for WpRecipe {
+    fn volumes(&self, ctx: &Context) -> Vec<DcVolume> {
+        get_volumes(ctx)
+    }
+    fn services(&self, ctx: &Context) -> Result<Box<dyn Services>, failure::Error> {
+        let services = WpServices::from_ctx(ctx);
+        Ok(Box::new(services))
+    }
+}
+
 pub mod pass_thru;
 pub mod services;
 pub mod subcommands;
 pub mod volumes;
 
-impl<'a, 'b> Recipe<'a, 'b> for WpRecipe {
-    fn resolve_cmd(&self, ctx: &Context, cmd: Cmd) -> Option<Vec<Task>> {
-        let dc_tasks = WpRecipe::dc_tasks(&ctx);
-        if let Err(e) = dc_tasks {
-            return Some(Task::task_err_vec(e));
-        }
-        match cmd {
-            Cmd::PassThrough { cmd, trailing } => {
-                WpPassThru::resolve_cmd(&ctx, cmd, trailing, dc_tasks.expect("guarded above"))
-            }
-        }
-    }
-
-    fn subcommands(&self) -> Vec<Box<dyn CliCommand<'a, 'b>>> {
+impl<'a, 'b> Commands<'a, 'b> for WpRecipe {
+    fn subcommands(&self, _ctx: &Context) -> Vec<Box<dyn CliCommand<'a, 'b>>> {
         wp_recipe_subcommands()
     }
-
     fn global_subcommands(&self) -> Vec<Box<dyn CliCommand<'a, 'b>>> {
         wp_recipe_global_subcommands()
     }
-    fn pass_thru_commands(&self) -> Vec<(String, String)> {
-        WpPassThru::commands()
-    }
-    fn select_command(&self, input: (&str, Option<&ArgMatches<'a>>)) -> Option<Cmd> {
-        Cmd::select_pass_thru(input)
-    }
+}
 
-    fn resolve_script(&self, _ctx: &Context, _script: &Script) -> Option<Vec<Task>> {
-        None
-    }
-
+impl<'a, 'b> Recipe<'a, 'b> for WpRecipe {
     fn default_help(&self, _ctx: &Context) -> Result<String, failure::Error> {
         unimplemented!()
     }
 }
+
+impl PassThru for WpRecipe {
+    fn resolve(&self, ctx: &Context, cmd: &PassThruCmd) -> Option<Vec<Task>> {
+        let dc_tasks = (WpRecipe).dc_tasks(&ctx);
+        if let Err(e) = dc_tasks {
+            return Some(Task::task_err_vec(e));
+        }
+        WpPassThru::resolve_cmd(
+            &ctx,
+            cmd.cmd.to_string(),
+            &cmd.trailing,
+            dc_tasks.expect("guarded above"),
+        )
+    }
+    fn names(&self, _ctx: &Context) -> Vec<(String, String)> {
+        WpPassThru::commands()
+    }
+}
+
+impl OutputFiles for WpRecipe {}
+impl ResolveScript for WpRecipe {}

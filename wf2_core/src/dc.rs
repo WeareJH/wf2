@@ -1,6 +1,6 @@
 use crate::dc_service::DcService;
 use crate::dc_volume::DcVolume;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 ///
 /// [`dc`] provides a struct that can be serialized to a docker-composer.yaml file.
@@ -8,8 +8,8 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct Dc {
     pub version: String,
-    pub volumes: Option<HashMap<String, DcVolume>>,
-    pub services: Option<HashMap<String, DcService>>,
+    pub volumes: Option<BTreeMap<String, DcVolume>>,
+    pub services: Option<BTreeMap<String, DcService>>,
 }
 
 impl Dc {
@@ -25,7 +25,7 @@ impl Dc {
         let as_hashmap = volumes
             .iter()
             .map(|vol| (vol.display_name.clone(), vol.clone()))
-            .collect::<HashMap<String, DcVolume>>();
+            .collect::<BTreeMap<String, DcVolume>>();
         self.volumes = Some(as_hashmap);
         self
     }
@@ -33,7 +33,7 @@ impl Dc {
         let as_hashmap = services
             .iter()
             .map(|dc_service| (dc_service.name.to_string(), dc_service.clone()))
-            .collect::<HashMap<String, DcService>>();
+            .collect::<BTreeMap<String, DcService>>();
         self.services = Some(as_hashmap);
         self
     }

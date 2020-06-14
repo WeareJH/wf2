@@ -12,7 +12,7 @@ pub trait File<T: Sized> {
     ///
     /// The relative (to CWD) path for this file
     ///
-    const OUTPUT_PATH: &'static str;
+    const HOST_OUTPUT_PATH: &'static str;
 
     fn from_ctx(ctx: &Context) -> Result<T, failure::Error>;
     fn file_path(&self) -> PathBuf;

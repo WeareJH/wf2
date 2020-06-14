@@ -47,9 +47,9 @@
 //!
 use crate::commands::CliCommand;
 use crate::context::Context;
-use crate::recipes::m2::services::varnish::VarnishService;
-use crate::recipes::m2::services::M2Service;
 use crate::scripts::service_cmd::ServiceCmd;
+use crate::services::varnish::VarnishService;
+use crate::services::Service;
 use crate::task::Task;
 use clap::{App, ArgMatches, SubCommand};
 
@@ -58,7 +58,7 @@ pub struct VarnishCmd;
 
 impl VarnishCmd {
     const NAME: &'static str = "varnish";
-    const ABOUT: &'static str = "[m2] Enable or disable Varnish for M2";
+    const ABOUT: &'static str = "Enable or disable Varnish for M2";
 
     const ENABLE: &'static str = "enable";
     const DISABLE: &'static str = "disable";

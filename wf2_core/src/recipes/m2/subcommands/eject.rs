@@ -4,19 +4,17 @@
 //! **Notice** This command is temporaily disabled whilst we rebuild/re-envision it
 //!
 use crate::commands::CliCommand;
-use crate::recipes::m2::M2Recipe;
-use crate::{
-    context::Context, dc_tasks::DcTasks, file::File,
-    recipes::m2::m2_runtime_env_file::M2RuntimeEnvFile, task::Task,
-};
+use crate::{context::Context, dc_tasks::DcTasks, file::File, task::Task};
 
+use crate::recipes::m2::output_files::m2_runtime_env_file::M2RuntimeEnvFile;
+use crate::recipes::recipe_kinds::RecipeKinds;
 use clap::{App, ArgMatches};
 
 pub struct M2Eject;
 
 impl M2Eject {
     const NAME: &'static str = "eject";
-    const ABOUT: &'static str = "[m2] Dump all files into the local directory for manual running";
+    const ABOUT: &'static str = "Dump all files into the local directory for manual running";
 }
 
 impl<'a, 'b> CliCommand<'a, 'b> for M2Eject {
@@ -24,7 +22,8 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2Eject {
         String::from(M2Eject::NAME)
     }
     fn exec(&self, _matches: Option<&ArgMatches>, ctx: &Context) -> Option<Vec<Task>> {
-        let dc_tasks = M2Recipe::dc_tasks(&ctx);
+        let recipe = RecipeKinds::from_ctx(&ctx);
+        let dc_tasks = recipe.dc_tasks(&ctx);
         let runtime_env = M2RuntimeEnvFile::from_ctx(&ctx);
         let tasks = match (dc_tasks, runtime_env) {
             (Ok(dc_tasks), Ok(runtime_env)) => eject(&ctx, &runtime_env, dc_tasks),

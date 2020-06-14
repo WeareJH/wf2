@@ -1,7 +1,14 @@
+use crate::context::Context;
 use crate::scripts::script_item::ScriptItem;
 use crate::scripts::scripts::Scripts;
 use crate::scripts::service_cmd::ServiceCmd;
 use crate::task::Task;
+
+pub trait ResolveScript {
+    fn resolve_script(&self, _ctx: &Context, _script: &Script) -> Option<Vec<Task>> {
+        None
+    }
+}
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Script {

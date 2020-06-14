@@ -113,6 +113,7 @@ impl Test {
     }
     pub fn commands(&mut self) -> Vec<String> {
         let tasks = self.tasks();
+        dbg!(&tasks);
         Test::_commands(&tasks)
     }
     pub fn _commands(tasks: &[Task]) -> Vec<String> {

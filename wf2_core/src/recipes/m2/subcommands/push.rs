@@ -50,7 +50,7 @@ pub struct M2Push;
 
 impl M2Push {
     const NAME: &'static str = "push";
-    const ABOUT: &'static str = "[m2] Push files or folders (use -f to force)";
+    const ABOUT: &'static str = "Push files or folders (use -f to force)";
 }
 
 #[derive(StructOpt)]

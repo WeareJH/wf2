@@ -192,12 +192,18 @@ impl Context {
     pub fn new_from_str(yaml_str: &str) -> Result<Context, FromFileError> {
         Context::from_yaml_string(yaml_str.to_string())
     }
+    pub fn domains(&self) -> Vec<String> {
+        match self.domains.len() {
+            0 => vec![DEFAULT_DOMAIN.to_string()],
+            _ => self.domains.clone(),
+        }
+    }
     pub fn default_domain(&self) -> String {
         self.domains
             .get(0)
             .map_or(DEFAULT_DOMAIN.into(), |s| s.to_string())
     }
-    pub fn domains(&self) -> String {
+    pub fn domains_string(&self) -> String {
         match self.domains.len() {
             0 => DEFAULT_DOMAIN.into(),
             _ => self.domains.join(","),
@@ -221,6 +227,9 @@ impl Context {
     pub fn name(&self) -> String {
         Context::get_context_name(&self.cwd)
     }
+    pub fn prefixed_name(&self, name: &str) -> String {
+        format!("wf2__{}__{}", self.name(), name)
+    }
     pub(crate) fn output_dir(&self) -> PathBuf {
         if let Some(recipe) = self.recipe {
             self.cwd.join(format!(
@@ -232,7 +241,7 @@ impl Context {
             self.cwd.join(default_file_prefix())
         }
     }
-    pub fn file_path(&self, filename: impl Into<PathBuf>) -> PathBuf {
+    pub fn output_file_path(&self, filename: impl Into<PathBuf>) -> PathBuf {
         self.output_dir().join(filename.into())
     }
     pub fn parse_options<T: for<'a> Deserialize<'a>>(&self) -> Result<T, failure::Error> {
@@ -357,7 +366,7 @@ fn merge(a: &mut Value, b: &Value) {
 mod test {
     use super::*;
     use crate::file::File;
-    use crate::recipes::m2::m2_runtime_env_file::M2RuntimeEnvFile;
+    use crate::recipes::m2::output_files::m2_runtime_env_file::M2RuntimeEnvFile;
 
     #[test]
     fn test_context_from_yaml() {

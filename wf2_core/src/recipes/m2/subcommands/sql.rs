@@ -17,9 +17,9 @@
 //! ```
 use crate::commands::CliCommand;
 use crate::context::Context;
-use crate::recipes::m2::m2_vars::{M2Vars, Vars};
+use crate::recipes::m2::m2_vars::M2Vars;
 use crate::recipes::m2::services::db::DbService;
-use crate::recipes::m2::services::M2Service;
+use crate::services::Service;
 use crate::task::Task;
 use clap::{App, Arg, ArgMatches};
 use snailquote::escape;
@@ -31,7 +31,7 @@ pub struct SqlCmd;
 impl SqlCmd {
     const NAME: &'static str = "sql";
     const ABOUT: &'static str =
-        r#"[m2] Run mysql queries, eg: `wf2 sql "select * from core_config_data""#;
+        r#"Run mysql queries, eg: `wf2 sql "select * from core_config_data""#;
 }
 
 #[derive(StructOpt, Debug)]

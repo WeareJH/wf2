@@ -1,7 +1,8 @@
 use crate::context::Context;
 use crate::dc_tasks::DcTasks;
 use crate::recipes::m2::subcommands::composer::composer;
-use crate::recipes::m2::subcommands::dc::dc_passthru;
+
+use crate::subcommands::dc::dc_passthru;
 use crate::task::Task;
 use std::cmp;
 
@@ -37,11 +38,14 @@ impl WpPassThru {
     pub fn resolve_cmd(
         ctx: &Context,
         cmd: String,
-        trailing: Vec<String>,
+        trailing: &[String],
         dc: DcTasks,
     ) -> Option<Vec<Task>> {
         match cmd {
-            ref x if *x == WpPassThru::Dc => Some(dc_passthru(trailing, dc)),
+            ref x if *x == WpPassThru::Dc => {
+                let res = dc_passthru(ctx, trailing);
+                Some(res.unwrap_or_else(Task::task_err_vec))
+            }
             ref x if *x == WpPassThru::WpCli => Some(wp_cli_passthru(trailing, dc)),
             ref x if *x == WpPassThru::Composer => Some(composer(&ctx, trailing)),
             _ => None,
@@ -63,7 +67,7 @@ impl WpPassThru {
     }
 }
 
-pub fn wp_cli_passthru(trailing: Vec<String>, dc: DcTasks) -> Vec<Task> {
+pub fn wp_cli_passthru(trailing: &[String], dc: DcTasks) -> Vec<Task> {
     let dc_command = format!(r#"run --no-deps {}"#, trailing.join(" "));
     vec![dc.cmd_task(vec![dc_command])]
 }

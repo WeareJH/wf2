@@ -3,7 +3,7 @@ extern crate serde_derive;
 extern crate serde;
 
 use env_proc::env_vars;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 env_vars! {
     HOST_UID="501"

@@ -62,7 +62,7 @@ pub struct M2Pull;
 
 impl M2Pull {
     const NAME: &'static str = "pull";
-    const ABOUT: &'static str = "[m2] Pull files or folders from the main container to the host";
+    const ABOUT: &'static str = "Pull files or folders from the main container to the host";
 }
 
 #[derive(StructOpt)]

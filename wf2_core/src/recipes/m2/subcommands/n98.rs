@@ -5,10 +5,10 @@ use crate::task::Task;
 pub struct N98PassThru;
 
 impl N98PassThru {
-    pub const ABOUT: &'static str = "[m2] Execute n98-magerun2 commands inside the PHP container";
+    pub const ABOUT: &'static str = "Execute n98-magerun2 commands inside the PHP container";
 }
 
-pub fn n98(ctx: &Context, trailing: Vec<String>) -> Vec<Task> {
+pub fn n98(ctx: &Context, trailing: &[String]) -> Vec<Task> {
     PhpService::select(&ctx)
         .map(|service| {
             let full_command = format!(
@@ -17,8 +17,9 @@ pub fn n98(ctx: &Context, trailing: Vec<String>) -> Vec<Task> {
                 height = ctx.term.height,
                 container_name = service.container_name,
                 trailing_args = trailing
-                    .into_iter()
+                    .iter()
                     .skip(1)
+                    .map(|s| s.to_string())
                     .collect::<Vec<String>>()
                     .join(" ")
             );

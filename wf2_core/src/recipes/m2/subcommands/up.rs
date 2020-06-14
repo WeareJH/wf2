@@ -31,6 +31,56 @@
 //! # assert_eq!(commands, vec!["docker-compose -f /users/shane/.wf2_m2_shane/docker-compose.yml up -d"]);
 //! ```
 //!
+//!
+//! # Start M2 + a PWA
+//!
+//! Checkout a PWA into a separate directory, and then you can run the PWA complete
+//! with varnish etc.
+//!
+//! `wf2.yml`
+//!
+//! ```yaml
+//! domains: [ example.m2 ]
+//! options:
+//!   services:
+//!     pwa:
+//!       domains: [ example.pwa, test.ngrok.io ]
+//!       src_dir: /users/shane/pwa
+//! ```
+//!
+//! Now you can just run any regular commands and the PWA services will
+//! be wired into the M2 setup.
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # use wf2_core::task::Task;
+//! # use wf2_core::cli::cli_input::CLIInput;
+//! # let cmd = r#"
+//! wf2 up
+//! # "#;
+//! # let (commands, (_read, write, delete)) = Test::from_cmd(cmd)
+//! #   .with_cli_input(CLIInput::from_cwd("/users/shane"))
+//! #   .with_file("../fixtures/pwa.yml")
+//! #   .file_ops_paths_commands();
+//! ```
+//!
+//! When the PWA sources change (eg: when you pull new changes, or edit something locally)
+//! then you'll need to re-build the image used by `wf2`, just provide the `--build` flag.
+//!
+//! ```
+//! # use wf2_core::test::Test;
+//! # use wf2_core::task::Task;
+//! # use wf2_core::cli::cli_input::CLIInput;
+//! # let cmd = r#"
+//! wf2 up --build
+//! # "#;
+//! # let (commands, (_read, write, delete)) = Test::from_cmd(cmd)
+//! #   .with_cli_input(CLIInput::from_cwd("/users/shane"))
+//! #   .with_file("../fixtures/pwa.yml")
+//! #   .file_ops_paths_commands();
+//! ```
+//!
+//!
 //! ## clean up old containers with `--clean`
 //!
 //! When you're swithing projects, you may want to remove any old containers first.
@@ -149,14 +199,18 @@
 use crate::commands::CliCommand;
 
 use crate::recipes::m2::tasks::env_php::EnvPhp;
-use crate::recipes::m2::templates::M2Templates;
 
 use crate::conditions::question::Question;
-use crate::recipes::m2::services::{M2RecipeOptions, M2ServiceOptions};
+use crate::recipes::m2::services::{M2RecipeOptions, M2ServicesOptions};
 use crate::recipes::m2::subcommands::m2_playground_help;
 use crate::recipes::m2::subcommands::up_help::up_help;
-use crate::recipes::m2::M2Recipe;
-use crate::recipes::Recipe;
+
+use crate::dc_volume::DcVolume;
+use crate::recipes::m2::dc_tasks::M2Volumes;
+use crate::recipes::recipe_kinds::RecipeKinds;
+use crate::services::nginx::NginxService;
+use crate::services::pwa::PwaService;
+use crate::services::Service;
 use crate::tasks::docker_clean::docker_clean;
 use crate::{context::Context, task::Task};
 use ansi_term::Colour::{Cyan, Green};
@@ -169,8 +223,144 @@ use structopt::StructOpt;
 pub struct M2Up;
 
 impl M2Up {
-    const NAME: &'static str = "up";
-    const ABOUT: &'static str = "[m2] Bring up containers";
+    pub const NAME: &'static str = "up";
+    pub const ABOUT: &'static str = "Bring up containers";
+
+    ///
+    /// Bring the project up using given templates
+    ///
+    pub fn up(
+        &self,
+        ctx: &Context,
+        clean: bool,
+        attached: bool,
+        build: bool,
+        syncing: bool,
+    ) -> Result<Vec<Task>, failure::Error> {
+        //
+        // Display which config file (if any) is being used.
+        //
+        let mut notify = vec![Task::notify_info(format!(
+            "using config file {current}",
+            current = Cyan.paint(
+                ctx.config_path
+                    .clone()
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_else(|| "default, since no config was provided".into())
+            )
+        ))];
+
+        // Add a notice about overrides if present
+        if let Some(p) = &ctx.config_env_path {
+            let env_string = format!(
+                "with overrides from {env}",
+                env = Cyan.paint(p.to_string_lossy().to_string())
+            );
+            notify.push(Task::notify_info(env_string));
+        }
+
+        //
+        // Check that certain critical files exist
+        //
+        let verify_sync = if syncing {
+            vec![Task::conditional(
+                vec![Box::new(Question::new(format!(
+                    "{} {}",
+                    Green.paint("[wf2 info]"),
+                    "You've chosen to sync some directories, do you understand the risk?",
+                )))],
+                vec![Task::Noop],
+                vec![Task::notify_error(format!(
+                    "Phew, bailed! For more information try:{}",
+                    M2Up::DOC_LINK
+                ))],
+                Some("Verify sync".to_string()),
+            )]
+        } else {
+            vec![]
+        };
+
+        let recipe = RecipeKinds::from_ctx(&ctx);
+        let validate = vec![recipe.validate(&ctx)];
+
+        //
+        // Checks against env.php
+        //
+        let missing_env = vec![EnvPhp::missing_task(&ctx)];
+
+        //
+        // Clean the output folder
+        //
+        let clean_dir = vec![Task::dir_remove(
+            ctx.output_dir(),
+            "clean the output directory",
+        )];
+
+        //
+        // Template files (such as nginx, mysql conf)
+        //
+        let output_files = recipe.output_files(&ctx)?;
+
+        //
+        // Docker compose tasks for this recipe
+        //
+        let dc_tasks = recipe.dc_tasks(&ctx)?;
+
+        //
+        // Stop & remove docker containers before starting new ones
+        //
+        let clean_docker_containers_task = if clean { docker_clean() } else { vec![] };
+
+        //
+        // The final DC task, either in detached mode (default)
+        // or 'attached' if '-a' given.
+        //
+        let mut base_cmd = vec![Some("up"), if build { Some("--build") } else { None }];
+
+        let up = if attached {
+            dc_tasks.cmd_task(base_cmd.into_iter().filter_map(|x| x).collect())
+        } else {
+            base_cmd.push(Some("-d"));
+            dc_tasks.cmd_task(base_cmd.into_iter().filter_map(|x| x).collect())
+        };
+
+        //
+        // Show information about the environment when running
+        //
+        let up_help_task = if !attached {
+            if let Some(origin) = ctx.origin.as_ref() {
+                match origin.as_str() {
+                    "m2-playground" => Task::notify(m2_playground_help::up_help()),
+                    _ => Task::notify(up_help(&ctx)),
+                }
+            } else {
+                Task::notify(up_help(&ctx))
+            }
+        } else {
+            // if we're attached to the output stream, we cannot show any terminal output
+            Task::Noop
+        };
+
+        let pwa_cleanup_tasks = if M2RecipeOptions::has_pwa_options(ctx) {
+            pwa_cleanup(&ctx)
+        } else {
+            vec![]
+        };
+
+        Ok(vec![]
+            .into_iter()
+            .chain(verify_sync.into_iter())
+            .chain(validate.into_iter())
+            .chain(notify.into_iter())
+            .chain(missing_env.into_iter())
+            .chain(clean_dir.into_iter())
+            .chain(output_files.into_iter())
+            .chain(pwa_cleanup_tasks.into_iter())
+            .chain(clean_docker_containers_task.into_iter())
+            .chain(vec![up].into_iter())
+            .chain(vec![up_help_task].into_iter())
+            .collect())
+    }
 }
 
 #[derive(StructOpt, Debug)]
@@ -179,6 +369,8 @@ struct Opts {
     attached: bool,
     #[structopt(short, long)]
     clean: bool,
+    #[structopt(short, long)]
+    build: bool,
     #[structopt(short, long)]
     sync: Option<Vec<PathBuf>>,
 }
@@ -189,15 +381,16 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2Up {
     }
     fn exec(&self, matches: Option<&ArgMatches>, ctx: &Context) -> Option<Vec<Task>> {
         let opts: Opts = matches.map(Opts::from_clap).expect("guarded by Clap");
-        let mut next_ctx = ctx.clone();
+        let next_ctx = ctx.clone();
         let mut syncing = false;
         let mut prev_options: Option<Result<M2RecipeOptions, _>> =
             next_ctx.options.clone().map(serde_yaml::from_value);
 
         if let Some(Ok(M2RecipeOptions {
             services:
-                Some(M2ServiceOptions {
+                Some(M2ServicesOptions {
                     unison: Some(unison_opts),
+                    ..
                 }),
         })) = prev_options.as_mut()
         {
@@ -212,11 +405,10 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2Up {
             }
         }
 
-        if let Some(Ok(opts)) = prev_options {
-            next_ctx.options = Some(serde_yaml::to_value(opts).expect("Can convert to value"));
-        }
-
-        Some(up(&next_ctx, opts.clean, opts.attached, syncing).unwrap_or_else(Task::task_err_vec))
+        Some(
+            self.up(&next_ctx, opts.clean, opts.attached, opts.build, syncing)
+                .unwrap_or_else(Task::task_err_vec),
+        )
     }
     fn subcommands(&self, _ctx: &Context) -> Vec<App<'a, 'b>> {
         vec![App::new(M2Up::NAME)
@@ -224,129 +416,27 @@ impl<'a, 'b> CliCommand<'a, 'b> for M2Up {
             .arg_from_usage("-a --attached 'Run in attached mode (streaming logs)'")
             .arg_from_usage("-c --clean 'stop & remove other containers before starting new ones'")
             .arg_from_usage("-s --sync [paths]... 'apply additional sync folders'")
+            .arg_from_usage("-b --build 'rebuild docker container if there are any'")
             .after_help(M2Up::DOC_LINK)]
     }
 }
 
 ///
-/// Bring the project up using given templates
+/// todo: clean this up, it's a POC and does work
 ///
-pub fn up(
-    ctx: &Context,
-    clean: bool,
-    attached: bool,
-    syncing: bool,
-) -> Result<Vec<Task>, failure::Error> {
-    //
-    // Display which config file (if any) is being used.
-    //
-    let mut notify = vec![Task::notify_info(format!(
-        "using config file {current}",
-        current = Cyan.paint(
-            ctx.config_path
-                .clone()
-                .map(|p| p.to_string_lossy().to_string())
-                .unwrap_or_else(|| "default, since no config was provided".into())
-        )
-    ))];
-
-    // Add a notice about overrides if present
-    if let Some(p) = &ctx.config_env_path {
-        let env_string = format!(
-            "with overrides from {env}",
-            env = Cyan.paint(p.to_string_lossy().to_string())
-        );
-        notify.push(Task::notify_info(env_string));
-    }
-
-    //
-    // Check that certain critical files exist
-    //
-    let verify_sync = if syncing {
-        vec![Task::conditional(
-            vec![Box::new(Question::new(format!(
-                "{} {}",
-                Green.paint("[wf2 info]"),
-                "You've chosen to sync some directories, do you understand the risk?",
-            )))],
-            vec![Task::Noop],
-            vec![Task::notify_error(format!(
-                "Phew, bailed! For more information try:{}",
-                M2Up::DOC_LINK
-            ))],
-            Some("Verify sync".to_string()),
-        )]
-    } else {
-        vec![]
-    };
-
-    let validate = vec![(M2Recipe).validate(&ctx)];
-
-    //
-    // Checks against env.php
-    //
-    let missing_env = vec![EnvPhp::missing_task(&ctx)];
-
-    //
-    // Clean the output folder
-    //
-    let clean_dir = vec![Task::dir_remove(
-        ctx.output_dir(),
-        "clean the output directory",
-    )];
-
-    //
-    // Template files (such as nginx, mysql conf)
-    //
-    let output_files = M2Templates::output_files(&ctx)?;
-
-    //
-    // Docker compose tasks for this recipe
-    //
-    let dc_tasks = M2Recipe::dc_tasks(&ctx)?;
-
-    //
-    // Stop & remove docker containers before starting new ones
-    //
-    let clean_docker_containers_task = if clean { docker_clean() } else { vec![] };
-
-    //
-    // The final DC task, either in detached mode (default)
-    // or 'attached' if '-a' given.
-    //
-    let up = if attached {
-        dc_tasks.cmd_task(vec!["up".to_string()])
-    } else {
-        dc_tasks.cmd_task(vec!["up -d".to_string()])
-    };
-
-    //
-    // Show information about the environment when running
-    //
-    let up_help_task = if !attached {
-        if let Some(origin) = ctx.origin.as_ref() {
-            match origin.as_str() {
-                "m2-playground" => Task::notify(m2_playground_help::up_help()),
-                _ => Task::notify(up_help(&ctx)),
-            }
-        } else {
-            Task::notify(up_help(&ctx))
-        }
-    } else {
-        // if we're attached to the output stream, we cannot show any terminal output
-        Task::Noop
-    };
-
-    Ok(vec![]
-        .into_iter()
-        .chain(verify_sync.into_iter())
-        .chain(validate.into_iter())
-        .chain(notify.into_iter())
-        .chain(missing_env.into_iter())
-        .chain(clean_dir.into_iter())
-        .chain(output_files.into_iter())
-        .chain(clean_docker_containers_task.into_iter())
-        .chain(vec![up].into_iter())
-        .chain(vec![up_help_task].into_iter())
-        .collect())
+pub fn pwa_cleanup(ctx: &Context) -> Vec<Task> {
+    let pwa_src_volume = DcVolume::new(ctx.name(), M2Volumes::PWA);
+    let pwa_container = ctx.prefixed_name(PwaService::NAME);
+    let nginx_container = ctx.prefixed_name(NginxService::NAME);
+    let stop_pwa = Task::simple_command(format!(
+        "docker stop {name} && docker rm {name} || true",
+        name = pwa_container
+    ));
+    let stop_nginx = Task::simple_command(format!(
+        "docker stop {name} && docker rm {name} || true",
+        name = nginx_container
+    ));
+    let rm_volume_task =
+        Task::simple_command(format!("docker volume rm {} || true", pwa_src_volume.name));
+    vec![stop_pwa, stop_nginx, rm_volume_task]
 }

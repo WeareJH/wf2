@@ -1,11 +1,12 @@
 use crate::context::Context;
 use crate::dc_service::DcService;
 use crate::php::PHP;
-use crate::recipes::m2::m2_vars::{M2Var, M2Vars, Vars};
+use crate::recipes::m2::dc_tasks::M2Volumes;
+use crate::recipes::m2::m2_vars::{M2Var, M2Vars};
 use crate::recipes::m2::services::db::DbService;
 use crate::recipes::m2::services::php_debug::PhpDebugService;
-use crate::recipes::m2::services::M2Service;
-use crate::recipes::m2::volumes::M2Volumes;
+use crate::recipes::m2::services::M2_ROOT;
+use crate::services::Service;
 
 pub struct PhpService;
 
@@ -30,7 +31,7 @@ impl PhpService {
     }
 }
 
-impl M2Service for PhpService {
+impl Service<M2Vars> for PhpService {
     const NAME: &'static str = "php";
     const IMAGE: &'static str = PhpService::IMAGE_7_3;
 
@@ -38,19 +39,19 @@ impl M2Service for PhpService {
         let image = &vars.content[&M2Var::PhpImage].clone();
         DcService::new(ctx.name(), Self::NAME, image)
             .set_volumes(vec![
-                format!("{}:{}", M2Volumes::APP, Self::ROOT),
+                format!("{}:{}", M2Volumes::APP, M2_ROOT),
                 format!(
                     "{}:{}",
                     M2Volumes::COMPOSER_CACHE,
                     PhpService::COMPOSER_CACHE_PATH,
                 ),
             ])
-            .set_depends_on(vec![(DbService::NAME)])
+            .set_depends_on(vec![DbService::NAME])
             .set_ports(vec!["9000"])
-            .set_working_dir(Self::ROOT)
+            .set_working_dir(M2_ROOT)
             .set_env_file(vec![vars.content[&M2Var::EnvFile].to_string()])
             .set_labels(vec![Self::TRAEFIK_DISABLE_LABEL.to_string()])
-            .build()
+            .finish()
     }
     fn select_image(&self, ctx: &Context) -> String {
         match ctx.php_version {
@@ -67,9 +68,9 @@ impl M2Service for PhpService {
 mod tests {
     use crate::context::Context;
     use crate::php::PHP;
-    use crate::recipes::m2::m2_vars::{M2Vars, Vars};
+    use crate::recipes::m2::m2_vars::M2Vars;
     use crate::recipes::m2::services::php::PhpService;
-    use crate::recipes::m2::services::M2Service;
+    use crate::services::Service;
 
     #[test]
     fn test_php_service() -> Result<(), failure::Error> {
