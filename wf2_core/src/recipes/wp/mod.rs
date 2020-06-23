@@ -56,11 +56,6 @@ impl DcTasksTrait for WpRecipe {
     }
 }
 
-pub mod pass_thru;
-pub mod services;
-pub mod subcommands;
-pub mod volumes;
-
 impl<'a, 'b> Commands<'a, 'b> for WpRecipe {
     fn subcommands(&self, _ctx: &Context) -> Vec<Box<dyn CliCommand<'a, 'b>>> {
         wp_recipe_subcommands()
@@ -96,3 +91,8 @@ impl PassThru for WpRecipe {
 
 impl OutputFiles for WpRecipe {}
 impl ResolveScript for WpRecipe {}
+
+pub mod pass_thru;
+pub mod services;
+pub mod subcommands;
+pub mod volumes;

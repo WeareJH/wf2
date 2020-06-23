@@ -10,3 +10,13 @@ impl WpVolumes {
 pub fn get_volumes(ctx: &Context) -> Vec<DcVolume> {
     vec![DcVolume::new(ctx.name(), WpVolumes::DB)]
 }
+
+pub struct WpVolumeMounts;
+
+impl WpVolumeMounts {
+    pub const NGINX_CONF: &'static str = "nginx/nginx.conf";
+    pub const NGINX_CONF_REMOTE: &'static str = "/etc/nginx/nginx.conf";
+
+    pub const NGINX_DEFAULT_HOST: &'static str = "nginx/host.conf";
+    pub const NGINX_DEFAULT_REMOTE: &'static str = "/etc/nginx/conf.d/default.conf";
+}

@@ -2,7 +2,7 @@ use crate::commands::CliCommand;
 use crate::context::Context;
 
 use crate::dc_tasks::DcTasksTrait;
-use crate::recipes::wp::services::WpVolumeMounts;
+use crate::recipes::wp::volumes::WpVolumeMounts;
 use crate::recipes::wp::WpRecipe;
 use crate::task::Task;
 use crate::tasks::docker_clean::docker_clean;
