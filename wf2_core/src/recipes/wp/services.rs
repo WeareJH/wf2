@@ -106,6 +106,8 @@ impl Service for WpPhpDebugService {
         let mut php_cnt = (WpPhpService).dc_service(ctx, &());
         {
             php_cnt.set_environment(vec!["XDEBUG_ENABLE=true"]);
+            php_cnt.set_name(WpPhpDebugService::NAME);
+            php_cnt.set_container_name(ctx.name(), WpPhpDebugService::NAME);
         }
         php_cnt
     }
