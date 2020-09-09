@@ -22,6 +22,7 @@ use up::M2Up;
 use update_images::M2UpdateImages;
 use varnish::VarnishCmd;
 use xdebug::XdebugCmd;
+use crate::recipes::m2::subcommands::install::M2Install;
 
 pub mod composer;
 pub mod db_dump;
@@ -49,6 +50,7 @@ pub mod up_help;
 pub mod update_images;
 pub mod varnish;
 pub mod xdebug;
+pub mod install;
 
 impl<'a, 'b> Commands<'a, 'b> for M2Recipe {
     fn subcommands(&self, _ctx: &Context) -> Vec<Box<dyn CliCommand<'a, 'b>>> {
@@ -68,6 +70,7 @@ impl<'a, 'b> Commands<'a, 'b> for M2Recipe {
             Box::new(M2UpdateImages),
             Box::new(XdebugCmd),
             Box::new(SqlCmd),
+            Box::new(M2Install),
         ]
     }
     fn global_subcommands(&self) -> Vec<Box<dyn CliCommand<'a, 'b>>> {
