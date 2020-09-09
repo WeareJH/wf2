@@ -5,6 +5,7 @@ use crate::recipes::m2::m2_vars::M2Vars;
 use crate::recipes::m2::services::{M2RecipeOptions, M2Services};
 use crate::recipes::m2::M2Recipe;
 use crate::services::Services;
+use failure::ResultExt;
 
 impl DcTasksTrait for M2Recipe {
     fn volumes(&self, ctx: &Context) -> Vec<DcVolume> {
@@ -23,6 +24,11 @@ impl DcTasksTrait for M2Recipe {
     }
     fn services(&self, ctx: &Context) -> Result<Box<dyn Services>, failure::Error> {
         let vars = M2Vars::from_ctx(&ctx)?;
+        if let Some(..) = ctx.options {
+            let _ = ctx
+                .parse_options::<M2RecipeOptions>()
+                .with_context(|e| format!("Couldn't parse options from wf2.yaml: {}", e))?;
+        }
         let m2_services = M2Services::from_ctx(ctx, &vars);
         Ok(Box::new(m2_services))
     }

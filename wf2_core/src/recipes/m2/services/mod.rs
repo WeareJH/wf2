@@ -12,6 +12,7 @@ use crate::services::traefik::TraefikService;
 use crate::services::varnish::VarnishService;
 use crate::services::{Service, Services};
 
+use crate::recipes::m2::services::db::DbServiceOptions;
 use blackfire::M2BlackfireService;
 use db::DbService;
 use nginx::M2NginxService;
@@ -70,6 +71,7 @@ pub enum M2ServiceError {
 pub struct M2ServicesOptions {
     pub unison: Option<UnisonOptions>,
     pub pwa: Option<PwaServiceOptions>,
+    pub db: Option<DbServiceOptions>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]

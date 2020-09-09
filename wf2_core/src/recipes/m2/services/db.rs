@@ -4,6 +4,8 @@ use crate::recipes::m2::dc_tasks::M2Volumes;
 use crate::recipes::m2::m2_vars::{M2Var, M2Vars};
 use crate::services::Service;
 
+use crate::recipes::m2::services::M2RecipeOptions;
+
 pub struct DbService;
 
 impl DbService {
@@ -16,12 +18,47 @@ impl DbService {
     pub const VOLUME_ENTRY: &'static str = "/docker-entrypoint-initdb.d";
 }
 
+///
+/// These are the options that can be provided in the wf2 file
+/// under 'options.services.db'
+///
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DbServiceOptions {
+    #[serde(default = "default_image")]
+    pub image: String,
+}
+
+impl Default for DbServiceOptions {
+    fn default() -> Self {
+        DbServiceOptions {
+            image: default_image(),
+        }
+    }
+}
+fn default_image() -> String {
+    String::from("mysql:5.7")
+}
+
+impl DbServiceOptions {
+    pub fn from_ctx(ctx: &Context) -> Self {
+        if let Ok(opts) = ctx.parse_options::<M2RecipeOptions>() {
+            if let Some(services) = opts.services {
+                if let Some(db) = services.db {
+                    return db;
+                }
+            }
+        }
+        DbServiceOptions::default()
+    }
+}
+
 impl Service<M2Vars> for DbService {
     const NAME: &'static str = "db";
     const IMAGE: &'static str = "mysql:5.6";
 
     fn dc_service(&self, ctx: &Context, vars: &M2Vars) -> DcService {
-        DcService::new(ctx.name(), Self::NAME, Self::IMAGE)
+        let opts = DbServiceOptions::from_ctx(&ctx);
+        DcService::new(ctx.name(), Self::NAME, opts.image.clone())
             .set_volumes(vec![
                 format!("{}:{}", M2Volumes::DB, DbService::VOLUME_DATA),
                 format!(
@@ -44,5 +81,49 @@ impl Service<M2Vars> for DbService {
 
     fn from_ctx(ctx: &Context) -> Result<DcService, failure::Error> {
         M2Vars::from_ctx(&ctx).map(|vars| (DbService).dc_service(&ctx, &vars))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::dc_service::DcService;
+
+    #[test]
+    fn test_db_service() {
+        let ctx_str = r#"
+            recipe: M2
+            domains: [ example.m2 ]
+            options:
+                services:
+                    db:
+                        image: "mysql:8.0"
+        "#;
+
+        let mut ctx = Context::new_from_str(ctx_str).expect("test context");
+        ctx.cwd = std::path::PathBuf::from("/users/shane/project");
+        let actual_dc = DbService::from_ctx(&ctx).expect("service");
+        let expected = r#"
+
+
+            name: "db"
+            container_name: wf2__project__db
+            image: "mysql:8.0"
+            volumes:
+              - "db-data:/var/lib/mysql"
+              - "/users/shane/project/.wf2_m2_project/mysql/mysqlconf:/etc/mysql/conf.d"
+              - "/users/shane/project/.wf2_m2_project/mysql/init-scripts:/docker-entrypoint-initdb.d"
+            env_file:
+              - "/users/shane/project/.wf2_m2_project/.docker.env"
+            restart: unless-stopped
+            labels:
+              - traefik.enable=false
+            ports:
+              - "3306:3306"
+
+
+        "#;
+        let expected_dc: DcService = serde_yaml::from_str(expected).expect("test yaml");
+        assert_eq!(actual_dc, expected_dc);
     }
 }
