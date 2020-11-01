@@ -23,7 +23,7 @@ impl Service for MailService {
 
     fn dc_service(&self, ctx: &Context, _: &()) -> DcService {
         let traefik_label =
-            TraefikService::simple_entry(MailService::NAME, MailService::DOMAIN, true, 8025_u32);
+            TraefikService::route_to_svc(MailService::NAME, vec![MailService::DOMAIN.into()],true, 8025);
         DcService::new(ctx.name(), Self::NAME, Self::IMAGE)
             .set_ports(vec!["1025"])
             .set_labels(traefik_label)

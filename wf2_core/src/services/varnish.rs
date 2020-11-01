@@ -25,11 +25,11 @@ impl Service for VarnishService {
 
         DcService::new(ctx.name(), Self::NAME, Self::IMAGE)
             .set_depends_on(depends_on)
-            .set_labels(TraefikService::simple_entry(
+            .set_labels(TraefikService::route_to_svc(
                     Self::NAME,
-                    base_domains.join(","),
+                    base_domains,
                     true,
-                    80_u32,
+                    80,
                     )
                 )
             .finish()

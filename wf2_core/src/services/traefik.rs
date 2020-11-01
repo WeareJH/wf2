@@ -13,30 +13,28 @@ pub struct TraefikServiceVars;
 
 impl TraefikService {
     // MVP implementation to allow upgrade to Traefik2
-    pub fn simple_entry(
-        name: impl Into<String>,
-        domain: impl Into<String>,
-        tls: bool,
-        target_port: impl Into<u32>,
-    ) -> Vec<String> {
-        let name: String = name.into();
-        let service_name = format!("{}-svc", name);
-        let val = vec![
-            format!(
-                "traefik.http.routers.{}.rule=Host(`{}`)",
-                name,
-                domain.into()
-            ),
-            format!("traefik.http.routers.{}.service={}", name, service_name),
-            format!("traefik.http.routers.{}.tls={}", name, tls),
-            format!(
-                "traefik.http.services.{}.loadBalancer.server.port={}",
-                service_name,
-                target_port.into()
-            ),
-            "traefik.enable=true".into(),
+   pub fn route_to_svc(name: impl Into<String>,domains: Vec<String>,tls: bool, port: u16) -> Vec<String> {
+       let name = name.into();
+        let service_name = format!("{}_svc",name.clone());
+        let mut routes: Vec<String> = domains.iter().map(|domain| {
+            TraefikService::route_domain_to_svc(&name, domain.to_string(), tls)
+        }).flatten().collect();
+
+        let mut val = vec![
+            "traefik.enable=true".to_owned(),
+            format!("traefik.http.services.{}.loadBalancer.server.port={}",service_name,port)
         ];
-        val
+        routes.append(&mut val);
+        routes
+    }
+    pub fn route_domain_to_svc(name: &str,domain:String,tls: bool) -> Vec<String> {
+        let service_name = format!("{}_svc",name);
+        let sdomain = domain.replace('.', "-");
+        vec![
+            format!("traefik.http.routers.{}.rule=Host(`{}`)", sdomain, domain),
+            format!("traefik.http.routers.{}.service={}",sdomain,service_name.to_owned()).to_string(),
+            format!("traefik.http.routers.{}.tls={}",sdomain,tls),
+        ]
     }
 }
 
@@ -77,7 +75,7 @@ mod test {
 
     #[test]
     fn test_host_entry() {
-        let labels = TraefikService::simple_entry("mailhog", "mail.jh", true, 8080_u32);
+        let labels = TraefikService::route_to_svc("mailhog", "mail.jh", true, 8080_u32);
         assert_eq!(
             labels,
             vec![
