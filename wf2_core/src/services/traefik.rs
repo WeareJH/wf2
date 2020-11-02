@@ -3,7 +3,7 @@ use crate::dc_service::DcService;
 use crate::dc_service_network::DcServiceNetwork;
 
 use crate::file::File;
-use crate::recipes::m2::output_files::traefik::{TraefikFile,TraefikRedirectFile};
+use crate::recipes::m2::output_files::traefik::{TraefikFile, TraefikRedirectFile};
 use crate::services::Service;
 
 pub struct TraefikService;
@@ -13,27 +13,42 @@ pub struct TraefikServiceVars;
 
 impl TraefikService {
     // MVP implementation to allow upgrade to Traefik2
-   pub fn route_to_svc(name: impl Into<String>,domains: Vec<String>,tls: bool, port: u16) -> Vec<String> {
-       let name = name.into();
-        let service_name = format!("{}_svc",name.clone());
-        let mut routes: Vec<String> = domains.iter().map(|domain| {
-            TraefikService::route_domain_to_svc(&name, domain.to_string(), tls)
-        }).flatten().collect();
+    pub fn route_to_svc(
+        name: impl Into<String>,
+        domains: Vec<String>,
+        tls: bool,
+        port: u16,
+    ) -> Vec<String> {
+        let name = name.into();
+        let service_name = format!("{}_svc", name.clone());
+        let mut routes: Vec<String> = domains
+            .iter()
+            .map(|domain| TraefikService::route_domain_to_svc(&name, domain.to_string(), tls))
+            .flatten()
+            .collect();
 
         let mut val = vec![
             "traefik.enable=true".to_owned(),
-            format!("traefik.http.services.{}.loadBalancer.server.port={}",service_name,port)
+            format!(
+                "traefik.http.services.{}.loadBalancer.server.port={}",
+                service_name, port
+            ),
         ];
         routes.append(&mut val);
         routes
     }
-    pub fn route_domain_to_svc(name: &str,domain:String,tls: bool) -> Vec<String> {
-        let service_name = format!("{}_svc",name);
+    pub fn route_domain_to_svc(name: &str, domain: String, tls: bool) -> Vec<String> {
+        let service_name = format!("{}_svc", name);
         let sdomain = domain.replace('.', "-");
         vec![
             format!("traefik.http.routers.{}.rule=Host(`{}`)", sdomain, domain),
-            format!("traefik.http.routers.{}.service={}",sdomain,service_name.to_owned()).to_string(),
-            format!("traefik.http.routers.{}.tls={}",sdomain,tls),
+            format!(
+                "traefik.http.routers.{}.service={}",
+                sdomain,
+                service_name.to_owned()
+            )
+            .to_string(),
+            format!("traefik.http.routers.{}.tls={}", sdomain, tls),
         ]
     }
 }

@@ -11,7 +11,7 @@ use m2_runtime_env_file::M2RuntimeEnvFile;
 use nginx_m2::NginxM2;
 use nginx_pwa::NginxPwa;
 use nginx_upstream::NginxUpstream;
-use traefik::{TraefikFile,TraefikRedirectFile};
+use traefik::{TraefikFile, TraefikRedirectFile};
 use unison::UnisonFile;
 
 pub mod auth;
