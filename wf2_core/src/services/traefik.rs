@@ -75,15 +75,15 @@ mod test {
 
     #[test]
     fn test_host_entry() {
-        let labels = TraefikService::route_to_svc("mailhog", "mail.jh", true, 8080_u32);
+        let labels = TraefikService::route_to_svc("mailhog", vec!["mail.jh".into()], true, 8080);
         assert_eq!(
             labels,
             vec![
-                "traefik.http.routers.mailhog.rule=Host(`mail.jh`)",
-                "traefik.http.routers.mailhog.service=mailhog-svc",
-                "traefik.http.routers.mailhog.tls=true",
-                "traefik.http.services.mailhog-svc.loadBalancer.server.port=8080",
-                "traefik.enable=true"
+                "traefik.http.routers.mail-jh.rule=Host(`mail.jh`)",
+                "traefik.http.routers.mail-jh.service=mailhog_svc",
+                "traefik.http.routers.mail-jh.tls=true",
+                "traefik.enable=true",
+                "traefik.http.services.mailhog_svc.loadBalancer.server.port=8080"
             ]
         )
     }
@@ -96,17 +96,17 @@ mod test {
 
             name: "traefik"
             container_name: wf2__wf2_default__traefik
-            image: "traefik:1.7"
+            image: "traefik:2.2"
             volumes:
               - "/var/run/docker.sock:/var/run/docker.sock"
               - "./.wf2_default/traefik/traefik.toml:/etc/traefik/traefik.toml"
+              - "./.wf2_default/traefik/dynamic/redirect.toml:/etc/traefik/dynamic/redirect.toml"
             labels:
               - traefik.enable=false
             ports:
               - "80:80"
               - "443:443"
               - "8080:8080"
-            command: "--api --docker"
             networks:
               default:
                 aliases:
