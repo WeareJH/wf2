@@ -14,11 +14,11 @@ pub fn printer_from_matches(matches: &Option<&ArgMatches>) -> Box<dyn Printer> {
     matches
         .and_then(|matches| matches.value_of("printer"))
         .or(Some("ascii-table"))
-        .and_then(|printer| -> Option<Box<dyn Printer>> {
+        .map(|printer| -> Box<dyn Printer> {
             match printer {
-                "ascii-table" => Some(Box::new(AsciiPrinter::new())),
-                "json" => Some(Box::new(JsonPrinter::new())),
-                _ => Some(Box::new(AsciiPrinter::new())),
+                "ascii-table" => Box::new(AsciiPrinter::new()),
+                "json" => Box::new(JsonPrinter::new()),
+                _ => Box::new(AsciiPrinter::new()),
             }
         })
         .unwrap_or_else(|| Box::new(AsciiPrinter::new()))

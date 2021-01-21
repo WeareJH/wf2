@@ -1,4 +1,5 @@
 use crate::php::PHP;
+use crate::recipes::m2::multi_store::Stores;
 use crate::recipes::recipe_kinds::RecipeKinds;
 use crate::scripts::scripts::Scripts;
 use ansi_term::Colour::{Cyan, Red};
@@ -106,6 +107,9 @@ pub struct Context {
     #[serde(skip_serializing, default)]
     pub scripts: Option<Scripts>,
 
+    #[serde(skip_serializing, default)]
+    pub stores: Option<Stores>,
+
     #[serde(default)]
     pub origin: Option<String>,
 }
@@ -173,6 +177,7 @@ impl Default for Context {
             scripts: None,
             origin: None,
             options: None,
+            stores: None,
         }
     }
 }

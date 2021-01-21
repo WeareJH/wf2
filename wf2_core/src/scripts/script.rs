@@ -73,11 +73,10 @@ impl Script {
     }
 
     pub fn has_dc_tasks(steps: &[ScriptItem]) -> bool {
-        steps.iter().any(|step| match step {
-            ScriptItem::DcRunCommand { .. }
+        steps.iter().any(|step| {
+            matches!(step, ScriptItem::DcRunCommand { .. }
             | ScriptItem::DcExecCommand { .. }
-            | ScriptItem::DcPassThru { .. } => true,
-            _ => false,
+            | ScriptItem::DcPassThru { .. })
         })
     }
 

@@ -26,7 +26,7 @@ impl CLIOutput {
     /// Create CLIOutput from CLIInput
     ///
     pub fn from_input(input: CLIInput) -> Result<CLIOutput, failure::Error> {
-        let input_args: Vec<String> = input.args.clone().into_iter().map(|s| s).collect();
+        let input_args: Vec<String> = input.args.clone().into_iter().collect();
         //        let base_len = 6;
         let cli = CLI::create();
         let ctx = cli.get_ctx(input.args.clone())?;

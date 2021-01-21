@@ -1,7 +1,7 @@
 use crate::commands::timelog::jira_worklog::Worklog;
 use core::fmt;
-use serde::export::fmt::Error;
-use serde::export::Formatter;
+use std::fmt::Error;
+use std::fmt::Formatter;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct JiraField {

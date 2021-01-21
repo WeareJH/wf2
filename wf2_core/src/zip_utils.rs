@@ -9,7 +9,7 @@ pub fn unzip(input_file: &PathBuf, output_dir: &PathBuf, start_level: usize) -> 
 
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)?;
-        let outpath = file.sanitized_name();
+        let outpath = file.mangled_name();
         let outpath = outpath.iter().skip(start_level).collect::<PathBuf>();
 
         {

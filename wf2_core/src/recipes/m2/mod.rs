@@ -11,6 +11,7 @@ use crate::{context::Context, recipes::Recipe, task::Task};
 pub mod dc_tasks;
 #[doc(hidden)]
 pub mod m2_vars;
+pub mod multi_store;
 #[doc(hidden)]
 pub mod output_files;
 #[doc(hidden)]
