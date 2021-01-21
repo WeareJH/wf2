@@ -58,7 +58,7 @@ impl Service<M2Vars> for DbService {
 
     fn dc_service(&self, ctx: &Context, vars: &M2Vars) -> DcService {
         let opts = DbServiceOptions::from_ctx(&ctx);
-        DcService::new(ctx.name(), Self::NAME, opts.image.clone())
+        DcService::new(ctx.name(), Self::NAME, opts.image)
             .set_volumes(vec![
                 format!("{}:{}", M2Volumes::DB, DbService::VOLUME_DATA),
                 format!(

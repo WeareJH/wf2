@@ -68,7 +68,7 @@ impl<'a, 'b> CliCommand<'a, 'b> for WpPlaygroundCmd {
             domain: WpRecipe::ctx_domain(&ctx),
         };
 
-        let version_display = if wp.version == "" {
+        let version_display = if wp.version.is_empty() {
             String::from("latest")
         } else {
             wp.version.clone()

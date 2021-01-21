@@ -394,7 +394,7 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
             let task_sequence = WF2::sequence(tasks);
             let output = task_sequence.wait();
             output
-                .and_then(|_| Ok(id))
+                .map(|_| id)
                 .map_err(|(_error_id, task_error)| TaskError {
                     index: id,
                     message: task_error.message,
@@ -440,7 +440,7 @@ pub fn as_future(task: Task, id: usize) -> FutureSig {
         }
         Task::Exec { exec, .. } => {
             let output = exec.wait();
-            output.and_then(|_| Ok(id)).map_err(|e| TaskError {
+            output.map(|_| id).map_err(|e| TaskError {
                 exit_code: None,
                 index: id,
                 message: e.to_string(),

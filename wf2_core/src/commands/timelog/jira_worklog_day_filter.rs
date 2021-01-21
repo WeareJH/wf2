@@ -71,10 +71,7 @@ pub fn weekday_filter(item: &WorklogDay) -> bool {
 ///
 pub fn weekend_filter(item: &WorklogDay) -> bool {
     use Weekday::*;
-    match item.date.weekday() {
-        Sat | Sun => true,
-        _ => false,
-    }
+    matches!(item.date.weekday(), Sat | Sun)
 }
 
 ///

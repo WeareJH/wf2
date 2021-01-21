@@ -38,12 +38,11 @@ fn main() {
     //
     if cli_output.ctx.run_mode == RunMode::DryRun {
         if let Some(ts) = cli_output.tasks {
-            let items = ts
+            let _items = ts
                 .iter()
                 .enumerate()
                 .map(|(_index, t)| format!("{}", t))
-                .collect::<Vec<String>>();
-            items.into_iter().for_each(|task| println!("{}", task));
+                .for_each(|task| println!("{}", task));
         }
         return;
     }
