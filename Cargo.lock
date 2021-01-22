@@ -2183,7 +2183,7 @@ checksum = "93c6c3420963c5c64bca373b25e77acb562081b9bb4dd5bb864187742186cea9"
 
 [[package]]
 name = "wf2"
-version = "0.33.0"
+version = "0.33.1"
 dependencies = [
  "ansi_term",
  "clap",
@@ -2199,7 +2199,7 @@ dependencies = [
 
 [[package]]
 name = "wf2_core"
-version = "0.33.0"
+version = "0.33.1"
 dependencies = [
  "ansi_term",
  "base64 0.11.0",
