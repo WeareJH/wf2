@@ -72,6 +72,7 @@ impl Service<M2Vars> for DbService {
                     DbService::VOLUME_ENTRY
                 ),
             ])
+            .set_command("--default-authentication-plugin=mysql_native_password")
             .set_ports(vec!["3306:3306"])
             .set_restart("unless-stopped")
             .set_env_file(vec![vars.content[&M2Var::EnvFile].to_string()])
@@ -120,7 +121,7 @@ mod tests {
               - traefik.enable=false
             ports:
               - "3306:3306"
-
+            command: "--default-authentication-plugin=mysql_native_password"
 
         "#;
         let expected_dc: DcService = serde_yaml::from_str(expected).expect("test yaml");
