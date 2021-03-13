@@ -7,9 +7,9 @@ use from_file::{FromFile, FromFileError};
 use serde_yaml::Value;
 use std::path::PathBuf;
 
+use crate::versions::elasticsearch::ELASTICSEARCH;
 use serde::Deserialize;
 use std::{fmt, fs};
-use crate::versions::elasticsearch::ELASTICSEARCH;
 
 pub const DEFAULT_DOMAIN: &str = "local.m2";
 
@@ -81,9 +81,9 @@ pub struct Context {
     )]
     pub php_version: PHP,
     #[serde(
-    skip_serializing,
-    default,
-    deserialize_with = "crate::versions::elasticsearch::deserialize_elasticsearch"
+        skip_serializing,
+        default,
+        deserialize_with = "crate::versions::elasticsearch::deserialize_elasticsearch"
     )]
     pub es_version: crate::versions::elasticsearch::ELASTICSEARCH,
 

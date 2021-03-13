@@ -2,7 +2,6 @@ use serde::de;
 use std::fmt;
 use std::fmt::Formatter;
 
-
 //TODO: Refactor to make more generic, so we can use for php versions too.
 macro_rules! build_es_version {
 ($default:ident,[$( $key:ident => $value:expr ),*]) => {
