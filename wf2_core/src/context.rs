@@ -9,6 +9,7 @@ use std::path::PathBuf;
 
 use serde::Deserialize;
 use std::{fmt, fs};
+use crate::versions::elasticsearch::ELASTICSEARCH;
 
 pub const DEFAULT_DOMAIN: &str = "local.m2";
 
@@ -79,6 +80,12 @@ pub struct Context {
         deserialize_with = "crate::php::deserialize_php"
     )]
     pub php_version: PHP,
+    #[serde(
+    skip_serializing,
+    default,
+    deserialize_with = "crate::versions::elasticsearch::deserialize_elasticsearch"
+    )]
+    pub es_version: crate::versions::elasticsearch::ELASTICSEARCH,
 
     #[serde(skip_serializing, default)]
     pub config_path: Option<PathBuf>,
@@ -167,6 +174,7 @@ impl Default for Context {
             pv: None,
             npm_path: default_cwd(),
             php_version: PHP::SevenThree,
+            es_version: ELASTICSEARCH::SevenSix,
             config_path: None,
             config_env_path: None,
             overrides: None,

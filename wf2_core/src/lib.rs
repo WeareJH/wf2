@@ -106,6 +106,14 @@ extern crate from_file_derive;
 #[macro_use]
 extern crate failure;
 
+use futures::{future::Future, future::lazy, Stream, stream::iter_ok};
+
+use crate::{
+    task::{as_future, Task},
+    task::TaskError,
+};
+use crate::condition::{Answer, Con, ConditionFuture};
+
 #[doc(hidden)]
 pub mod cli;
 #[doc(hidden)]
@@ -138,7 +146,6 @@ pub mod output;
 #[doc(hidden)]
 pub mod output_files;
 #[doc(hidden)]
-pub mod php;
 pub mod recipes;
 #[doc(hidden)]
 pub mod scripts;
@@ -156,14 +163,8 @@ pub mod util;
 #[doc(hidden)]
 pub mod zip_utils;
 
-use futures::{future::lazy, future::Future, stream::iter_ok, Stream};
-
-use crate::{
-    task::TaskError,
-    task::{as_future, Task},
-};
-
-use crate::condition::{Answer, Con, ConditionFuture};
+pub mod versions;
+pub mod php;
 
 #[doc(hidden)]
 pub struct WF2;

@@ -14,8 +14,10 @@ impl Service for ElasticSearchService {
     const NAME: &'static str = "elasticsearch";
     const IMAGE: &'static str = "wearejh/elasticsearch:7.6-m2";
 
+
     fn dc_service(&self, ctx: &Context, _: &()) -> DcService {
-        DcService::new(ctx.name(), Self::NAME, Self::IMAGE)
+        let image = format!("wearejh/elasticsearch:{}-m2",ctx.es_version.get_image());
+        DcService::new(ctx.name(), Self::NAME, image)
             .set_ports(vec!["9200:9200"])
             .set_volumes(vec![format!(
                 "{}:{}",
