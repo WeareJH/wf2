@@ -69,9 +69,9 @@ wf2 --recipe M2 --help
 wf2 --recipe Wp --help
 ```
 
-## Trouble Shooting
+## Troubleshooting
 
-### Elasticsearch containers restarting
+### Elasticsearch container restarting
 
 If you encounter the Elasticsearch container crashing and restarting, try increasing the memory available to docker. 12GB seems to be enough but others have had to allocate more. Elasticsearch is resrouce heavy.
 
