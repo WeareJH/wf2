@@ -52,6 +52,7 @@ impl Service for TraefikService {
                 "default",
                 DcServiceNetwork::with_aliases(ctx.domains.clone()),
             )
+            .set_privileged(true)
             .finish()
     }
 }
