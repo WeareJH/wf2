@@ -26,11 +26,11 @@ impl Service<M2Vars> for UnisonService {
         DcService::new(ctx.name(), Self::NAME, Self::IMAGE)
             .set_volumes(vec![
                 format!(
-                    "{}:{}",
+                    "{}:{}:z",
                     vars.content[&M2Var::Pwd],
                     UnisonService::VOLUME_HOST
                 ),
-                format!("{}:{}", M2Volumes::APP, UnisonService::VOLUME_INTERNAL),
+                format!("{}:{}:z", M2Volumes::APP, UnisonService::VOLUME_INTERNAL),
                 format!(
                     "{}:{}",
                     vars.content[&M2Var::UnisonFile],

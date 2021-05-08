@@ -18,7 +18,7 @@ impl Service<M2Vars> for M2NodeService {
             .dc_service(ctx, &())
             .set_working_dir(M2_ROOT)
             .set_init(true)
-            .set_volumes(vec![format!("{}:{}", M2Volumes::APP, M2_ROOT)])
+            .set_volumes(vec![format!("{}:{}:z", M2Volumes::APP, M2_ROOT)])
             .set_env_file(vec![vars.content[&M2Var::EnvFile].to_string()])
             .finish()
     }
