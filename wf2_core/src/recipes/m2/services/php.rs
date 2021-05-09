@@ -41,7 +41,7 @@ impl Service<M2Vars> for PhpService {
             .set_volumes(vec![
                 format!("{}:{}:z", M2Volumes::APP, M2_ROOT),
                 format!(
-                    "{}:{}",
+                    "{}:{}:z",
                     M2Volumes::COMPOSER_CACHE,
                     PhpService::COMPOSER_CACHE_PATH,
                 ),

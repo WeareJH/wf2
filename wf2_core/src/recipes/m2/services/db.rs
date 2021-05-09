@@ -60,14 +60,14 @@ impl Service<M2Vars> for DbService {
         let opts = DbServiceOptions::from_ctx(&ctx);
         DcService::new(ctx.name(), Self::NAME, opts.image)
             .set_volumes(vec![
-                format!("{}:{}", M2Volumes::DB, DbService::VOLUME_DATA),
+                format!("{}:{}:z", M2Volumes::DB, DbService::VOLUME_DATA),
                 format!(
-                    "{}:{}",
+                    "{}:{}:z",
                     vars.content[&M2Var::DbConfDir],
                     DbService::VOLUME_CONF
                 ),
                 format!(
-                    "{}:{}",
+                    "{}:{}:z",
                     vars.content[&M2Var::DbInitDir],
                     DbService::VOLUME_ENTRY
                 ),

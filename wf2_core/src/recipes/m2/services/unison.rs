@@ -32,7 +32,7 @@ impl Service<M2Vars> for UnisonService {
                 ),
                 format!("{}:{}:z", M2Volumes::APP, UnisonService::VOLUME_INTERNAL),
                 format!(
-                    "{}:{}",
+                    "{}:{}:z",
                     vars.content[&M2Var::UnisonFile],
                     UnisonService::CONFIG_FILE
                 ),

@@ -20,8 +20,8 @@ impl Service<M2Vars> for M2NginxService {
             .dc_service(&ctx, &())
             .set_working_dir(M2_ROOT)
             .set_volumes(vec![
-                format!("{}:{}", M2Volumes::APP, M2_ROOT),
-                format!("{}:/etc/nginx/conf.d", vars.content[&M2Var::NginxDir]),
+                format!("{}:{}:z", M2Volumes::APP, M2_ROOT),
+                format!("{}:/etc/nginx/conf.d:z", vars.content[&M2Var::NginxDir]),
             ])
             .set_depends_on(vec![PhpService::NAME])
             .set_env_file(vec![vars.content[&M2Var::EnvFile].to_string()])
