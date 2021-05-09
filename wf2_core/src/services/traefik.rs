@@ -92,7 +92,7 @@ mod test {
               default:
                 aliases:
                   - local.m2
-
+            privileged: true
         "#;
         let expected_dc: DcService = serde_yaml::from_str(expected).expect("deserialize");
         assert_eq!(actual, expected_dc);

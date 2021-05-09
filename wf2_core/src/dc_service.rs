@@ -161,7 +161,6 @@ impl DcService {
     pub fn set_privileged(&mut self, privileged: bool) -> &mut Self {
         self.privileged = Some(privileged);
         self
-
     }
     pub fn finish(&self) -> DcService {
         DcService { ..self.clone() }

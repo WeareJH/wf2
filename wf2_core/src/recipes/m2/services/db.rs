@@ -111,9 +111,9 @@ mod tests {
             container_name: wf2__project__db
             image: "mysql:8.0"
             volumes:
-              - "db-data:/var/lib/mysql"
-              - "/users/shane/project/.wf2_m2_project/mysql/mysqlconf:/etc/mysql/conf.d"
-              - "/users/shane/project/.wf2_m2_project/mysql/init-scripts:/docker-entrypoint-initdb.d"
+              - "db-data:/var/lib/mysql:z"
+              - "/users/shane/project/.wf2_m2_project/mysql/mysqlconf:/etc/mysql/conf.d:z"
+              - "/users/shane/project/.wf2_m2_project/mysql/init-scripts:/docker-entrypoint-initdb.d:z"
             env_file:
               - "/users/shane/project/.wf2_m2_project/.docker.env"
             restart: unless-stopped

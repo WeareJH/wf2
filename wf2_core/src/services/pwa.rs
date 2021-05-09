@@ -62,7 +62,7 @@ impl Service<PwaServiceOptions> for PwaService {
             .set_init(true)
             .set_ports(vec![PwaService::PORT.to_string()])
             .set_volumes(vec![format!(
-                "{}:{}",
+                "{}:{}:z",
                 M2Volumes::PWA,
                 opts.src_dir_in_volume
                     .clone()
@@ -110,7 +110,7 @@ mod tests {
                 args:
                     BUILD_COMMAND: "npm run build:debug"
             volumes:
-              - "pwa-src:/home/node/app/packages/server/pwa"
+              - "pwa-src:/home/node/app/packages/server/pwa:z"
             labels:
               - traefik.enable=false
             ports:

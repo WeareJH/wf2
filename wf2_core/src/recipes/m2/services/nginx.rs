@@ -29,7 +29,7 @@ impl Service<M2Vars> for M2NginxService {
 
         if M2RecipeOptions::has_pwa_options(&ctx) {
             service.add_depends_on(vec![PwaService::NAME]);
-            service.add_volumes(vec![format!("{}:{}{}", M2Volumes::PWA, M2_ROOT, "/pwa")]);
+            service.add_volumes(vec![format!("{}:{}{}:z", M2Volumes::PWA, M2_ROOT, "/pwa")]);
         }
 
         service
@@ -53,8 +53,8 @@ mod tests {
             container_name: wf2__wf2_default__nginx
             image: "wearejh/nginx:stable-m2"
             volumes:
-              - "app-src:/var/www"
-              - "./.wf2_default/nginx/sites:/etc/nginx/conf.d"
+              - "app-src:/var/www:z"
+              - "./.wf2_default/nginx/sites:/etc/nginx/conf.d:z"
             env_file:
               - "./.wf2_default/.docker.env"
             depends_on:
@@ -80,9 +80,9 @@ mod tests {
             container_name: wf2__wf2_default__nginx
             image: "wearejh/nginx:stable-m2"
             volumes:
-              - "app-src:/var/www"
-              - "./.wf2_m2_wf2_default/nginx/sites:/etc/nginx/conf.d"
-              - "pwa-src:/var/www/pwa"
+              - "app-src:/var/www:z"
+              - "./.wf2_m2_wf2_default/nginx/sites:/etc/nginx/conf.d:z"
+              - "pwa-src:/var/www/pwa:z"
             env_file:
               - "./.wf2_m2_wf2_default/.docker.env"
             depends_on:
