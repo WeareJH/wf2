@@ -39,9 +39,9 @@ impl Service<M2Vars> for PhpService {
         let image = &vars.content[&M2Var::PhpImage].clone();
         DcService::new(ctx.name(), Self::NAME, image)
             .set_volumes(vec![
-                format!("{}:{}", M2Volumes::APP, M2_ROOT),
+                format!("{}:{}:z", M2Volumes::APP, M2_ROOT),
                 format!(
-                    "{}:{}",
+                    "{}:{}:z",
                     M2Volumes::COMPOSER_CACHE,
                     PhpService::COMPOSER_CACHE_PATH,
                 ),

@@ -60,14 +60,14 @@ impl Service<M2Vars> for DbService {
         let opts = DbServiceOptions::from_ctx(&ctx);
         DcService::new(ctx.name(), Self::NAME, opts.image)
             .set_volumes(vec![
-                format!("{}:{}", M2Volumes::DB, DbService::VOLUME_DATA),
+                format!("{}:{}:z", M2Volumes::DB, DbService::VOLUME_DATA),
                 format!(
-                    "{}:{}",
+                    "{}:{}:z",
                     vars.content[&M2Var::DbConfDir],
                     DbService::VOLUME_CONF
                 ),
                 format!(
-                    "{}:{}",
+                    "{}:{}:z",
                     vars.content[&M2Var::DbInitDir],
                     DbService::VOLUME_ENTRY
                 ),
@@ -111,9 +111,9 @@ mod tests {
             container_name: wf2__project__db
             image: "mysql:8.0"
             volumes:
-              - "db-data:/var/lib/mysql"
-              - "/users/shane/project/.wf2_m2_project/mysql/mysqlconf:/etc/mysql/conf.d"
-              - "/users/shane/project/.wf2_m2_project/mysql/init-scripts:/docker-entrypoint-initdb.d"
+              - "db-data:/var/lib/mysql:z"
+              - "/users/shane/project/.wf2_m2_project/mysql/mysqlconf:/etc/mysql/conf.d:z"
+              - "/users/shane/project/.wf2_m2_project/mysql/init-scripts:/docker-entrypoint-initdb.d:z"
             env_file:
               - "/users/shane/project/.wf2_m2_project/.docker.env"
             restart: unless-stopped

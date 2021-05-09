@@ -49,6 +49,9 @@ pub struct DcService {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub networks: Option<HashMap<String, DcServiceNetwork>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub privileged: Option<bool>,
 }
 
 impl DcService {
@@ -153,6 +156,10 @@ impl DcService {
             hm.insert(name.into(), network);
             self.networks = Some(hm)
         }
+        self
+    }
+    pub fn set_privileged(&mut self, privileged: bool) -> &mut Self {
+        self.privileged = Some(privileged);
         self
     }
     pub fn finish(&self) -> DcService {

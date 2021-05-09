@@ -52,6 +52,7 @@ impl Service for TraefikService {
                 "default",
                 DcServiceNetwork::with_aliases(ctx.domains.clone()),
             )
+            .set_privileged(true)
             .finish()
     }
 }
@@ -91,7 +92,7 @@ mod test {
               default:
                 aliases:
                   - local.m2
-
+            privileged: true
         "#;
         let expected_dc: DcService = serde_yaml::from_str(expected).expect("deserialize");
         assert_eq!(actual, expected_dc);
