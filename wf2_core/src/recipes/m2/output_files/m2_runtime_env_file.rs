@@ -85,6 +85,7 @@ env_vars! {
     BLACKFIRE_SERVER_ID=""
     BLACKFIRE_SERVER_TOKEN=""
     NODE_TLS_REJECT_UNAUTHORIZED="0"
+    ELASTICSEARCH_HOST="elasticsearch"
 }
 
 //
