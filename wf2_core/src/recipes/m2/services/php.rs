@@ -16,6 +16,7 @@ impl PhpService {
     pub const IMAGE_7_3: &'static str = "wearejh/php:7.3-m2";
     pub const IMAGE_7_4: &'static str = "wearejh/php:7.4-m2";
     pub const COMPOSER_CACHE_PATH: &'static str = "/home/www-data/.composer/cache";
+    pub const XDEBUG_DATA_PATH: &'static str = "/home/www-data/xdebug";
 
     pub fn select(ctx: &Context) -> Result<DcService, failure::Error> {
         match M2Vars::from_ctx(&ctx) {
@@ -45,6 +46,7 @@ impl Service<M2Vars> for PhpService {
                     M2Volumes::COMPOSER_CACHE,
                     PhpService::COMPOSER_CACHE_PATH,
                 ),
+                format!("{}:{}", M2Volumes::XDEBUG, PhpService::XDEBUG_DATA_PATH),
             ])
             .set_depends_on(vec![DbService::NAME])
             .set_ports(vec!["9000"])

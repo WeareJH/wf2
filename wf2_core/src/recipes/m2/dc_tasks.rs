@@ -14,6 +14,7 @@ impl DcTasksTrait for M2Recipe {
             DcVolume::new(ctx.name(), M2Volumes::APP),
             DcVolume::new(ctx.name(), M2Volumes::COMPOSER_CACHE),
             DcVolume::new(ctx.name(), M2Volumes::ELASTICSEARCH),
+            DcVolume::new(ctx.name(), M2Volumes::XDEBUG),
         ];
 
         if M2RecipeOptions::has_pwa_options(ctx) {
@@ -42,4 +43,5 @@ impl M2Volumes {
     pub const COMPOSER_CACHE: &'static str = "composer-cache";
     pub const ELASTICSEARCH: &'static str = "esdata";
     pub const PWA: &'static str = "pwa-src";
+    pub const XDEBUG: &'static str = "xdebug";
 }
