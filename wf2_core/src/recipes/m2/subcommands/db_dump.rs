@@ -13,7 +13,7 @@
 //!
 //! // translates into the following:
 //! # let expected = r#"
-//! docker exec -i wf2__wf2_default__db mysqldump -udocker -pdocker docker > dump.sql
+//! docker exec -i wf2__wf2_default__db mysqldump --no-tablespaces -udocker -pdocker docker > dump.sql
 //! # "#;
 //! # assert_eq!(cmds[0], expected.trim());
 //! ```
@@ -65,7 +65,7 @@ fn from_ctx(ctx: &Context) -> Vec<Task> {
 ///
 pub fn db_dump(service: DcService) -> Vec<Task> {
     let db_dump_command = format!(
-        r#"docker exec -i {container_name} mysqldump -u{user} -p{pass} {db} > dump.sql"#,
+        r#"docker exec -i {container_name} mysqldump --no-tablespaces -u{user} -p{pass} {db} > dump.sql"#,
         container_name = service.container_name,
         user = DbService::DB_USER,
         pass = DbService::DB_PASS,
@@ -89,7 +89,7 @@ mod test {
         if let Task::SimpleCommand { command, .. } = t1 {
             assert_eq!(
                 command,
-                "docker exec -i wf2__acme__db mysqldump -udocker -pdocker docker > dump.sql"
+                "docker exec -i wf2__acme__db mysqldump --no-tablespaces -udocker -pdocker docker > dump.sql"
             )
         } else {
             dbg!(t1);
